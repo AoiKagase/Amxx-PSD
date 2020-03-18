@@ -1,0 +1,2 @@
+# AMXMODX
+AmxModX Plugins
