@@ -41,19 +41,16 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
+#define VERSION 					"3.2"
 
 #if defined BIOHAZARD_SUPPORT
 	#define PLUGIN 					"Lasermine for BIOHAZARD"
-	#define VERSION 				"3.0"
-
 	#define CHAT_TAG 				"[BioLaser]"
 	#define CVAR_TAG				"bio_ltm_"
 
 	#define STR_CBT					"Your Zombie! Can't buy and deploying lasermine!"
 #else
 	#define PLUGIN 					"Laser/Tripmine Entity"
-	#define VERSION 				"3.0"
-
 	#define CHAT_TAG 				"[Lasermine]"
 	#define CVAR_TAG				"amx_ltm_"
 
