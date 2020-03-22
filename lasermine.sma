@@ -41,18 +41,21 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.2"
 
 #if defined BIOHAZARD_SUPPORT
 	#define PLUGIN 					"Lasermine for BIOHAZARD"
+	#define VERSION 				"3.0"
+
 	#define CHAT_TAG 				"[BioLaser]"
-	#define CVAR_TAG				"bio_ltm_"
+	#define CVAR_TAG				"bio_ltm"
 
 	#define STR_CBT					"Your Zombie! Can't buy and deploying lasermine!"
 #else
 	#define PLUGIN 					"Laser/Tripmine Entity"
+	#define VERSION 				"3.0"
+
 	#define CHAT_TAG 				"[Lasermine]"
-	#define CVAR_TAG				"amx_ltm_"
+	#define CVAR_TAG				"amx_ltm"
 
 	#define STR_CBT					"Your Team Can't buy and deploying lasermine!"
 #endif
@@ -324,62 +327,62 @@ public plugin_init()
 	format(cvar_command, 31, "%s", CVAR_TAG);
 	gCvar[CVAR_ENABLE]	        = register_cvar(cvar_command,   "1");   	// 0 = off, 1 = on.
 
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "acs");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_acs");
 	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(cvar_command,   "0");   	// 0 = all, 1 = admin
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "mode");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_mode");
 	gCvar[CVAR_MODE]           	= register_cvar(cvar_command,   "0");   	// 0 = lasermine, 1 = tripmine, 2 = claymore wire trap
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "ff");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_ff");
 	gCvar[CVAR_FRIENDLY_FIRE]  	= register_cvar(cvar_command,   "0");   	// Friendly fire. 0 or 1
-	format(cvar_command, 31,"%s%s", CVAR_TAG, "delay");
+	format(cvar_command, 31,"%s%s", CVAR_TAG,  "_delay");
 	gCvar[CVAR_START_DELAY]    	= register_cvar(cvar_command,   "5");  		// Round start delay time.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "cmdmode");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_cmdmode");
 	gCvar[CVAR_CMD_MODE]	    = register_cvar(cvar_command,   "1");  		// 0 is +USE key, 1 is bind, 2 is each.
 
 	// Ammo.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "ammo");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_ammo");
 	gCvar[CVAR_MAX_HAVE]       	= register_cvar(cvar_command,   "2");   	// Max having ammo.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "teammax");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_teammax");
 	gCvar[CVAR_TEAM_MAX]		= register_cvar(cvar_command,   "10"); 		// Max deployed in team.
 
 	// Buy system.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "buymode");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_buymode");
 	gCvar[CVAR_BUY_MODE]	    = register_cvar(cvar_command,   "1");   	// 0 = off, 1 = on.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "cbt");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_cbt");
 	gCvar[CVAR_CBT]    			= register_cvar(cvar_command,   "ALL");	 	// Can buy team. TR / CT / ALL.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "cost");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_cost");
 	gCvar[CVAR_COST]           	= register_cvar(cvar_command,   "2500");	// Buy cost.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "fragmoney");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_fragmoney");
 	gCvar[CVAR_FRAG_MONEY]     	= register_cvar(cvar_command,   "300"); 	// Get money.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "startammo");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_startammo");
 	gCvar[CVAR_START_HAVE]	    = register_cvar(cvar_command,   "1");   	// Round start have ammo count.
 
 	// Laser design.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "line");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_line");
 	gCvar[CVAR_LASER_VISIBLE]	= register_cvar(cvar_command,   "1");   	// Laser line visibility.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "color");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_color");
 	gCvar[CVAR_LASER_COLOR]    	= register_cvar(cvar_command,   "0");   	// laser line color 0 = team color, 1 = green.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "bright");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_bright");
 	gCvar[CVAR_LASER_BRIGHT]   	= register_cvar(cvar_command,   "255"); 	// laser line brightness.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "dmg");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_dmg");
 	gCvar[CVAR_LASER_DMG]      	= register_cvar(cvar_command,   "60.0"); 	// laser hit dmg. Float Value!
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "ldmgmode");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_ldmgmode");
 	gCvar[CVAR_LASER_DMG_MODE]	= register_cvar(cvar_command,   "0");   	// Laser line damage mode. 0 = frame dmg, 1 = once dmg, 2 = 1 second dmg.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "ldmgseconds");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_ldmgseconds");
 	gCvar[CVAR_LASER_DMG_DPS]  	= register_cvar(cvar_command,   "1");   	// laser line damage mode 2 only, damage/seconds. default 1 (sec)
 
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "health");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_health");
 	gCvar[CVAR_MINE_HEALTH]    	= register_cvar(cvar_command,   "500"); 	// Tripmine Health. (Can break.)
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "glow");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_glow");
 	gCvar[CVAR_MINE_GLOW]      	= register_cvar(cvar_command,   "1");   	// Tripmine glowing. 0 = off, 1 = on.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "radius");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_radius");
 	gCvar[CVAR_EXPLOSE_RADIUS] 	= register_cvar(cvar_command,   "320.0");	// Explosion radius.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "rdmg");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_rdmg");
 	gCvar[CVAR_EXPLOSE_DMG]		= register_cvar(cvar_command,   "100"); 	// Explosion radius damage.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "death_remove");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_death_remove");
 	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(cvar_command,   "0"); 		// Dead Player remove lasermine. 0 = off, 1 = on.
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "put_wait");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_put_wait");
 	gCvar[CVAR_LASER_PUT_WAIT]	= register_cvar(cvar_command,   "1"); 		// Waiting for put lasermine. (int:seconds. 0 = no progress bar.)
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "lrange");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_lrange");
 	gCvar[CVAR_LASER_RANGE]		= register_cvar(cvar_command,   "8192.0"); 	// Laser beam lange (float range.)
 
 	RegisterHam(Ham_Spawn, "player", "NewRound", 1);

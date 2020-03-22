@@ -71,7 +71,7 @@ Tester	Mr.Kaseijin
 #define VERSION 					"2.00"
 
 #define CHAT_TAG 					"[MONEY-GIVE]"
-#define CVAR_TAG					"amx_mgive_"
+#define CVAR_TAG					"amx_mgive"
 
 // ADMIN LEVEL
 #define ADMIN_ACCESSLEVEL			ADMIN_LEVEL_H
@@ -160,19 +160,19 @@ public plugin_init()
 	format(cvar_command, 31, "%s", CVAR_TAG);
 	gCvar[CVAR_ENABLE]	        = register_cvar(cvar_command,   "1");   	// 0 = off, 1 = on.
 
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "acs");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_acs");
 	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(cvar_command,   "0");   	// 0 = all, 1 = admin
 
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "max");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_max");
 	gCvar[CVAR_MAX_MONEY]		= register_cvar(cvar_command, 	"16000");	// Max have money. 
 
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "menu_enemies");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_menu_enemies");
 	gCvar[CVAR_ENEMIES]			= register_cvar(cvar_command, 	"0");		// enemies in menu. 
 
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "menu_bots");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_menu_bots");
 	gCvar[CVAR_BOTS_MENU]		= register_cvar(cvar_command, 	"0");		// Bots in menu. 
 
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "bots_action");
+	format(cvar_command, 31, "%s%s", CVAR_TAG, "_bots_action");
 	gCvar[CVAR_BOTS_ACTION]		= register_cvar(cvar_command, 	"0");		// Bots action. 
 
 	// Bots Action
