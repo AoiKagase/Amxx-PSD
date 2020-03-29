@@ -253,12 +253,15 @@ init_database()
 	// CREATE TABLE info_user.
 	len = 0;
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`auth_id`     VARCHAR(%d)    	NOT NULL,", MAX_AUTHID_LENGTH);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `name`        VARCHAR(%d)    	NOT NULL,", MAX_NAME_LENGTH);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `latest_ip`   VARCHAR(%d)   	NOT NULL,", MAX_IP_LENGTH);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `online_time` BIGINT UNSIGNED  DEFAULT  0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at`  DATETIME       	NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at`  DATETIME       	NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`auth_id`     		VARCHAR(%d)    	 NOT NULL,", MAX_AUTHID_LENGTH);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `name`        		VARCHAR(%d)    	 NOT NULL,", MAX_NAME_LENGTH);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `latest_ip`   		VARCHAR(%d)   	 NOT NULL,", MAX_IP_LENGTH);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `online_time` 		BIGINT	UNSIGNED DEFAULT  0,");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `kick_count`  		SHORT	UNSIGNED DEFAULT  0,");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `ban_last_time`  	DATETIME		 DEFAULT  NULL,");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `ban_time`    		INT		UNSIGNED DEFAULT  0,");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at`  		DATETIME       	 NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at`  		DATETIME       	 NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`auth_id`, `name`),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " INDEX IDX_1 (`created_at`),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " INDEX IDX_2 (`name`)");
