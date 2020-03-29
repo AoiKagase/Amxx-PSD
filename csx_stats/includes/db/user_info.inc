@@ -8,7 +8,7 @@ class T_USER_INFO extends T_CORE
 		$sql = 'SELECT '
 			.'	A.auth_id'
 			.',	A.name'
-			.',	A.online_time'
+			.',	SEC_TO_TIME(A.online_time) AS online_time'
 			.' FROM user_info AS A'
 			.' WHERE created_at = (SELECT MAX(created_at) FROM user_info AS B WHERE B.auth_id = A.auth_id)'
 			.' ORDER BY A.auth_id';
@@ -35,7 +35,7 @@ class T_USER_INFO extends T_CORE
 		$sql = 'SELECT '
 			.'	A.auth_id'
 			.',	A.name'
-			.',	A.online_time'
+			.',	SEC_TO_TIME(A.online_time)'
 			.' FROM user_info AS A'
 			.' WHERE auth_id = :auth_id'
 			.' ORDER BY A.auth_id, A.created_at DESC';
