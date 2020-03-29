@@ -256,10 +256,10 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`auth_id`     		VARCHAR(%d)    	 NOT NULL,", MAX_AUTHID_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `name`        		VARCHAR(%d)    	 NOT NULL,", MAX_NAME_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `latest_ip`   		VARCHAR(%d)   	 NOT NULL,", MAX_IP_LENGTH);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `online_time` 		BIGINT	UNSIGNED DEFAULT  0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `kick_count`  		SHORT	UNSIGNED DEFAULT  0,");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `online_time` 		BIGINT		UNSIGNED DEFAULT  0,");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `kick_count`  		SMALLINT	UNSIGNED DEFAULT  0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `ban_last_time`  	DATETIME		 DEFAULT  NULL,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `ban_time`    		INT		UNSIGNED DEFAULT  0,");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `ban_time`    		INT			UNSIGNED DEFAULT  0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at`  		DATETIME       	 NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at`  		DATETIME       	 NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`auth_id`, `name`),");
