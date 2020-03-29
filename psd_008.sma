@@ -46,7 +46,7 @@
 #define SQL_VALUES				") VALUES ("
 #define SQL_END					");"
 
-#define SQL_SELECT_USER_TIME	"SELECT SUM(`online_time`) AS online_time FROM `%s` WHERE `auth_id` = '%s';"
+#define SQL_SELECT_USER_TIME	"SELECT SUM(`online_time`) AS online_time FROM `%s`.`%s` WHERE `auth_id` = '%s';"
 
 #define TABLE_INFO				"user_info"
 #define TABLE_STATS				"user_stats"
@@ -806,7 +806,7 @@ insert_user_info_batch(sql[], sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LE
 
 select_user_info(sAuthId[])
 {
-	new Handle:query = SQL_PrepareQuery(g_dbConnect, SQL_SELECT_USER_TIME, sAuthId);
+	new Handle:query = SQL_PrepareQuery(g_dbConnect, SQL_SELECT_USER_TIME, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER], sAuthId);
 	
 	// run the query
 	if(!SQL_Execute(query))
