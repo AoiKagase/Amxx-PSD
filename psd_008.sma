@@ -46,7 +46,10 @@
 #define SQL_VALUES				") VALUES ("
 #define SQL_END					");"
 
-#define SQL_SELECT_USER_TIME	"SELECT SUM(`online_time`) AS online_time FROM info_user WHERE `auth_id` = '%s';"
+#define SQL_SELECT_USER_TIME	"SELECT SUM(`online_time`) AS online_time FROM `%s` WHERE `auth_id` = '%s';"
+
+#define TABLE_INFO				"user_info"
+#define TABLE_STATS				"user_stats"
 
 enum DB_CONFIG
 {
@@ -66,8 +69,8 @@ enum TBL_DATA
 new g_dbConfig[DB_CONFIG];
 new g_tblNames[TBL_DATA] = 
 {
-	"info_user",
-	"stats_user",
+	TABLE_INFO,
+	TABLE_STATS,
 };
 
 //Database Handles
