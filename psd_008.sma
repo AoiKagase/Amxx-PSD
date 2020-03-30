@@ -24,7 +24,7 @@
 #define SERVER_ID				1
 
 #define SQL_FIELD_USER			"`auth_id`,`name`,`latest_ip`, `online_time`"
-#define SQL_PARAM_USER          "'%s','%s','%s',%i"
+#define SQL_PARAM_USER          "'%s','%s','%s','%i'"
 
 #define SQL_FIELD_STATS			"`auth_id`,`csx_rank`,`csx_score`,`csx_kills`,`csx_tks`,`csx_deaths`,`csx_hits`,`csx_dmg`,`csx_shots`,`csx_hs`,`h_gen`,`h_head`,`h_chest`,`h_stomach`,`h_larm`,`h_rarm`,`h_lleg`,`h_rleg`" //,`h_shield`
 #define SQL_PARAM_STATS         "'%s','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i'" //,'%i'
@@ -46,7 +46,8 @@
 #define SQL_VALUES				") VALUES ("
 #define SQL_END					");"
 
-#define SQL_SELECT_USER_TIME	"SELECT SUM(`online_time`) AS online_time FROM `%s`.`%s` WHERE `auth_id` = '%s';"
+#define SQL_SELECT_USER_TIME	"SELECT SUM(`online_time`) AS online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id`;"
+#define SQL_SELECT_USER_INFO	"SELECT `auth_id`, `latest_ip`, SUM(`online_time`) as online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id`, `latest_ip` ORDER BY `created_at` desc LIMIT 1;"
 
 #define TABLE_INFO				"user_info"
 #define TABLE_STATS				"user_stats"
@@ -302,21 +303,8 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " INDEX IDX_1 (`map_name`) ");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
 	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	execute_insert_multi_query(queries ,i);
 
-	for(new n = 0;n < i; n++)
-    {
-        // run the queries, check if they were alright
-        // note that you can run the same query multiple times
-        // we are not doing this here, but it's nice to have
-        if(!SQL_Execute(queries[n]))
-        {
-            // if there were any problems
-            SQL_QueryError(queries[n], g_dbError, charsmax(g_dbError));
-            set_fail_state(g_dbError);
-        }
-        // close the handle
-        SQL_FreeHandle(queries[n]);
-    }
 	return PLUGIN_CONTINUE;
 }
 
@@ -324,12 +312,11 @@ init_database()
 public insert_batch()
 {
 	new iMax = get_statsnum();
-	new Handle:result;
-	new izStats			[STATSX_MAX_STATS];
-	new izBody			[MAX_BODYHITS];
-	new sName			[MAX_NAME_LENGTH];
-	new sAuthid			[MAX_AUTHID_LENGTH];
-	new sql				[MAX_QUERY_LENGTH + 1];
+	new izStats	[STATSX_MAX_STATS];
+	new izBody	[MAX_BODYHITS];
+	new sName	[MAX_NAME_LENGTH] 		= "";
+	new sAuthid	[MAX_AUTHID_LENGTH]		= "";
+	new sql		[MAX_QUERY_LENGTH + 1]	= "";
 	new len = 0;
 	for(new i = 0 ; i < iMax; i++)
 	{
@@ -369,15 +356,7 @@ public insert_batch()
 		);
 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-		result = SQL_PrepareQuery(g_dbConnect, sql);
-		if(!SQL_Execute(result))
-		{
-            // if there were any problems
-			SQL_QueryError(result, g_dbError, charsmax(g_dbError));
-			set_fail_state(g_dbError);
-			server_print("[PSD] Batch Updating Failed...");
-		}
-		SQL_FreeHandle(result);
+		execute_insert_sql(sql);
 
 		insert_user_info_batch(sql, sAuthid, sName);
 	}
@@ -439,7 +418,6 @@ insert_round_end_player(id, sAuthId[])
 	new izStats	[STATSX_MAX_STATS];
 	new izBody	[MAX_BODYHITS];
 	new sql		[MAX_QUERY_LENGTH + 1] = "";
-	new Handle:result;
 	new len = 0;
 
 	arrayset(izStats, 0, sizeof(izStats));
@@ -477,16 +455,8 @@ insert_round_end_player(id, sAuthId[])
 //		, izBody[HIT_SHIELD]
 	);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
-	result = SQL_PrepareQuery(g_dbConnect, sql);
-
-	if(!SQL_Execute(result))
-	{
-		// if there were any problems
-		SQL_QueryError(result, g_dbError, charsmax(g_dbError));
-		set_fail_state(g_dbError);
-		server_print("[PSD] Round End Recording Failed...");
-	}
-	SQL_FreeHandle(result);
+	
+	execute_insert_sql(sql);
 }
 
 insert_map_end_player(id, sAuthId[])
@@ -494,7 +464,6 @@ insert_map_end_player(id, sAuthId[])
 	new izStats	[STATSX_MAX_STATS];
 	new izBody	[MAX_BODYHITS];
 	new sql		[MAX_QUERY_LENGTH + 1] = "";
-	new Handle:result;
 	new len = 0;
 
 	arrayset(izStats, 0, sizeof(izStats));
@@ -532,16 +501,7 @@ insert_map_end_player(id, sAuthId[])
 	);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	result = SQL_PrepareQuery(g_dbConnect, sql);
-
-	if(!SQL_Execute(result))
-	{
-		// if there were any problems
-		SQL_QueryError(result, g_dbError, charsmax(g_dbError));
-		set_fail_state(g_dbError);
-		server_print("[PSD] Round End Recording Failed...");
-	}
-	SQL_FreeHandle(result);
+	execute_insert_sql(sql);
 }
 
 insert_round_end_player_weapon(id, sAuthId[])
@@ -551,7 +511,6 @@ insert_round_end_player_weapon(id, sAuthId[])
 	new izBodyW		[MAX_BODYHITS];
 	new sWpnName	[MAX_NAME_LENGTH];
 	new sql			[MAX_QUERY_LENGTH + 1] = "";
-	new Handle:result;
 	new len = 0;
 
 	for(new n = 1; n < maxweapons; n++)
@@ -598,15 +557,7 @@ insert_round_end_player_weapon(id, sAuthId[])
 		);
 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-		result = SQL_PrepareQuery(g_dbConnect, sql);
-		if(!SQL_Execute(result))
-		{
-   	        // if there were any problems
-			SQL_QueryError(result, g_dbError, charsmax(g_dbError));
-			set_fail_state(g_dbError);
-			server_print("[PSD] Round End Recording (Weapons Record) Failed...");
-		}
-		SQL_FreeHandle(result);
+		execute_insert_sql(sql);
 	}
 }
 
@@ -617,7 +568,6 @@ insert_map_end_player_weapon(id, sAuthId[])
 	new izBodyW		[MAX_BODYHITS];
 	new sWpnName	[MAX_NAME_LENGTH];
 	new sql			[MAX_QUERY_LENGTH + 1] = "";
-	new Handle:result;
 	new len = 0;
 
 	for(new n = 1; n < maxweapons; n++)
@@ -663,15 +613,7 @@ insert_map_end_player_weapon(id, sAuthId[])
 		);
 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-		result = SQL_PrepareQuery(g_dbConnect, sql);
-		if(!SQL_Execute(result))
-		{
-   	        // if there were any problems
-			SQL_QueryError(result, g_dbError, charsmax(g_dbError));
-			set_fail_state(g_dbError);
-			server_print("[PSD] Round End Recording (Weapons Record) Failed...");
-		}
-		SQL_FreeHandle(result);
+		execute_insert_sql(sql);
 	}
 }
 
@@ -739,6 +681,7 @@ public client_infochanged(id)
 	{
 		new sAuthid	[MAX_AUTHID_LENGTH];
 		new sName	[MAX_NAME_LENGTH];
+
 		get_user_authid(id, sAuthid, charsmax(sAuthid));
 		get_user_name(id, sName, charsmax(sName));
 		if (!equali(sName, g_user_name[id])) 
@@ -752,9 +695,8 @@ public client_infochanged(id)
 
 insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "")
 {
-	new sIp[MAX_IP_LENGTH] = "";
-	new sql[MAX_QUERY_LENGTH + 1] = "";
-	new Handle:result;
+	new sIp[MAX_IP_LENGTH]			= "";
+	new sql[MAX_QUERY_LENGTH + 1]	= "";
 	new len = 0;
 	if (equali(sName,""))
 		get_user_name(id, sName, charsmax(sName));
@@ -770,41 +712,23 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, playtime);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	result = SQL_PrepareQuery(g_dbConnect, sql);
-
-	if(!SQL_Execute(result))
-	{
-        // if there were any problems
-		SQL_QueryError(result, g_dbError, charsmax(g_dbError));
-		set_fail_state(g_dbError);
-	}
-
-	SQL_FreeHandle(result);
+	execute_insert_sql(sql);
 }
 
 insert_user_info_batch(sql[], sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "")
 {
-	new sIp[MAX_IP_LENGTH] = "";
-	new Handle:result;
 	new len = 0;
+	new sIp[MAX_AUTHID_LENGTH];
+	new playtime = select_user_info_record(sAuthId, sIp[0], charsmax(sIp));
 
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_USER);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, 0);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, playtime);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	result = SQL_PrepareQuery(g_dbConnect, sql);
-
-	if(!SQL_Execute(result))
-	{
-        // if there were any problems
-		SQL_QueryError(result, g_dbError, charsmax(g_dbError));
-		set_fail_state(g_dbError);
-	}
-
-	SQL_FreeHandle(result);
+	execute_insert_sql(sql);
 }
 
 select_user_info(sAuthId[])
@@ -829,6 +753,27 @@ select_user_info(sAuthId[])
 	return online;
 }
 
+select_user_info_record(sAuthId[MAX_AUTHID_LENGTH], &ip, iplen)
+{
+	new Handle:query = SQL_PrepareQuery(g_dbConnect, SQL_SELECT_USER_INFO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER], sAuthId);
+	
+	// run the query
+	if(!SQL_Execute(query))
+	{
+		// if there were any problems
+		SQL_QueryError(query,g_dbError, charsmax(g_dbError));
+		set_fail_state(g_dbError);
+    }
+	
+	// SQL_ReadResult(query, 0, sAuthId, charsmax(sAuthId));	// auth_id
+	SQL_ReadResult(query, 1, ip, iplen);	// ip
+	new online_time = SQL_ReadResult(query, 2);		// time
+	
+	// of course, free the handle
+	SQL_FreeHandle(query);	
+	return online_time;
+}
+
 bool:is_stats_all_zero(izStats[STATSX_MAX_STATS])
 {
 	for(new i = 0; i < STATSX_MAX_STATS; i++)
@@ -849,4 +794,25 @@ bool:is_valid_authid(sAuthid[])
 	||	equali(sAuthid, "VALVE_ID_PENDING"))
 		return false;
 	return true;
+}
+
+execute_insert_sql(sql[])
+{
+	new Handle:result[1];
+	result[0] = SQL_PrepareQuery(g_dbConnect, sql);
+	execute_insert_multi_query(result, 1);
+}
+
+execute_insert_multi_query(Handle:query[], count)
+{
+	for(new i = 0; i < count;i++)
+	{
+		if(!SQL_Execute(query[i]))
+		{
+			// if there were any problems
+			SQL_QueryError(query[i], g_dbError, charsmax(g_dbError));
+			set_fail_state(g_dbError);
+		}
+		SQL_FreeHandle(query[i]);
+	}
 }
