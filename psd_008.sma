@@ -163,6 +163,9 @@ public plugin_core()
 public plugin_end()
 {
 	insert_map_end();
+
+	insert_batch();
+
 	sql_disconnect();
 
 	return PLUGIN_CONTINUE;
@@ -742,11 +745,14 @@ select_user_info(sAuthId[])
 		SQL_QueryError(query,g_dbError, charsmax(g_dbError));
 		set_fail_state(g_dbError);
     }
-	
-	// checks to make sure there's more results
-	// notice that it starts at the first row, rather than null
-	new online = SQL_ReadResult(query, 0);
-	
+
+	new online = 0;	
+	if (SQL_NumResults(query) > 0)
+	{
+		// checks to make sure there's more results
+		// notice that it starts at the first row, rather than null
+		online = SQL_ReadResult(query, 0);
+	}
 	// of course, free the handle
 	SQL_FreeHandle(query);
 	
@@ -764,11 +770,15 @@ select_user_info_record(sAuthId[MAX_AUTHID_LENGTH], &ip, iplen)
 		SQL_QueryError(query,g_dbError, charsmax(g_dbError));
 		set_fail_state(g_dbError);
     }
-	
-	// SQL_ReadResult(query, 0, sAuthId, charsmax(sAuthId));	// auth_id
-	SQL_ReadResult(query, 1, ip, iplen);	// ip
-	new online_time = SQL_ReadResult(query, 2);		// time
-	
+
+	new online_time = 0;
+	if (SQL_NumResults(query) > 0)
+	{
+		// SQL_ReadResult(query, 0, sAuthId, charsmax(sAuthId));	// auth_id
+		SQL_ReadResult(query, 1, ip, iplen);	// ip
+		online_time = SQL_ReadResult(query, 2);		// time
+	}
+
 	// of course, free the handle
 	SQL_FreeHandle(query);	
 	return online_time;
