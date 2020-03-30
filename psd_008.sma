@@ -664,7 +664,7 @@ public client_disconnected(id)
 //client connected update
 public client_putinserver(id)
 {
-	if(is_user_connected(id) && !is_user_bot(id))
+	if(is_user_connected(id))
 	{
 		new sAuthid			[MAX_AUTHID_LENGTH];
 		g_playtime[id] = get_systime();
@@ -706,13 +706,13 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "
 
 	get_user_ip(id, sIp, charsmax(sIp), 1);
 
-	new playtime = select_user_info(sAuthId) + (get_systime() - g_playtime[id]);
+	g_playtime[id] = select_user_info(sAuthId) + (get_systime() - g_playtime[id]);
 
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_USER);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, playtime);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp,  g_playtime[id]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
 	execute_insert_sql(sql);
