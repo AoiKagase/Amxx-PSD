@@ -84,28 +84,15 @@ public plugin_init()
 	register_logevent("round_end",   2, "0=World triggered", "1=Round_End");
 
 	g_player_round = CsTeam:CS_TEAM_CT;
-	RegisterHam(Ham_Spawn, "player", "round_start", 0);
+	RegisterHam(Ham_Spawn, "player", "round_start_pre", 0);
 
-	RegisterHam(Ham_Spawn, "player", "add_bot_players_upper", 1);
+	RegisterHam(Ham_Spawn, "player", "round_start_post", 1);
 }
 
-public add_bot_players_upper(id)
+public round_start_post(id)
 {
-	new bots	[MAX_PLAYERS];
-	new players	[MAX_PLAYERS];
-	new pnum, bnum;
-	get_players(bots, 	 bnum, "dh");
-	get_players(players, pnum, "ch");
-	new add = (pnum + 1) - bnum;
-
-	for(new i = 0; i < add; i++)
-		if (add > 0)
-			server_cmd("yb add");
-		else
-			server_cmd("yb kick");
-
 	if (!is_user_bot(id))
-		client_print_color(id, print_chat, "^4[%s] ^2%s", CHAT_TAG, ((g_player_round == CsTeam:CS_TEAM_T) ? "Player Team - Terrorist Round." : "Player Team - Counter-Terrorist Round."));
+		client_print_color(id, print_chat, "^4[%s]^2%s", CHAT_TAG, ((g_player_round == CsTeam:CS_TEAM_T) ? "Player Team - Terrorist Round." : "Player Team - Counter-Terrorist Round."));
 }
 
 public client_connect(id)
@@ -125,13 +112,8 @@ public client_disconnected(id)
 	if (is_user_bot(id))
 		return PLUGIN_CONTINUE;
 
-	new bots	[MAX_PLAYERS];
-	new bnum;
-	get_players(bots, bnum, "dh");
-	if (bnum > 1)
-	{
-		server_cmd("yb kick");
-	}
+	bot_player_balance();
+
 	return PLUGIN_CONTINUE;
 }
 
@@ -159,11 +141,30 @@ public auto_join(menu_msgid[], id)
 public round_end()
 {
 	g_player_round 	= CsTeam:((g_player_round == CsTeam:CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT);
+	bot_player_balance();
 }
 
-public round_start(id)
+bot_player_balance()
 {
+	new bots	[MAX_PLAYERS];
+	new players	[MAX_PLAYERS];
+	new pnum, bnum;
+	get_players(bots, 	 bnum, "dh");
+	get_players(players, pnum, "ch");
+	new add = (pnum + 1) - bnum;
 
+	for(new i = 0; i < abs(add); i++)
+	{
+		if (add > 0)
+			server_cmd("yb add");
+		else
+			server_cmd("yb kick");
+	}
+}
+
+public round_start_pre(id)
+{
+	bot_player_balance();
 	new num =  int:((g_player_round == CsTeam:CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT);
 
 	if (!is_user_connected(id))
