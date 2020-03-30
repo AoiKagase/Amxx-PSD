@@ -330,6 +330,8 @@ public insert_batch()
 
 		if (!is_valid_authid(sAuthid))
 			continue;
+		if (equali(sName, "BOT"))
+			formatex(sName, charsmax(sName), "BOT");
 
 		sql = "";
 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER_STATS]);
@@ -413,6 +415,7 @@ public insert_round_end()
 
 		insert_round_end_player_weapon(players[i], sAuthid);
 	}
+	insert_batch();
 	server_print("[PSD] Round End Recorded.");
 }
 
