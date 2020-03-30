@@ -24,7 +24,7 @@
 #define SERVER_ID				1
 
 #define SQL_FIELD_USER			"`auth_id`,`name`,`latest_ip`, `online_time`"
-#define SQL_PARAM_USER          "'%s','%s','%s',%i"
+#define SQL_PARAM_USER          "'%s','%s','%s','%i'"
 
 #define SQL_FIELD_STATS			"`auth_id`,`csx_rank`,`csx_score`,`csx_kills`,`csx_tks`,`csx_deaths`,`csx_hits`,`csx_dmg`,`csx_shots`,`csx_hs`,`h_gen`,`h_head`,`h_chest`,`h_stomach`,`h_larm`,`h_rarm`,`h_lleg`,`h_rleg`" //,`h_shield`
 #define SQL_PARAM_STATS         "'%s','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i','%i'" //,'%i'
@@ -312,11 +312,11 @@ init_database()
 public insert_batch()
 {
 	new iMax = get_statsnum();
-	new izStats			[STATSX_MAX_STATS];
-	new izBody			[MAX_BODYHITS];
-	new sName			[MAX_NAME_LENGTH];
-	new sAuthid			[MAX_AUTHID_LENGTH];
-	new sql				[MAX_QUERY_LENGTH + 1];
+	new izStats	[STATSX_MAX_STATS];
+	new izBody	[MAX_BODYHITS];
+	new sName	[MAX_NAME_LENGTH] 		= "";
+	new sAuthid	[MAX_AUTHID_LENGTH]		= "";
+	new sql		[MAX_QUERY_LENGTH + 1]	= "";
 	new len = 0;
 	for(new i = 0 ; i < iMax; i++)
 	{
@@ -354,6 +354,8 @@ public insert_batch()
 			, izBody[HIT_RIGHTLEG]
 //			, izBody[HIT_SHIELD]
 		);
+		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
+
 		execute_insert_sql(sql);
 
 		insert_user_info_batch(sql, sAuthid, sName);
@@ -453,6 +455,7 @@ insert_round_end_player(id, sAuthId[])
 //		, izBody[HIT_SHIELD]
 	);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
+	
 	execute_insert_sql(sql);
 }
 
