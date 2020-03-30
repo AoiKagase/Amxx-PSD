@@ -2,22 +2,22 @@
 <html>
 	<head>
 		<link rel="stylesheet" href="css/cs.css" type="text/css">
-		<title>Player Stats in DB</title>
+		<title>Player Status in DB</title>
 	</head>
 	<body topmargin="0" leftmargin="-2">
 		<basefont size="-1" face="MS GOTHIC">
-		<b>Player Stats in DB</b>
+		<b>Player Status in DB</b>
 		
 		<table width="100%" cellpadding="0" cellspacing="0" class="genmed">
 			<tr>
-				<td colspan="23" class="catHead">
+				<td colspan="24" class="catHead">
 					<span class="genmed"><b>{{ data.info.name }}</b></span>
 					<span class="genmed"><b>{{ data.info.online_time }}</b></span>
 					<span class="genmed"><b>User Rank</b></span>
 				</td>
 			</tr>
 			<tr>
-				<td class="row1" align="center" rowspan="2">Weapon</td>
+				<td class="row1" align="center" rowspan="2" colspan="2">Weapon</td>
 				<td class="row1" align="center" rowspan="2">Score</td>
 				<td class="row1" align="center" rowspan="2">Kills</td>
 				<td class="row1" align="center" rowspan="2">Deaths</td>
@@ -44,7 +44,8 @@
 			</tr>
 			{% for record in data.stats %}
 			<tr>
-				<td><img src="images/weapons/{{ record.wpn_name }}.gif" />{{ record.wpn_name }}</td>
+				<td><img src="images/weapons/{{ record.wpn_name }}.png" height="32"/></td>
+				<td>{{ record.wpn_name }}</td>
 				<td>{{ record.csx_score }}</td>
 				<td>{{ record.csx_kills }}</td>
 				<td>{{ record.csx_deaths }}</td>

@@ -2,11 +2,11 @@
 <html>
 	<head>
 		<link rel="stylesheet" href="css/cs.css" type="text/css">
-		<title>Player Stats in DB</title>
+		<title>Player Status in DB</title>
 	</head>
 	<body topmargin="0" leftmargin="-2">
 		<basefont size="-1" face="MS GOTHIC">
-		<b>Player Stats in DB</b>
+		<b>Player Status in DB</b>
 		
 		<table width="100%" cellpadding="0" cellspacing="0" class="genmed">
 			<tr>
