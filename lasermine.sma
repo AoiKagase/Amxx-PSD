@@ -41,17 +41,16 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
+#define VERSION 					"3.4"
 
 #if defined BIOHAZARD_SUPPORT
 	#define PLUGIN 					"Lasermine for BIOHAZARD"
-	#define VERSION 				"3.3"
 
 	#define CHAT_TAG 				"[BioLaser]"
 	#define CVAR_TAG				"bio_ltm"
 	#define LANG_KEY_NOT_BUY_TEAM	"NOT_BUY_TEAMB"
 #else
 	#define PLUGIN 					"Laser/Tripmine Entity"
-	#define VERSION 				"3.3"
 
 	#define CHAT_TAG 				"[Lasermine]"
 	#define CVAR_TAG				"amx_ltm"
@@ -1118,7 +1117,7 @@ ERROR:check_for_common(id)
 {
 	new cvar_enable = get_pcvar_num(gCvar[CVAR_ENABLE]);
 	new cvar_access = get_pcvar_num(gCvar[CVAR_ACCESS_LEVEL]);
-	new user_flags	= get_user_flags(id) & ADMIN_IMMUNITY;
+	new user_flags	= get_user_flags(id) & ADMIN_ACCESSLEVEL;
 	new is_alive	= fm_is_user_alive(id);
 	new TRIPMINE_MODE:cvar_mode	= TRIPMINE_MODE:get_pcvar_num(gCvar[CVAR_MODE]);
 
@@ -2092,6 +2091,7 @@ public SayLasermine(id)
 	if (equali(said,"/buy lasermine") || equali(said,"/lm"))
 	{
 		BuyLasermine(id);
+		return PLUGIN_HANDLED;
 	} else 
 	if (equali(said, "lasermine") || equali(said, "/lasermine"))
 	{
@@ -2107,7 +2107,7 @@ public SayLasermine(id)
 		len += formatex(msg[len], SIZE - len, "<b>+setlaser</b> //bind mouse3 +setlaser : using mouse3 set lasermine on wall<br/>");
 		len += formatex(msg[len], SIZE - len, "</body></html>");
 		show_motd(id, msg, "Lasermine Entity help");
-		return PLUGIN_CONTINUE;
+		return PLUGIN_HANDLED;
 	} else 
 	if (containi(said, "laser") != -1) 
 	{
