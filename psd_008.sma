@@ -330,7 +330,7 @@ public insert_batch()
 
 		if (!is_valid_authid(sAuthid))
 			continue;
-		if (equali(sName, "BOT"))
+		if (equali(sAuthid, "BOT"))
 			formatex(sName, charsmax(sName), "BOT");
 
 		sql = "";
@@ -365,7 +365,7 @@ public insert_batch()
 
 		insert_user_info_batch(sql, sAuthid, sName);
 	}
-	server_print("[PSD] Update successful.");
+//	server_print("[PSD] Update successful.");
 	return PLUGIN_HANDLED;
 }
 
@@ -391,7 +391,7 @@ public insert_map_end()
 
 		insert_user_info(players[i], sAuthid);
 	}
-	server_print("[PSD] Map End Recorded.");
+//	server_print("[PSD] Map End Recorded.");
 }
 
 public insert_round_end()
@@ -416,7 +416,7 @@ public insert_round_end()
 		insert_round_end_player_weapon(players[i], sAuthid);
 	}
 	insert_batch();
-	server_print("[PSD] Round End Recorded.");
+//	server_print("[PSD] Round End Recorded.");
 }
 
 insert_round_end_player(id, sAuthId[])
@@ -709,13 +709,14 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "
 
 	get_user_ip(id, sIp, charsmax(sIp), 1);
 
-	g_playtime[id] = select_user_info(sAuthId) + (get_systime() - g_playtime[id]);
+	new playtime = select_user_info(sAuthId) + (get_systime() - g_playtime[id]);
+	g_playtime[id] = get_systime();
 
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_USER);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp,  g_playtime[id]);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, playtime);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
 	execute_insert_sql(sql);
