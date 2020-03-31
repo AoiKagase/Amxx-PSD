@@ -75,7 +75,7 @@ class T_USER_STATS extends T_CORE
 			.',	SUM(A.h_shield)		AS h_shield'
 			.' FROM  user_stats AS A'
 			.' WHERE wpn_name != \'\''
-			.' AND round != 0'
+			.' AND round = 0'
 			.' AND auth_id = :auth_id'
 			.' GROUP BY A.auth_id, A.wpn_name'
 			.' ORDER BY csx_score desc';
