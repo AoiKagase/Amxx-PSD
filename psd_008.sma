@@ -184,16 +184,18 @@ sql_disconnect()
 public init_status()
 {
 	new datfile[MAX_LENGTH + 10], datfile2[MAX_LENGTH + 20];
-
+	new datetime[8];
 	formatex(datfile, charsmax(datfile), "%s/csstats.dat", g_dataDir);
-	get_time("%Y%M%D", datfile2, charsmax(datfile2));
-	formatex(datfile2, charsmax(datfile2), "%s/csstats-%s.bak", g_dataDir, datfile2);
+	get_time("%Y%M%D", datetime, charsmax(datetime));
+	formatex(datfile2, charsmax(datfile2), "%s/csstats-%s.bak", g_dataDir, datetime);
 	server_print(datfile);
+	server_print(datfile2);
 
 	if(file_exists(datfile))
 	{
 		if(rename_file(datfile, datfile2, 1))
 		{
+			delete_file(datfile);
 			reset_database();
 			server_print("[PSD] Initialize Successful, and backup csstats.dat now.");
 			server_print("[PSD] Please reloading server...");
@@ -582,7 +584,7 @@ insert_map_end_player_weapon(id, sAuthId[])
 		arrayset(izBodyW,  0, sizeof(izBodyW));
 
 		xmod_get_wpnname(n, sWpnName, charsmax(sWpnName));
-		get_user_wrstats(id, n, izStatsW, izBodyW);
+		get_user_wstats(id, n, izStatsW, izBodyW);
 
 		if (is_stats_all_zero(izStatsW))
 			continue;
