@@ -10,7 +10,7 @@
 		
 		<table width="100%" cellpadding="0" cellspacing="0" class="genmed">
 			<tr>
-				<td colspan="23" class="catHead">
+				<td colspan="22" class="catHead">
 					<span class="genmed"><b>Player Ranking TOP15</b></span>
 				</td>
 			</tr>
@@ -29,9 +29,9 @@
 				<td class="row1" align="center" rowspan="2">HeadShots</td>
 				<td class="row1" align="center" rowspan="2">Efficiency.</td>
 				<td class="row1" align="center" rowspan="2">Accuracy.</td>
-				<td class="row1" align="center" rowspan="2">Accuracy HeadShots.</td>
+				<td class="row1" align="center" rowspan="2">Accuracy<br />HeadShots.</td>
 				<td class="row1" align="center" rowspan="2">K/D Rate.</td>
-				<td class="row1" align="left"   colspan="8">HIT POSITION.</td>
+				<td class="row1" align="left"   colspan="7">HIT POSITION.</td>
 			</tr>
 			<tr>
 				<td class="row1" align="center">HEAD</td>
@@ -41,7 +41,7 @@
 				<td class="row1" align="center">RIGHT ARM</td>
 				<td class="row1" align="center">LEFT LEG</td>
 				<td class="row1" align="center">RIGHT LEG</td>
-				<td class="row1" align="center">SHILED (NOT WORKING)</td>
+<!--			<td class="row1" align="center">SHILED (NOT WORKING)</td>-->
 			</tr>
 			{% for record in ranking %}
 			<tr>
@@ -49,7 +49,7 @@
 				<td>
 					<form method="post" name="user_rank" action="index.php">
 						<input type="hidden" name="auth_id" value="{{ record.auth_id }}" />
-						<a href="#" onclick="user_rank[{{ loop.index0 }}].submit()">{{ record.name }}</a>
+						<a href="#" onclick="javascript:user_rank[{{ loop.index0 }}].submit()">{{ record.name }}</a>
 					</form>
 				</td>
 				<td>{{ record.online_time }}</td>
@@ -72,7 +72,7 @@
 				<td>{{ record.h_rarm }}</td>
 				<td>{{ record.h_lleg }}</td>
 				<td>{{ record.h_rleg }}</td>
-				<td>{{ record.h_shield }}</td>
+<!--			<td>{{ record.h_shield }}</td>-->
 			</tr>
 			{% endfor %}
 		</table>
