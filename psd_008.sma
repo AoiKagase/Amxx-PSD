@@ -709,7 +709,7 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "
 	if (equali(sName,""))
 		get_user_name(id, sName, charsmax(sName));
 
-	if (equali(sAuthid, "BOT"))
+	if (equali(sAuthId, "BOT"))
 		formatex(sName, charsmax(sName), "BOT");
 
 	get_user_ip(id, sIp, charsmax(sIp), 1);
