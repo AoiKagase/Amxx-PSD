@@ -16,7 +16,7 @@
 #include <fakemeta>
 #include <hamsandwich>
 #include <xs>
-
+#include <vector>
 #if defined BIOHAZARD_SUPPORT
 	#include <biohazard>
 #endif
@@ -942,24 +942,8 @@ set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3], bool:claymore
 	// hit point far 128 near.
 	if (claymore)
 	{
-		new Float:clradius = 300.0;
-		trace = create_tr2();
-		new Float:aimAngles[3];
-		
-		vector_to_angle(vBeamEnd, aimAngles);
-		aimAngles[0] = 0.0;
-		aimAngles[2] = 0.0;
-		xs_vec_add(vNormal, aimAngles, vNormal);
-		new rEnt = -1;
-		// (const float *v1, const float *v2, int fNoMonsters, float radius, edict_t *pentToSkip, TraceResult *ptr);
-//		while((rEnt = engfunc(EngFunc_FindEntityInSphere, rEnt, vOrigin, radius)) != 0)
-		while((rEnt = engfunc(EngFunc_TraceSphere, vNewOrigin, vBeamEnd, IGNORE_MONSTERS, clradius, rEnt, trace)) != 0)
-		{
-			// get_tr2(trace, TR_vecPlaneNormal, vNormal);
-			// get_tr2(trace, TR_vecEndPos, vTracedBeamEnd);
-		}
-		free_tr2(trace);
-		set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vTracedBeamEnd);
+		set_claymore_endpoint(iEnt);
+		return;
 	}
 	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vTracedBeamEnd);
 	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vTracedBeamEnd);
@@ -2091,12 +2075,12 @@ public SayLasermine(id)
 	if (equali(said,"/buy lasermine") || equali(said,"/lm"))
 	{
 		BuyLasermine(id);
-		return PLUGIN_HANDLED;
+//		return PLUGIN_HANDLED;
 	} else 
 	if (equali(said, "lasermine") || equali(said, "/lasermine"))
 	{
 		const SIZE = 1024;
-		new msg[SIZE+1],len = 0;
+		new msg[SIZE + 1], len = 0;
 		len += formatex(msg[len], SIZE - len, "<html><body>");
 		len += formatex(msg[len], SIZE - len, "<p><b>LaserMine</b></p><br/><br/>");
 		len += formatex(msg[len], SIZE - len, "<p>You can be setting the mine on the wall.</p><br/>");
@@ -2330,4 +2314,71 @@ set_offset_value(id, type, value)
 */
 	set_pdata_int(id, key, value);	
 	return;
+}
+
+stock set_claymore_endpoint(iEnt)
+{
+	new Float:vOrigin[3];
+	new Float:vFoward[3];
+	new Float:vAngles[3];
+	new Float:vFwd[3];
+	new Float:vR[3], Float:vU[3];
+	new Float:vDec[3];
+	new Float:vResult[3][3];
+	static Float:hitPoint[3];
+	static Float:fFraction;
+
+	// get user position.
+	pev(iEnt, pev_origin, vOrigin);
+	angle_vector(vOrigin, ANGLEVECTOR_FORWARD, vFoward);
+	vResult[0] = vOrigin;
+	vResult[1] = vOrigin;
+	vResult[2] = vOrigin;
+
+	for(new i = -45; i < 50; i+= 10)
+	{
+		for(new j = -45; j < 50; j+= 10)
+		{
+			for(new k = -45; k < 50; k+= 10)
+			{
+				vAngles[0] = Float:i;
+				vAngles[1] = Float:j;
+				vAngles[2] = Float:k;
+
+				xs_anglevectors(vAngles, vFwd, vR, vU);
+				xs_vec_add(vFoward, vFwd, vDec);
+				xs_vec_mul_scalar(vDec, 60.0, vDec);
+
+				new trace = create_tr2();
+				// Trace line
+				engfunc(EngFunc_TraceLine, vOrigin, vDec, IGNORE_MONSTERS, iEnt, trace)
+				{
+					get_tr2(trace, TR_flFraction, fFraction);
+					get_tr2(trace, TR_vecEndPos, hitPoint);
+					if (xs_vec_distance(vOrigin, vResult[0]) < xs_vec_distance(vOrigin, hitPoint))
+					{
+						vResult[2] = vResult[1];
+						vResult[1] = vResult[0];
+						vResult[0] = hitPoint;
+					}
+					else
+					if (xs_vec_distance(vOrigin, vResult[1]) < xs_vec_distance(vOrigin, hitPoint))
+					{
+						vResult[2] = vResult[1];
+						vResult[1] = hitPoint;
+					}
+					else
+					if (xs_vec_distance(vOrigin, vResult[2]) < xs_vec_distance(vOrigin, hitPoint))
+					{
+						vResult[2] = hitPoint;
+					}
+				}
+				// free the trace handle.
+				free_tr2(trace);
+			}
+		}
+	}
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vResult[0]);
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vResult[1]);
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vResult[2]);
 }
