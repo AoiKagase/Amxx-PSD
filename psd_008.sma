@@ -709,6 +709,9 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "
 	if (equali(sName,""))
 		get_user_name(id, sName, charsmax(sName));
 
+	if (equali(sAuthid, "BOT"))
+		formatex(sName, charsmax(sName), "BOT");
+
 	get_user_ip(id, sIp, charsmax(sIp), 1);
 
 	new playtime = select_user_info(sAuthId) + (get_systime() - g_playtime[id]);
