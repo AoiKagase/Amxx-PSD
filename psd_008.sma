@@ -51,6 +51,7 @@
 
 #define TABLE_INFO				"user_info"
 #define TABLE_STATS				"user_stats"
+#define TASK_ID_ROUND_END		118855
 
 enum DB_CONFIG
 {
@@ -129,7 +130,8 @@ public round_start()
 
 public round_end()
 {
-	insert_round_end();
+	// Must TASK - Last Point Cant Get.
+	set_task(0.1, "insert_round_end", TASK_ID_ROUND_END);
 }
 
 //LoadPlugin
@@ -410,7 +412,7 @@ public insert_map_end()
 //	server_print("[PSD] Map End Recorded.");
 }
 
-public insert_round_end()
+public insert_round_end(taskid)
 {
 	new players	[MAX_PLAYERS];
 	new pnum;
@@ -427,9 +429,8 @@ public insert_round_end()
 		if (!is_valid_authid(sAuthid))
 			continue;
 
-		insert_round_end_player(players[i], sAuthid);
-
 		insert_round_end_player_weapon(players[i], sAuthid);
+		insert_round_end_player(players[i], sAuthid);
 	}
 	insert_batch();
 //	server_print("[PSD] Round End Recorded.");
@@ -673,10 +674,10 @@ public client_disconnected(id)
 
 		get_user_authid(id, sAuthid, charsmax(sAuthid));
 		insert_user_info(id, sAuthid);
-		insert_round_end_player(id, sAuthid);
 		insert_round_end_player_weapon(id, sAuthid);
-		insert_map_end_player(id, sAuthid);
+		insert_round_end_player(id, sAuthid);
 		insert_map_end_player_weapon(id, sAuthid);		
+		insert_map_end_player(id, sAuthid);
 	}
 
 	return PLUGIN_CONTINUE;
