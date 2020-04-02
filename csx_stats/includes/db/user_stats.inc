@@ -7,6 +7,7 @@ class T_USER_STATS extends T_CORE
 
 	}
 
+	// get_stats
 	function GetTop15($where = array())
 	{
 		$result = array();
@@ -31,7 +32,9 @@ class T_USER_STATS extends T_CORE
 			.',	SUM(h_shield)		AS h_shield'
 			.' FROM'
 			.'	user_stats AS A'
-			.' WHERE wpn_name = \'\' and round = 0'
+			.' WHERE wpn_name = \'\''
+			.' AND map_name = \'\''
+			.' AND round = 0'
 			.' GROUP BY A.auth_id'
 			.' ORDER BY csx_rank, csx_score desc';
 	
@@ -48,6 +51,7 @@ class T_USER_STATS extends T_CORE
 		return $result;
 	}
 
+	// get_user_wstats
 	function GetWeaponRankForUser($where = array())
 	{
 		if (!isset($where['auth_id']))
@@ -75,7 +79,7 @@ class T_USER_STATS extends T_CORE
 			.',	SUM(A.h_shield)		AS h_shield'
 			.' FROM  user_stats AS A'
 			.' WHERE wpn_name != \'\''
-			.' AND round != 0'
+			.' AND round = 0'
 			.' AND auth_id = :auth_id'
 			.' GROUP BY A.auth_id, A.wpn_name'
 			.' ORDER BY csx_score desc';
