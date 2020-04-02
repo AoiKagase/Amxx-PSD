@@ -88,6 +88,7 @@ new g_map_name[MAX_NAME_LENGTH];
 
 new g_round_counter;
 new g_playtime[MAX_PLAYERS];
+new g_initialize;
 
 public plugin_init() 
 {
@@ -114,6 +115,8 @@ public plugin_init()
 	get_mapname(g_map_name, charsmax(g_map_name));
 
 	set_task(1.0, "plugin_core");
+	g_initialize = false;
+
 	return PLUGIN_HANDLED_MAIN;
 }
 
@@ -162,9 +165,11 @@ public plugin_core()
 //End Plugin
 public plugin_end()
 {
-	insert_map_end();
-
-	insert_batch();
+	if (!g_initialize)
+	{
+		insert_map_end();
+		insert_batch();
+	}
 
 	sql_disconnect();
 
@@ -199,6 +204,7 @@ public init_status()
 			reset_database();
 			server_print("[PSD] Initialize Successful, and backup csstats.dat now.");
 			server_print("[PSD] Please reloading server...");
+			g_initialize = true;
 		}
 		else
 		{
@@ -208,6 +214,11 @@ public init_status()
 	else
 	{
 		server_print("[PSD] Can't Initializing... Sequence Failed...");
+	}
+
+	if (g_initialize)
+	{
+		server_cmd("quit");
 	}
 	return PLUGIN_CONTINUE;
 }
@@ -380,8 +391,8 @@ public insert_map_end()
 	get_players(players, pnum, "ch");
 	for(new i = 0; i < pnum; i++)
 	{
-		if (!is_user_connected(players[i]))
-			continue;
+		// if (!is_user_connected(players[i]))
+		// 	continue;
 
 		get_user_authid(players[i], sAuthid, charsmax(sAuthid));
 		if (!is_valid_authid(sAuthid))
@@ -406,8 +417,8 @@ public insert_round_end()
 
 	for(new i = 0; i < pnum; i++)
 	{
-		if (!is_user_connected(players[i]))
-			continue;
+		// if (!is_user_connected(players[i]))
+		// 	continue;
 
 		get_user_authid(players[i], sAuthid, charsmax(sAuthid));
 		if (!is_valid_authid(sAuthid))
@@ -477,7 +488,7 @@ insert_map_end_player(id, sAuthId[])
 	arrayset(izStats, 0, sizeof(izStats));
 	arrayset(izBody,  0, sizeof(izBody));
 
-	get_user_rstats(id, izStats, izBody);
+	get_user_stats(id, izStats, izBody);
 
 	// Current Round.
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER_STATS]);
@@ -653,7 +664,7 @@ public reset_database()
 //client disconnect update
 public client_disconnected(id)
 {
-	if (is_user_connected(id) && !is_user_bot(id))
+	if (!is_user_bot(id))
 	{
 		new sAuthid[MAX_AUTHID_LENGTH];
 
@@ -661,6 +672,8 @@ public client_disconnected(id)
 		insert_user_info(id, sAuthid);
 		insert_round_end_player(id, sAuthid);
 		insert_round_end_player_weapon(id, sAuthid);
+		insert_map_end_player(id, sAuthid);
+		insert_map_end_player_weapon(id, sAuthid);		
 	}
 
 	return PLUGIN_CONTINUE;
@@ -685,7 +698,7 @@ public client_putinserver(id)
 //
 public client_infochanged(id)
 {
-	if (is_user_connected(id) && !is_user_bot(id))
+	if (!is_user_bot(id))
 	{
 		new sAuthid	[MAX_AUTHID_LENGTH];
 		new sName	[MAX_NAME_LENGTH];
