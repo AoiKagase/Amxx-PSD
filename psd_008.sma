@@ -99,6 +99,8 @@ public plugin_init()
 	register_srvcmd("amx_psd_reset",		"reset_database",	-1,	" - Reset in DB.");
 	register_srvcmd("amx_psd_initialize",	"init_status",		-1,	" - initializing all player status and database.");
 
+	register_event("DeathMsg",  "DeathEvent",   "a");
+
 	// SQL.cfg refresh.
 	new basedir[32];
   	get_configsdir(basedir, charsmax(basedir));
@@ -408,6 +410,27 @@ public insert_map_end()
 		insert_user_info(players[i], sAuthid);
 	}
 //	server_print("[PSD] Map End Recorded.");
+}
+
+//====================================================
+// Death Event
+//====================================================
+public DeathEvent()
+{
+	// new kID = read_data(1); // killer
+	new vID = read_data(2); // victim
+	// new isHS = read_data(3); // is headshot
+	// new wpnName = read_data(4); // wpnName
+	new sAuthid	[MAX_AUTHID_LENGTH];
+
+	get_user_authid(vID, sAuthid, charsmax(sAuthid));
+	if (!is_valid_authid(sAuthid))
+		return PLUGIN_CONTINUE;
+	
+	insert_round_end_player(vID, sAuthid);
+	insert_round_end_player_weapon(vID, sAuthid);
+
+	return PLUGIN_CONTINUE;
 }
 
 public insert_round_end()
