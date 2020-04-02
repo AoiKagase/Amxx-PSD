@@ -89,6 +89,7 @@ new g_map_name[MAX_NAME_LENGTH];
 new g_round_counter;
 new g_playtime[MAX_PLAYERS];
 new g_initialize;
+new g_csstats_reset;
 
 public plugin_init() 
 {
@@ -103,6 +104,7 @@ public plugin_init()
   	get_configsdir(basedir, charsmax(basedir));
 	formatex(basedir, charsmax(basedir), "%s/sql.cfg", basedir);
   	server_cmd("exec %s", basedir);
+	g_csstats_reset = get_cvar_pointer("csstats_reset");
 
 	// Get Backup Data directory.
 	get_datadir(g_dataDir, charsmax(g_dataDir));
@@ -204,6 +206,7 @@ public init_status()
 			reset_database();
 			server_print("[PSD] Initialize Successful, and backup csstats.dat now.");
 			server_print("[PSD] Please reloading server...");
+			set_pcvar_num(g_csstats_reset, 1);
 			g_initialize = true;
 		}
 		else
