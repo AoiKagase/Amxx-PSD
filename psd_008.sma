@@ -454,6 +454,8 @@ public plugin_init()
 	register_srvcmd("amx_psd_reset",		"reset_database",	-1,	" - Reset in DB.");
 	register_srvcmd("amx_psd_initialize",	"init_status",		-1,	" - initializing all player status and database.");
 
+	register_event("DeathMsg",  "DeathEvent",   "a");
+
 	// SQL.cfg refresh.
 	new basedir[32];
   	get_configsdir(basedir, charsmax(basedir));
