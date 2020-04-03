@@ -3,7 +3,7 @@
 //=============================================
 
 // Supported BIOHAZARD.
-// #define BIOHAZARD_SUPPORT
+#define BIOHAZARD_SUPPORT
 
 // Supported More money than 16000.
 // #define UL_MONEY_SUPPORT
@@ -16,7 +16,6 @@
 #include <fakemeta>
 #include <hamsandwich>
 #include <xs>
-#include <vector>
 #if defined BIOHAZARD_SUPPORT
 	#include <biohazard>
 #endif
@@ -41,14 +40,14 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.4"
+#define VERSION 					"3.4a"
 
 #if defined BIOHAZARD_SUPPORT
 	#define PLUGIN 					"Lasermine for BIOHAZARD"
 
 	#define CHAT_TAG 				"[BioLaser]"
 	#define CVAR_TAG				"bio_ltm"
-	#define LANG_KEY_NOT_BUY_TEAM	"NOT_BUY_TEAMB"
+	#define LANG_KEY_NOT_BUY_TEAM	"NOT_BUY_TEAM"
 #else
 	#define PLUGIN 					"Laser/Tripmine Entity"
 
@@ -131,9 +130,13 @@
 #endif
 #define OFFSET_DEATH	 			444
 #define PLAYER_IN_BUYZONE			(1<<0)
-
+#if defined BIOHAZARD_SUPPORT
+	#define CS_TEAM_ZOMBIE			4
+#endif
 // CS Status Data.
-#define cs_get_user_team(%1)		CsTeams:get_offset_value(%1, OFFSET_TEAM)
+#if !defined BIOHAZARD_SUPPORT
+#define cs_get_user_team(%1)		get_offset_value(%1, OFFSET_TEAM)
+#endif
 #define cs_set_user_team(%1,%2)		set_offset_value(%1, OFFSET_TEAM, %2)
 #define cs_get_user_deaths(%1)		get_offset_value(%1, OFFSET_DEATH)
 #define cs_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
@@ -368,6 +371,15 @@ stock bool:is_user_friend(iAttacker, iTarget)
 		return true;
 	return false;
 }
+#if defined BIOHAZARD_SUPPORT
+stock cs_get_user_team(id)
+{
+	if (is_user_zombie(id))
+		return CS_TEAM_ZOMBIE;
+
+	return get_offset_value(id, OFFSET_TEAM);
+}
+#endif
 //====================================================
 //  PLUGIN INITIALIZE
 //====================================================
@@ -1061,39 +1073,42 @@ stock int:TeamDeployedCount(id)
 	return count;
 }
 
-#if !defined BIOHAZARD_SUPPORT
 //====================================================
 // Check: Can use this Team.
 //====================================================
 bool:check_for_team(id)
 {
 	new arg[4];
-	new CsTeam:team;
+	new int:team;
 
 	// Get Cvar
 	get_pcvar_string(gCvar[CVAR_CBT], arg, charsmax(arg));
 
 	// Terrorist
 	if(equali(arg, "TR") || equali(arg, "T"))
-		team = CsTeam:CS_TEAM_T;
+		team = int:CS_TEAM_T;
 	else
 	// Counter-Terrorist
 	if(equali(arg, "CT"))
-		team = CsTeam:CS_TEAM_CT;
+		team = int:CS_TEAM_CT;
 	else
+#if defined BIOHAZARD_SUPPORT
+	if(equali(arg, "Z") || equali(arg, "Zombie"))
+		team = int:CS_TEAM_ZOMBIE;
+	else
+#endif
 	// All team.
 	if(equali(arg, "ALL"))
-		team = CsTeam:CS_TEAM_UNASSIGNED;
+		team = int:CS_TEAM_UNASSIGNED;
 	else
-		team = CsTeam:CS_TEAM_UNASSIGNED;
+		team = int:CS_TEAM_UNASSIGNED;
 
 	// Cvar setting equal your team? Not.
-	if(team != CsTeam:CS_TEAM_UNASSIGNED && team != CsTeam:cs_get_user_team(id))
+	if(team != int:CS_TEAM_UNASSIGNED && team != int:cs_get_user_team(id))
 		return false;
 
 	return true;
 }
-#endif
 //====================================================
 // Check: common.
 //====================================================
@@ -1156,11 +1171,7 @@ ERROR:check_for_buy(id)
 	if (cvar_buymode)
 	{
 		// Can this team buying?
-#if defined BIOHAZARD_SUPPORT
-		if (is_user_zombie(id))
-#else
 		if (!check_for_team(id))
-#endif
 			return ERROR:CANT_BUY_TEAM;
 
 		// Have Max?
@@ -1659,7 +1670,11 @@ draw_laserline(iEnt, const Float:vOrigin[3], const Float:vEndOrigin[3])
 			case CS_TEAM_CT:
 				get_pcvar_string(gCvar[CVAR_LASER_COLOR_CT], sRGB, sRGBLen);
 			default:
+#if !defined BIOHAZARD_SUPPORT
 				formatex(sRGB, sRGBLen, "0,255,0");
+#else
+				formatex(sRGB, sRGBLen, "255,0,0");
+#endif
 		}
 
 	}else
@@ -1991,8 +2006,8 @@ public PlayerKilling(iVictim, iAttacker)
 	if (equali(entityName, ENT_CLASS_NAME1))
 	{
 		// Get Target Team.
-		new CsTeams:aTeam = cs_get_user_team(iAttacker);
-		new CsTeams:vTeam = cs_get_user_team(iVictim);
+		new aTeam = int:cs_get_user_team(iAttacker);
+		new vTeam = int:cs_get_user_team(iVictim);
 
 		new score  = (vTeam != aTeam) ? 1 : -1;
 		new money  = (vTeam != aTeam) ? get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) : (get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) * -1);
