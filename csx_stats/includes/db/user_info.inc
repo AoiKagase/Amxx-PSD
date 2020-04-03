@@ -50,7 +50,7 @@ class T_USER_INFO extends T_CORE
 		{
 			echo $e->getMessage() . "\n";
 		}
-		return $result;
+		return $result[0];
 
 	}
 
