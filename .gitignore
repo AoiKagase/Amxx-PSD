@@ -1,2 +1,3 @@
 csx_stats/.vscode/*
 csx_stats/vendor/*
+*.amxx

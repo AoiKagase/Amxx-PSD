@@ -7,6 +7,7 @@ class T_USER_STATS extends T_CORE
 
 	}
 
+	// get_stats
 	function GetTop15($where = array())
 	{
 		$result = array();
@@ -47,6 +48,7 @@ class T_USER_STATS extends T_CORE
 		return $result;
 	}
 
+	// get_user_wstats
 	function GetWeaponRankForUser($where = array())
 	{
 		if (!isset($where['auth_id']))
