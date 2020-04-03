@@ -917,7 +917,8 @@ set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3], bool:claymore
 	new Float:vBeamEnd[3];
 	new Float:vTracedBeamEnd[3];
 	new Float:range = get_pcvar_float(gCvar[CVAR_LASER_RANGE]);
-
+	new Float:claymoreNormal[3];
+	claymoreNormal = vNormal;
 	xs_vec_mul_scalar(vNormal, range, vNormal );
 	xs_vec_add( vNewOrigin, vNormal, vBeamEnd );
 
@@ -926,7 +927,6 @@ set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3], bool:claymore
 	// (const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr);
 	engfunc(EngFunc_TraceLine, vNewOrigin, vBeamEnd, IGNORE_MONSTERS, -1, trace);
 	{
-		get_tr2(trace, TR_vecPlaneNormal, vNormal);
 		get_tr2(trace, TR_vecEndPos, vTracedBeamEnd);
 	}
     // free the trace handle.
@@ -942,7 +942,7 @@ set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3], bool:claymore
 	// hit point far 128 near.
 	if (claymore)
 	{
-		set_claymore_endpoint(iEnt);
+		set_claymore_endpoint(iEnt, vNewOrigin, claymoreNormal);
 		return;
 	}
 	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vTracedBeamEnd);
@@ -1118,8 +1118,8 @@ ERROR:check_for_common(id)
 		return ERROR:NOT_ALIVE;
 
 	// claymore.
-	if (cvar_mode == MODE_BF4_CLAYMORE)
-		return ERROR:NOT_IMPLEMENT;
+	// if (cvar_mode == MODE_BF4_CLAYMORE)
+	// 	return ERROR:NOT_IMPLEMENT;
 
 	// Can set Delay time?
 	return ERROR:check_for_time(id);
@@ -2316,69 +2316,79 @@ set_offset_value(id, type, value)
 	return;
 }
 
-stock set_claymore_endpoint(iEnt)
+stock set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 {
-	new Float:vOrigin[3];
-	new Float:vFoward[3];
+	new Float:vForward[3];
 	new Float:vAngles[3];
 	new Float:vFwd[3];
 	new Float:vR[3], Float:vU[3];
 	new Float:vDec[3];
-	new Float:vResult[3][3];
-	static Float:hitPoint[3];
-	static Float:fFraction;
+	new Float:vResultA[3];
+	new Float:vResultB[3];
+	new Float:vResultC[3];
+	new Float:hitPoint[3];
+	new Float:pAngles[3];
 
-	// get user position.
-	pev(iEnt, pev_origin, vOrigin);
-	angle_vector(vOrigin, ANGLEVECTOR_FORWARD, vFoward);
-	vResult[0] = vOrigin;
-	vResult[1] = vOrigin;
-	vResult[2] = vOrigin;
 
-	for(new i = -45; i < 50; i+= 10)
-	{
-		for(new j = -45; j < 50; j+= 10)
-		{
-			for(new k = -45; k < 50; k+= 10)
+	vAngles[0] = 90.0;
+	vAngles[1] = 0.0;
+	vAngles[2] = 0.0;
+
+	xs_anglevectors(vAngles, vFwd, vR, vU);
+
+	pev(iEnt, pev_angles, pAngles);	
+	xs_vec_add(vNormal, vFwd, vNormal);
+	xs_vec_add(vNormal, pAngles, vNormal);
+	xs_vec_mul_scalar(vNormal, 60.0, vNormal);
+
+	xs_vec_add(vOrigin, vNormal, vForward);
+	vResultA = vOrigin;
+	vResultB = vOrigin;
+	vResultC = vOrigin;
+
+	// for(new Float:i = 0.0; i < 180.0; i+=10.0)
+	// {
+	// 	for(new Float:j = -45.0; j < 45.0; j+= 10.0)
+	// 	{
+	// 		vAngles[0] = Float:i;
+	// 		vAngles[1] = Float:j;
+	// 		vAngles[2] = 0.0;
+
+	// 		xs_anglevectors(vAngles, vFwd, vR, vU);
+	// 		xs_vec_add(vNormal, vFwd, vDec);
+	// 		xs_vec_add(vFwd, pAngles, vDec);
+	// 		xs_vec_add(vNormal, vDec, vForward);
+
+			new trace = create_tr2();
+			// Trace line
+			engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
 			{
-				vAngles[0] = Float:i;
-				vAngles[1] = Float:j;
-				vAngles[2] = Float:k;
-
-				xs_anglevectors(vAngles, vFwd, vR, vU);
-				xs_vec_add(vFoward, vFwd, vDec);
-				xs_vec_mul_scalar(vDec, 60.0, vDec);
-
-				new trace = create_tr2();
-				// Trace line
-				engfunc(EngFunc_TraceLine, vOrigin, vDec, IGNORE_MONSTERS, iEnt, trace)
-				{
-					get_tr2(trace, TR_flFraction, fFraction);
-					get_tr2(trace, TR_vecEndPos, hitPoint);
-					if (xs_vec_distance(vOrigin, vResult[0]) < xs_vec_distance(vOrigin, hitPoint))
-					{
-						vResult[2] = vResult[1];
-						vResult[1] = vResult[0];
-						vResult[0] = hitPoint;
-					}
-					else
-					if (xs_vec_distance(vOrigin, vResult[1]) < xs_vec_distance(vOrigin, hitPoint))
-					{
-						vResult[2] = vResult[1];
-						vResult[1] = hitPoint;
-					}
-					else
-					if (xs_vec_distance(vOrigin, vResult[2]) < xs_vec_distance(vOrigin, hitPoint))
-					{
-						vResult[2] = hitPoint;
-					}
-				}
-				// free the trace handle.
-				free_tr2(trace);
+				get_tr2(trace, TR_vecEndPos, hitPoint);
 			}
-		}
-	}
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vResult[0]);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vResult[1]);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vResult[2]);
+
+			if (xs_vec_distance(vOrigin, vResultA) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultA, hitPoint))
+			{
+				vResultC = vResultB;
+				vResultB = vResultA;
+				vResultA = hitPoint;
+			}
+			else
+			if (xs_vec_distance(vOrigin, vResultB) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultB, hitPoint))
+			{
+				vResultC = vResultB;
+				vResultB = hitPoint;
+			}
+			else
+			if (xs_vec_distance(vOrigin, vResultC) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultC, hitPoint))
+			{
+				vResultC = hitPoint;
+			}
+
+			// free the trace handle.
+			free_tr2(trace);
+	// 	}
+	// }
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vResultA);
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vResultB);
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vResultC);
 }
