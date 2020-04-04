@@ -82,17 +82,11 @@ public plugin_init()
 	register_message(g_msg_vgui,  "message_vgui_menu");
 
 	register_logevent("round_end",   2, "0=World triggered", "1=Round_End");
+	register_logevent("Event_CTWin", 6, "3=CTs_Win", 		"3=VIP_Escaped", 		"3=Bomb_Defused",  "3=All_Hostages_Rescued", "3=CTs_PreventEscape", "3=Escaping_Terrorists_Neutralized");
+	register_logevent("Event_TRWin", 6, "3=Terrorists_Win", "3=VIP_Assassinated",	"3=Target_Bombed", "3=Hostages_Not_Rescued", "3=Terrorists_Escaped");
 
 	g_player_round = CsTeam:CS_TEAM_CT;
 	RegisterHam(Ham_Spawn, "player", "round_start_pre", 0);
-
-	RegisterHam(Ham_Spawn, "player", "round_start_post", 1);
-}
-
-public round_start_post(id)
-{
-	if (!is_user_bot(id))
-		client_print_color(id, print_chat, "^4[%s]^2%s", CHAT_TAG, ((g_player_round == CsTeam:CS_TEAM_T) ? "Player Team - Terrorist Round." : "Player Team - Counter-Terrorist Round."));
 }
 
 public client_connect(id)
@@ -140,8 +134,40 @@ public auto_join(menu_msgid[], id)
 }
 public round_end()
 {
-	g_player_round 	= CsTeam:((g_player_round == CsTeam:CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT);
+//	g_player_round 	= CsTeam:((g_player_round == CsTeam:CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT);
 	bot_player_balance();
+}
+
+public Event_TRWin()
+{
+	if (g_player_round != CsTeam:CS_TEAM_T)
+	{
+		g_player_round 	= CsTeam:CS_TEAM_T;
+		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Boooo, Your team lost to BOT.");
+		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Swap teams for Terrorist.");
+	}
+	else
+	{
+		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Your team has WON!");
+		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Continue round in Terrorist team.");
+	}
+	return PLUGIN_CONTINUE;
+}
+
+public Event_CTWin()
+{
+	if (g_player_round != CsTeam:CS_TEAM_CT)
+	{
+		g_player_round 	= CsTeam:CS_TEAM_CT;
+		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Boooo, Your team lost to BOT.");
+		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Swap teams for Counter-Terrorist.");
+	}
+	else
+	{
+		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Your team has WON!");
+		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Continue round in Counter-Terrorist team.");
+	}
+	return PLUGIN_CONTINUE;
 }
 
 bot_player_balance()
