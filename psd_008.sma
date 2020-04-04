@@ -45,7 +45,7 @@
 #define SQL_FIELD_USER_STATS	"`server_id`,`date`, `auth_id`,`csx_rank`,`csx_score`," 
 #define SQL_PARAM_USER_STATS    "'%i','%s','%s','%i','%i',"
 
-#define SQL_FIELD_USER_RSTATS	"`server_id`,`date`,`round`,`auth_id`,`team`" 
+#define SQL_FIELD_USER_RSTATS	"`server_id`,`date`,`round`,`auth_id`,`team`," 
 #define SQL_PARAM_USER_RSTATS   "'%i','%s','%i','%s','%i'," 
 
 #define SQL_FIELD_WSTATS		"`server_id`,`date`,`auth_id`,`wpn_name`,"
@@ -744,7 +744,7 @@ insert_round_end_player(id, sAuthId[])
 	new izBody	[MAX_BODYHITS];
 	new sql		[MAX_QUERY_LENGTH + 1] = "";
 	new len = 0;
-	new team = int:cs_get_user_team(id);
+	new int:team = int:cs_get_user_team(id);
 	arrayset(izStats, 0, sizeof(izStats));
 	arrayset(izBody,  0, sizeof(izBody));
 
