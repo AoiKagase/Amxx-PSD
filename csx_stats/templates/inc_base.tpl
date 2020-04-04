@@ -5,7 +5,8 @@
 		<title>Player Status in DB - {% block title %}{% endblock %}</title>
 	</head>
 	<body topmargin="0" leftmargin="-2">
-		<b>Player Status in DB</b>
+	<div class="container">
+		<h1>Player Status in DB</h1>
 
 <div class="alert alert-dismissible alert-primary">
 		<h6>
@@ -17,6 +18,6 @@
 		</h6>
 </div>
 		{% block content %}{% endblock %}
-
+	</div>
 	</body>
 </html>

@@ -1,16 +1,17 @@
 <?php
 require_once("includes/db/_table.inc");
-class T_USER_STATS extends T_CORE
+class T_USER_RSTATS extends T_CORE
 {
 	function __construct(&$dbh)
 	{
 		parent::__construct($dbh);
 
-		$this->table = 'user_stats';
+		$this->table = 'user_rstats';
 
-		$this->$key = [
+		$this->key = [
 			'server_id',
 			'date',
+			'round',
 			'auth_id',
 		];
 
@@ -19,8 +20,6 @@ class T_USER_STATS extends T_CORE
 			'date',
 			'round',
 			'auth_id',
-			'csx_rank',
-			'csx_score',
 			'csx_kills',
 			'csx_tks',
 			'csx_deaths',

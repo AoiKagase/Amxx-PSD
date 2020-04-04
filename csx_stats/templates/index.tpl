@@ -1,16 +1,16 @@
 {% extends 'inc_base.tpl' %}
-{% block title   %}Top15 Ranking{% endblock %}
+{% block title   %}Top Ranking{% endblock %}
 {% block content %}
 		<table>
 			<thead>
 			<tr>
 				<td colspan="22" class="catHead">
-					<span class="genmed"><b>Player Ranking TOP15</b></span>
+					<span class="genmed"><b>Player Ranking</b></span>
 				</td>
 			</tr>
 			</thead>
 		</table>
-		<table width="100%" cellpadding="0" cellspacing="0" class="table table-hover">
+		<table class="table table-hover">
 			<thead>
 			<tr>
 				<td scope="col" rowspan="2">Rank</td>
@@ -21,6 +21,7 @@
 				<td scope="col" rowspan="2">Kills</td>
 				<td scope="col" rowspan="2">Deaths</td>
 				<td scope="col" rowspan="2">TeamKills</td>
+				<!--
 				<td scope="col" rowspan="2">Hits</td>
 				<td scope="col" rowspan="2">Damages</td>
 				<td scope="col" rowspan="2">Shots</td>
@@ -30,7 +31,9 @@
 				<td scope="col" rowspan="2">Accuracy<br />HeadShots.</td>
 				<td scope="col" rowspan="2">K/D Rate.</td>
 				<td scope="col" colspan="7">HIT POSITION.</td>
+				-->
 			</tr>
+			<!--
 			<tr>
 				<td scope="col">HEAD</td>
 				<td scope="col">CHEST</td>
@@ -39,15 +42,16 @@
 				<td scope="col">RIGHT ARM</td>
 				<td scope="col">LEFT LEG</td>
 				<td scope="col">RIGHT LEG</td>
-<!--			<td scope="col">SHILED (NOT WORKING)</td>-->
+				<td scope="col">SHILED (NOT WORKING)</td>
 			</tr>
+			-->
 			</thead>
 			<tbody>
 			{% for record in ranking %}
 			<tr class="table-dark">
 				<th scope="row">{{ record.csx_rank }}</th>
 				<td>
-					<form method="post" name="user_rank" action="index.php">
+					<form method="post" name="user_rank" action="user_detail.php">
 						<input type="hidden" name="auth_id" value="{{ record.auth_id }}" />
 						<a href="#" onclick="javascript:user_rank[{{ loop.index0 }}].submit()">{{ record.name }}</a>
 					</form>
@@ -57,6 +61,7 @@
 				<td>{{ record.csx_kills }}</td>
 				<td>{{ record.csx_deaths }}</td>
 				<td>{{ record.csx_tks }}</td>
+				<!--
 				<td>{{ record.csx_hits }}</td>
 				<td>{{ record.csx_dmg }}</td>
 				<td>{{ record.csx_shots }}</td>
@@ -72,7 +77,7 @@
 				<td>{{ record.h_rarm }}</td>
 				<td>{{ record.h_lleg }}</td>
 				<td>{{ record.h_rleg }}</td>
-<!--			<td>{{ record.h_shield }}</td>-->
+				<td>{{ record.h_shield }}</td>-->
 			</tr>
 			{% endfor %}
 			</tbody>
