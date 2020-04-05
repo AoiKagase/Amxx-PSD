@@ -68,7 +68,7 @@ Tester	Mr.Kaseijin
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
 #define PLUGIN 						"MONEY-GIVE"
-#define VERSION 					"2.00"
+#define VERSION 					"2.01"
 
 #define CHAT_TAG 					"[MONEY-GIVE]"
 #define CVAR_TAG					"amx_mgive"
@@ -152,34 +152,27 @@ public plugin_init()
 { 
 	register_plugin(PLUGIN, VERSION, AUTHOR); 
 
-	register_clcmd("say", "say_mg");
-	register_clcmd("say_team", "say_mg");
+	register_clcmd("say /mg",	 		"mg_player_menu");
+	register_clcmd("say /mgive", 		"mg_player_menu");
+	register_clcmd("say_team /mg",		"mg_player_menu");
+	register_clcmd("say_team /mgive",	"mg_player_menu");
+
+	register_clcmd("say", 		"say_mg");
+	register_clcmd("say_team",	"say_mg");
 
 	// CVar settings.
-	new cvar_command[32] = "^0";
-	format(cvar_command, 31, "%s", CVAR_TAG);
-	gCvar[CVAR_ENABLE]	        = register_cvar(cvar_command,   "1");   	// 0 = off, 1 = on.
-
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "_acs");
-	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(cvar_command,   "0");   	// 0 = all, 1 = admin
-
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "_max");
-	gCvar[CVAR_MAX_MONEY]		= register_cvar(cvar_command, 	"16000");	// Max have money. 
-
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "_menu_enemies");
-	gCvar[CVAR_ENEMIES]			= register_cvar(cvar_command, 	"0");		// enemies in menu. 
-
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "_menu_bots");
-	gCvar[CVAR_BOTS_MENU]		= register_cvar(cvar_command, 	"0");		// Bots in menu. 
-
-	format(cvar_command, 31, "%s%s", CVAR_TAG, "_bots_action");
-	gCvar[CVAR_BOTS_ACTION]		= register_cvar(cvar_command, 	"0");		// Bots action. 
+	gCvar[CVAR_ENABLE]		= register_cvar(fmt("%s", 	CVAR_TAG), 					"1");		// 0 = off, 1 = on.
+	gCvar[CVAR_ACCESS_LEVEL]= register_cvar(fmt("%s%s", CVAR_TAG, "_acs"),			"0");   	// 0 = all, 1 = admin
+	gCvar[CVAR_MAX_MONEY]	= register_cvar(fmt("%s%s", CVAR_TAG, "_max"),			"16000");	// Max have money. 
+	gCvar[CVAR_ENEMIES]		= register_cvar(fmt("%s%s", CVAR_TAG, "_menu_enemies"),	"0");		// enemies in menu. 
+	gCvar[CVAR_BOTS_MENU]	= register_cvar(fmt("%s%s", CVAR_TAG, "_menu_bots"), 	"0");		// Bots in menu. 
+	gCvar[CVAR_BOTS_ACTION]	= register_cvar(fmt("%s%s", CVAR_TAG, "_bots_action"), 	"0");		// Bots action. 
 
 	// Bots Action
 	register_event("DeathMsg", "bots_action", "a");
 
 	// Money Message.
-	gMsgMoney 					= get_user_msgid("Money");
+	gMsgMoney 				= get_user_msgid("Money");
 
 	return PLUGIN_CONTINUE;
 } 
@@ -239,12 +232,13 @@ public mg_player_menu(id)
 	{
 		//Save a tempid so we do not re-index
 		tempid = players[i];
-
+		if (tempid == id)
+			continue;
         //Get the players name and userid as strings
 		get_user_name(tempid, szName, charsmax(szName));
         //We will use the data parameter to send the userid, so we can identify which player was selected in the handler
-		formatex(szUserId, charsmax(szUserId), "%d", get_user_userid(tempid));
-		formatex(szMenu, charsmax(szMenu), "%12s^t\y[$%6d]", szName, cs_get_user_money(tempid));
+		formatex(szUserId,	charsmax(szUserId), "%d", get_user_userid(tempid));
+		formatex(szMenu,	charsmax(szMenu), 	"%s^t^t\y[$%6d]", szName, cs_get_user_money(tempid));
 
         //Add the item for this player
 		menu_additem(menu, szMenu, szUserId, 0);
@@ -356,8 +350,8 @@ public mg_money_menu_handler(id, menu, item)
 
 			cs_set_user_money(id, youMoney);
 			cs_set_user_money(player, hisMoney);
-			client_print_color(id, print_chat, "^4%s ^1$%d was give to ^3^"%s^".", CHAT_TAG, givMoney, oppName);
-			client_print_color(player, print_chat, "^4%s ^1$%d was give from ^3^"%s^".", CHAT_TAG, givMoney, youName);
+			client_print_color(id, 		print_chat, "^4%s ^1$%d was give to ^3^"%s^".", 	CHAT_TAG, givMoney, oppName);
+			client_print_color(player,	print_chat, "^4%s ^1$%d was give from ^3^"%s^".", 	CHAT_TAG, givMoney, youName);
 		}
 	}
 	menu_destroy(menu);
@@ -373,17 +367,11 @@ public say_mg(id)
 		return PLUGIN_CONTINUE;
 
 	if (!check_admin(id))
-		return PLUGIN_HANDLED;
+		return PLUGIN_CONTINUE;
 
 	new said[32];
 	read_argv(1, said, 31);
 	
-	if (equali(said,"/mg") 
-	||	equali(said,"/mgive"))
-	{
-		mg_player_menu(id);
-	}  
-
 	if (containi(said, "give")	!= -1 
 	||	containi(said, "money")	!= -1)
 	{
@@ -399,7 +387,7 @@ public say_mg(id)
 bool:check_admin(id)
 {
 	if (get_pcvar_num(gCvar[CVAR_ACCESS_LEVEL]) != 0)
-		return (get_user_flags(id) | ADMIN_ACCESSLEVEL) != 0;
+		return bool:(get_user_flags(id) & ADMIN_ACCESSLEVEL);
 
 	return true;
 }
