@@ -126,13 +126,28 @@ class UserDetail extends PageMain
 				{
 					$hit	= floatval($stats['csx_hits']) > 0 ? floatval($stats['csx_hits']) : 1;
 					$acc	= (floatval($stats[$key]) / $hit * 100);
-					$red	= 255;
+					$red	= 0;
 					$green	= 255;
-					if ($acc > 50)
-						$green = 255 - $acc * (255.0 / 50.0);
-					else
-					if ($acc < 50)
-						$red   = $acc * (255.0 / 50.0);
+					if ($stats['csx_hits'] > 0)
+					{
+						if ($acc < 50)
+						{
+							$red   	= $acc * (255.0 / 50.0);
+							$green	= 255;
+						}
+						else
+						if ($acc = 50)
+						{
+							$red 	= 255;
+							$green	= 255;
+						}
+						else
+						if ($acc > 50)
+						{
+							$red	= 255;
+							$green 	= 255 - ($acc - 50) * (255.0 / 50.0);
+						}
+					}
 				}
 				$img2 = imagecreatefrompng($fn); // 合成する画像を取り込む
 				imagefilter($img2, IMG_FILTER_NEGATE);

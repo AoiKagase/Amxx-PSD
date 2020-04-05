@@ -9,11 +9,14 @@
 		</div>
 		<div class="row">
 		<div class="modal-body">
-			<table>
+			<table class="table">
 				<tbody>
 				<tr>
 					<th scope="row">HEAD</th>
 					<td>{{ record.h_head }}</td>
+					<td rowspan="7" align="center" valign="middle">
+						<img height="362" src="data:image/png;base64,{{ attribute(hitimg, record.wpn_name) }}"/>
+					</td>
 				</tr>
 				<tr>
 					<th scope="row">CHEST</th>
@@ -43,9 +46,6 @@
 		<!--			<td>{{ record.h_shield }}</td>-->
 				</tbody>
 			</table>
-		</div>
-		<div class="modal-body">
-			<img src="data:image/png;base64,{{ attribute(hitimg, record.wpn_name) }}"/>
 		</div>
 		</div>
 		<div class="modal-footer">
