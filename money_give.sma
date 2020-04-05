@@ -419,7 +419,10 @@ public bots_action(id)
 		if (botMoney >= maxMoney)
 		{
 			get_players(players, pnum, "ceh", cs_get_user_team_name(killer));
-			
+
+			if (pnum <= 0)
+				return PLUGIN_CONTINUE;
+
 			// get minimun money have player.
 			for(new i = 0; i < pnum; i++)
 			{
@@ -452,4 +455,5 @@ public bots_action(id)
 			client_print_color(target, print_chat, "^4%s ^1$%d was give from ^3^"%s^".", CHAT_TAG, botGive, botName);
 		}
 	}
+	return PLUGIN_CONTINUE;
 }

@@ -464,7 +464,6 @@ public plugin_init()
 	// register_event("TeamScore", "Event_TRWin", "a", "1=TERRORIST");
 	// register_event("TeamScore", "Event_CTWin", "a", "1=CT");
 	init_server_info();
-	set_task(1.0, "plugin_core");
 	g_initialize = false;
 
 	return PLUGIN_HANDLED_MAIN;
@@ -505,7 +504,7 @@ public Event_CTWin()
 }
 
 //LoadPlugin
-public plugin_core()
+public plugin_cfg()
 {
 	new error[MAX_ERR_LENGTH + 1];
 	new ercode;
@@ -744,7 +743,11 @@ insert_round_end_player(id, sAuthId[])
 	new izBody	[MAX_BODYHITS];
 	new sql		[MAX_QUERY_LENGTH + 1] = "";
 	new len = 0;
-	new int:team = int:cs_get_user_team(id);
+	new int:team;
+	
+	if (is_user_connected(id))
+		team = int:cs_get_user_team(id);
+	
 	arrayset(izStats, 0, sizeof(izStats));
 	arrayset(izBody,  0, sizeof(izBody));
 

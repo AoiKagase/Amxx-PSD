@@ -9,7 +9,7 @@
 #define AUTHOR		                "Aoi.Kagase"	// +ARUKARI- => Aoi.Kagase
 
 #define CVAR_TAG	                "amx_pvb"
-#define CHAT_TAG	                "PVB"
+#define CHAT_TAG	                "PvB"
 #define TEAM_SELECT_VGUI_MENU_ID    2
 #define AUTO_TEAM_JOIN_DELAY        0.1
 #define OFFSET_TEAM 				114
@@ -66,14 +66,9 @@ new CsTeam:g_player_round;
 
 public plugin_init() 
 { 
-	new cvar_command[32];
-	new cvar_length = charsmax(cvar_command);
-
 	register_plugin(PLUGIN,VERSION,AUTHOR); 
 
-	formatex(cvar_command, cvar_length, "%s%s", CVAR_TAG, "enable");
-
-	g_cvars[CVARS_ENABLE] 	= register_cvar(cvar_command, "1");
+	g_cvars[CVARS_ENABLE] 	= register_cvar(fmt("%s%s", CVAR_TAG, "_enable"), "1");
 
 	g_msg_vgui  = get_user_msgid("VGUIMenu");
 	g_msg_smenu = get_user_msgid("ShowMenu");

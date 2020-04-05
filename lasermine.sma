@@ -28,8 +28,8 @@
 /*=====================================*/
 /*  VERSION CHECK				       */
 /*=====================================*/
-#if AMXX_VERSION_NUM < 183
-	#assert "AMX Mod X v1.8.3 or greater library required!"
+#if AMXX_VERSION_NUM < 190
+	#assert "AMX Mod X v1.9.0 or greater library required!"
 #endif
 
 /*=====================================*/
@@ -395,89 +395,54 @@ public plugin_init()
 	register_clcmd("say", "SayLasermine");
 	register_clcmd("buy_lasermine", "BuyLasermine");
 
-	new cvar_command[64] = "^0";
-	new cvar_length = charsmax(cvar_command);
 	// CVar settings.
 	// Common.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_enable");
-	gCvar[CVAR_ENABLE]	        = register_cvar(cvar_command,   "1");   	// 0 = off, 1 = on.
-
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_access");
-	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(cvar_command,   "0");   	// 0 = all, 1 = admin
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_mode");
-	gCvar[CVAR_MODE]           	= register_cvar(cvar_command,   "0");   	// 0 = lasermine, 1 = tripmine, 2 = claymore wire trap
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_friendly_fire");
-	gCvar[CVAR_FRIENDLY_FIRE]  	= register_cvar(cvar_command,   "0");   	// Friendly fire. 0 or 1
-	format(cvar_command, cvar_length,"%s%s", CVAR_TAG,  		"_round_delay");
-	gCvar[CVAR_START_DELAY]    	= register_cvar(cvar_command,   "5");  		// Round start delay time.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_cmd_mode");
-	gCvar[CVAR_CMD_MODE]	    = register_cvar(cvar_command,   "1");  		// 0 is +USE key, 1 is bind, 2 is each.
+	gCvar[CVAR_ENABLE]	        = register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),				"1"			);	// 0 = off, 1 = on.
+	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_access"),				"0"			);	// 0 = all, 1 = admin
+	gCvar[CVAR_MODE]           	= register_cvar(fmt("%s%s", CVAR_TAG, "_mode"),   				"0"			);	// 0 = lasermine, 1 = tripmine, 2 = claymore wire trap
+	gCvar[CVAR_FRIENDLY_FIRE]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_friendly_fire"),		"0"			);	// Friendly fire. 0 or 1
+	gCvar[CVAR_START_DELAY]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),			"5"			);	// Round start delay time.
+	gCvar[CVAR_CMD_MODE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_cmd_mode"),				"1"			);	// 0 is +USE key, 1 is bind, 2 is each.
 
 	// Ammo.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_amount");
-	gCvar[CVAR_START_HAVE]	    = register_cvar(cvar_command,   "1");   	// Round start have ammo count.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_max_amount");
-	gCvar[CVAR_MAX_HAVE]       	= register_cvar(cvar_command,   "2");   	// Max having ammo.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_team_max");
-	gCvar[CVAR_TEAM_MAX]		= register_cvar(cvar_command,   "10"); 		// Max deployed in team.
+	gCvar[CVAR_START_HAVE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_amount"),				"1"			);	// Round start have ammo count.
+	gCvar[CVAR_MAX_HAVE]       	= register_cvar(fmt("%s%s", CVAR_TAG, "_max_amount"),   		"2"			);	// Max having ammo.
+	gCvar[CVAR_TEAM_MAX]		= register_cvar(fmt("%s%s", CVAR_TAG, "_team_max"),				"10"		);	// Max deployed in team.
 
 	// Buy system.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_buy_mode");
-	gCvar[CVAR_BUY_MODE]	    = register_cvar(cvar_command,   "1");   	// 0 = off, 1 = on.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_buy_team");
-	gCvar[CVAR_CBT]    			= register_cvar(cvar_command,   "ALL");	 	// Can buy team. TR / CT / ALL.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_buy_price");
-	gCvar[CVAR_COST]           	= register_cvar(cvar_command,   "2500");	// Buy cost.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_buy_zone");
-	gCvar[CVAR_BUY_ZONE]        = register_cvar(cvar_command,   "1");		// Stay in buy zone can buy.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_frag_money");
-	gCvar[CVAR_FRAG_MONEY]     	= register_cvar(cvar_command,   "300"); 	// Get money.
+	gCvar[CVAR_BUY_MODE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_buy_mode"),				"1"			);	// 0 = off, 1 = on.
+	gCvar[CVAR_CBT]    			= register_cvar(fmt("%s%s", CVAR_TAG, "_buy_team"),				"ALL"		);	// Can buy team. TR / CT / ALL. (BIOHAZARD: Z = Zombie)
+	gCvar[CVAR_COST]           	= register_cvar(fmt("%s%s", CVAR_TAG, "_buy_price"),			"2500"		);	// Buy cost.
+	gCvar[CVAR_BUY_ZONE]        = register_cvar(fmt("%s%s", CVAR_TAG, "_buy_zone"),				"1"			);	// Stay in buy zone can buy.
+	gCvar[CVAR_FRAG_MONEY]     	= register_cvar(fmt("%s%s", CVAR_TAG, "_frag_money"),   		"300"		);	// Get money.
 
 	// Laser design.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_laser_visible");
-	gCvar[CVAR_LASER_VISIBLE]	= register_cvar(cvar_command,   "1");   	// Laser line visibility.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_laser_color_mode");
-	gCvar[CVAR_LASER_COLOR]    	= register_cvar(cvar_command,   "0");   	// laser line color 0 = team color, 1 = green.
+	gCvar[CVAR_LASER_VISIBLE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_visible"),		"1"			);	// Laser line visibility.
+	gCvar[CVAR_LASER_COLOR]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_color_mode"),		"0"			);	// laser line color 0 = team color, 1 = green.
 	// Leser beam color for team color mode.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_laser_color_t");
-	gCvar[CVAR_LASER_COLOR_TR] 	= register_cvar(cvar_command,   "255,0,0"); // Team-Color for Terrorist. default:red (R,G,B)
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_laser_color_ct");
-	gCvar[CVAR_LASER_COLOR_CT] 	= register_cvar(cvar_command,   "0,0,255"); // Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_LASER_COLOR_TR] 	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_color_t"),		"255,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
+	gCvar[CVAR_LASER_COLOR_CT] 	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_color_ct"),		"0,0,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
 
- 	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_laser_brightness");
-	gCvar[CVAR_LASER_BRIGHT]   	= register_cvar(cvar_command,   "255"); 	// laser line brightness.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_laser_damage");
-	gCvar[CVAR_LASER_DMG]      	= register_cvar(cvar_command,   "60.0"); 	// laser hit dmg. Float Value!
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_laser_damage_mode");
-	gCvar[CVAR_LASER_DMG_MODE]	= register_cvar(cvar_command,   "0");   	// Laser line damage mode. 0 = frame dmg, 1 = once dmg, 2 = 1 second dmg.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_laser_dps");
-	gCvar[CVAR_LASER_DMG_DPS]  	= register_cvar(cvar_command,   "1");   	// laser line damage mode 2 only, damage/seconds. default 1 (sec)
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_laser_range");
-	gCvar[CVAR_LASER_RANGE]		= register_cvar(cvar_command,   "8192.0"); 	// Laser beam lange (float range.)
+	gCvar[CVAR_LASER_BRIGHT]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_brightness"),		"255"		);	// laser line brightness.
+	gCvar[CVAR_LASER_DMG]      	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_damage"),			"60.0"		);	// laser hit dmg. Float Value!
+	gCvar[CVAR_LASER_DMG_MODE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_damage_mode"),	"0"			);	// Laser line damage mode. 0 = frame dmg, 1 = once dmg, 2 = 1 second dmg.
+	gCvar[CVAR_LASER_DMG_DPS]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_dps"),			"1"			);	// laser line damage mode 2 only, damage/seconds. default 1 (sec)
+	gCvar[CVAR_LASER_RANGE]		= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_range"),			"8192.0"	);	// Laser beam lange (float range.)
 
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_mine_health");
-	gCvar[CVAR_MINE_HEALTH]    	= register_cvar(cvar_command,   "500"); 	// Tripmine Health. (Can break.)
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_mine_glow");
-	gCvar[CVAR_MINE_GLOW]      	= register_cvar(cvar_command,   "1");   	// Tripmine glowing. 0 = off, 1 = on.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_mine_glow_color_mode");
-	gCvar[CVAR_MINE_GLOW_MODE]  = register_cvar(cvar_command,   "0");   	// Mine glow coloer 0 = team color, 1 = green.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_mine_glow_color_t");
-	gCvar[CVAR_MINE_GLOW_TR]  	= register_cvar(cvar_command,	"255,0,0"); // Team-Color for Terrorist. default:red (R,G,B)
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_mine_glow_color_ct");
-	gCvar[CVAR_MINE_GLOW_CT]  	= register_cvar(cvar_command,   "0,0,255"); // Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	// Mine design.
+	gCvar[CVAR_MINE_HEALTH]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_health"),			"500"		);	// Tripmine Health. (Can break.)
+	gCvar[CVAR_MINE_GLOW]      	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow"),			"1"			);	// Tripmine glowing. 0 = off, 1 = on.
+	gCvar[CVAR_MINE_GLOW_MODE]  = register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
+	gCvar[CVAR_MINE_GLOW_TR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_t"),	"255,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
+	gCvar[CVAR_MINE_GLOW_CT]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_ct"),	"0,0,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_EXPLODE_RADIUS] 	= register_cvar(fmt("%s%s", CVAR_TAG, "_explode_radius"),		"320.0"		);	// Explosion radius.
+	gCvar[CVAR_EXPLODE_DMG]		= register_cvar(fmt("%s%s", CVAR_TAG, "_explode_damage"),		"100"		);	// Explosion radius damage.
 
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_explode_radius");
-	gCvar[CVAR_EXPLODE_RADIUS] 	= register_cvar(cvar_command,   "320.0");	// Explosion radius.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_explode_damage");
-	gCvar[CVAR_EXPLODE_DMG]		= register_cvar(cvar_command,   "100"); 	// Explosion radius damage.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_death_remove");
-	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(cvar_command,   "0"); 		// Dead Player remove lasermine. 0 = off, 1 = on.
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_activate_time");
-	gCvar[CVAR_LASER_ACTIVATE]	= register_cvar(cvar_command,   "1"); 		// Waiting for put lasermine. (int:seconds. 0 = no progress bar.)
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG, 		"_allow_pickup");
-	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(cvar_command,   "1"); 		// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
-	format(cvar_command, cvar_length, "%s%s", CVAR_TAG,			"_shield_difence");
-	gCvar[CVAR_DIFENCE_SHIELD]	= register_cvar(cvar_command,   "1"); 		// allow shiled difence.
+	// Misc Settings.
+	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"			);	// Dead Player remove lasermine. 0 = off, 1 = on.
+	gCvar[CVAR_LASER_ACTIVATE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1"			);	// Waiting for put lasermine. (int:seconds. 0 = no progress bar.)
+	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
+	gCvar[CVAR_DIFENCE_SHIELD]	= register_cvar(fmt("%s%s", CVAR_TAG, "_shield_difence"),		"1"			);	// allow shiled difence.
 	
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
 	RegisterHam(Ham_Item_PreFrame,	"player", "KeepMaxSpeed", 	1);
@@ -1118,7 +1083,7 @@ ERROR:check_for_common(id)
 	new cvar_access = get_pcvar_num(gCvar[CVAR_ACCESS_LEVEL]);
 	new user_flags	= get_user_flags(id) & ADMIN_ACCESSLEVEL;
 	new is_alive	= fm_is_user_alive(id);
-	new TRIPMINE_MODE:cvar_mode	= TRIPMINE_MODE:get_pcvar_num(gCvar[CVAR_MODE]);
+	//new TRIPMINE_MODE:cvar_mode	= TRIPMINE_MODE:get_pcvar_num(gCvar[CVAR_MODE]);
 
 	// Plugin Enabled
 	if (!cvar_enable)
