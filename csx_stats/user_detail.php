@@ -114,6 +114,7 @@ class UserDetail extends PageMain
 			imagecolortransparent($img, imagecolorallocate($img, 0, 0, 0));
 			imagefilter($img, IMG_FILTER_NEGATE);
 			imagefilter($img, IMG_FILTER_COLORIZE, 0, 255, 0);
+
 			// シンプルな画像合成
 			foreach($imgFns as $key => $fn)
 			{
@@ -124,28 +125,32 @@ class UserDetail extends PageMain
 				}
 				else
 				{
-					$hit	= floatval($stats['csx_hits']) > 0 ? floatval($stats['csx_hits']) : 1;
-					$acc	= (floatval($stats[$key]) / $hit * 100);
+					$hit_array = [
+						$stats['h_head']
+					  , $stats['h_chest']
+					  , $stats['h_stomach']
+					  , $stats['h_rarm']
+					  , $stats['h_larm']
+					  , $stats['h_rleg']
+					  , $stats['h_lleg']
+					];
+//					$acc = (stats_stat_percentile($hit_array, $stats[$key]));
+					$max = max($hit_array) ? max($hit_array) : 1;
+					$acc = ((floatval($stats[$key]) / floatval($max)) * 100);
 					$red	= 0;
 					$green	= 255;
-					if ($stats['csx_hits'] > 0)
+
+					if ($stats[$key] > 0)
 					{
-						if ($acc < 50)
+						if ($acc < 50.0)
 						{
-							$red   	= $acc * (255.0 / 50.0);
-							$green	= 255;
+							$red   	= ($acc * (255 / 100));
+							$green  = 255;
 						}
 						else
-						if ($acc = 50)
 						{
-							$red 	= 255;
-							$green	= 255;
-						}
-						else
-						if ($acc > 50)
-						{
+							$green	= 255 - ($acc * (255 / 100));	
 							$red	= 255;
-							$green 	= 255 - ($acc - 50) * (255.0 / 50.0);
 						}
 					}
 				}
