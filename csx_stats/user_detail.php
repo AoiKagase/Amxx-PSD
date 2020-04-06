@@ -144,12 +144,12 @@ class UserDetail extends PageMain
 					{
 						if ($acc < 50.0)
 						{
-							$red   	= ($acc * (255 / 100));
+							$red   	= ($acc * (255 / 50));
 							$green  = 255;
 						}
 						else
 						{
-							$green	= 255 - ($acc * (255 / 100));	
+							$green	= 255 - ($acc * (255 / 50));	
 							$red	= 255;
 						}
 					}
