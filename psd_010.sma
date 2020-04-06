@@ -1,12 +1,5 @@
 #pragma semicolon 1
-//20.03.2020 v0.8
-//29.05.2008 v0.7 add batch process.
-//28.05.2008 v0.6 any fix.
-//25.04.2008 v0.5 fix connecting bug for windows.
-//23.04.2008 v0.4 add cvar and errcode.
-//22.04.2008 v0.3 cut some "public"
-//20.04.2008 v0.2 single quotation in name no write bug fix.
-//19.04.2008 v0.1 first release
+
 #include <amxmodx>
 #include <amxmisc>
 #include <cstrike>
@@ -471,9 +464,10 @@ public plugin_init()
 	register_logevent("Event_TRWin", 6, "3=Terrorists_Win", "3=VIP_Assassinated",	"3=Target_Bombed", "3=Hostages_Not_Rescued", "3=Terrorists_Escaped");
 	// register_event("TeamScore", "Event_TRWin", "a", "1=TERRORIST");
 	// register_event("TeamScore", "Event_CTWin", "a", "1=CT");
-	init_server_info();
+
 	g_initialize = false;
 
+	set_task(1.0, "plugin_core");
 	return PLUGIN_HANDLED_MAIN;
 }
 
@@ -512,7 +506,7 @@ public Event_CTWin()
 }
 
 //LoadPlugin
-public plugin_cfg()
+public plugin_core()
 {
 	new error[MAX_ERR_LENGTH + 1];
 	new ercode;
@@ -1079,7 +1073,7 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3]
 
 select_user_info(sAuthId[])
 {
-	new Handle:query = SQL_PrepareQuery(g_dbConnect, SQL_SELECT_USER_TIME, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER], sAuthId);
+	new Handle:query = SQL_PrepareQuery(g_dbConnect, fmt(SQL_SELECT_USER_TIME, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER], sAuthId));
 	
 	// run the query
 	if(!SQL_Execute(query))
