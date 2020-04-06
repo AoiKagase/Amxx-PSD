@@ -16,6 +16,14 @@
 #define PLUGIN					"Player Status in DB"
 #define VERSION					"0.8"
 #define AUTHOR					"Aoi.Kagase"
+
+/*=====================================*/
+/*  VERSION CHECK				       */
+/*=====================================*/
+#if AMXX_VERSION_NUM < 190
+	#assert "AMX Mod X v1.9.0 or greater library required!"
+#endif
+
 #define MAX_ERR_LENGTH			512
 #define MAX_QUERY_LENGTH		2048
 #define MAX_LENGTH				128
@@ -131,7 +139,7 @@ new g_server_info			[SERVER_INFO];
 new g_server_starttime		[20];
 new g_server_mapname		[MAX_NAME_LENGTH];
 new g_rounds_info			[ROUND_INFO];
-new g_user_name				[MAX_PLAYERS][MAX_NAME_LENGTH];
+new g_user_name				[MAX_PLAYERS][MAX_NAME_LENGTH * 3];
 new g_playtime				[MAX_PLAYERS];
 
 new g_initialize;
@@ -198,7 +206,7 @@ init_database()
 	sql = "";
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`auth_id`     	 VARCHAR(%d)       NOT NULL,", MAX_AUTHID_LENGTH);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `name`        	 VARCHAR(%d)       NOT NULL,", MAX_NAME_LENGTH);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `name`        	 VARCHAR(%d)       NOT NULL,", MAX_NAME_LENGTH * 3);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `latest_ip`   	 VARCHAR(%d)   	   NOT NULL,", MAX_IP_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `online_time` 	 BIGINT	  UNSIGNED DEFAULT  0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at`  	 DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
@@ -994,7 +1002,8 @@ public client_putinserver(id)
 	{
 		new sAuthid			[MAX_AUTHID_LENGTH];
 		g_playtime[id] = get_systime();
-		get_user_name(id, g_user_name[id], MAX_NAME_LENGTH);
+		get_user_name(id, g_user_name[id], charsmax(g_user_name[]));
+		mysql_escape_string(g_user_name[id], charsmax(g_user_name[]));
 		get_user_authid(id, sAuthid, charsmax(sAuthid));
 		insert_user_info(id, sAuthid);
 	}
@@ -1009,10 +1018,11 @@ public client_infochanged(id)
 	if (!is_user_bot(id))
 	{
 		new sAuthid	[MAX_AUTHID_LENGTH];
-		new sName	[MAX_NAME_LENGTH];
+		new sName	[MAX_NAME_LENGTH * 3];
 
 		get_user_authid(id, sAuthid, charsmax(sAuthid));
 		get_user_name(id, sName, charsmax(sName));
+		mysql_escape_string(sName, charsmax(sName));
 		if (!equali(sName, g_user_name[id])) 
 		{
 			insert_user_info(id, sAuthid);
@@ -1022,13 +1032,16 @@ public client_infochanged(id)
 	return PLUGIN_CONTINUE;
 }
 
-insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "")
+insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3] = "")
 {
 	new sIp[MAX_IP_LENGTH]			= "";
 	new sql[MAX_QUERY_LENGTH + 1]	= "";
 	new len = 0;
 	if (equali(sName,""))
+	{
 		get_user_name(id, sName, charsmax(sName));
+		mysql_escape_string(sName, charsmax(sName));
+	}
 
 	if (equali(sAuthId, "BOT"))
 		formatex(sName, charsmax(sName), "BOT");
@@ -1156,3 +1169,15 @@ execute_insert_multi_query(Handle:query[], count)
 		SQL_FreeHandle(query[i]);
 	}
 }
+
+stock mysql_escape_string(dest[],len)
+{
+    //copy(dest, len, source);
+    replace_all(dest,len,"\\","\\\\");
+    replace_all(dest,len,"\0","\\0");
+    replace_all(dest,len,"\n","\\n");
+    replace_all(dest,len,"\r","\\r");
+    replace_all(dest,len,"\x1a","\Z");
+    replace_all(dest,len,"'","\'");
+    replace_all(dest,len,"^"","\^"");
+} 
