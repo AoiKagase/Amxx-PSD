@@ -7,14 +7,45 @@
 #include <sqlx>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.1"
+#define VERSION					"1.01"
 #define AUTHOR					"Aoi.Kagase"
 
 /*=====================================*/
 /*  VERSION CHECK				       */
 /*=====================================*/
 #if AMXX_VERSION_NUM < 190
-	#assert "AMX Mod X v1.9.0 or greater library required!"
+//	#assert "AMX Mod X v1.9.0 or greater library required!"
+
+	#define MAX_PLAYERS			32
+	#define MAX_NAME_LENGTH		32
+	#define MAX_AUTHID_LENGTH	64
+	#define MAX_IP_LENGTH		16
+	// Parts of body for hits
+	#define	MAX_BODYHITS		8
+
+	// Constants for client statistics
+	enum
+	{
+		STATSX_KILLS = 0,
+		STATSX_DEATHS,
+		STATSX_HEADSHOTS,
+		STATSX_TEAMKILLS,
+		STATSX_SHOTS,
+		STATSX_HITS,
+		STATSX_DAMAGE,
+		STATSX_RANK,
+		STATSX_MAX_STATS
+	};
+
+	// Constants for objective based statistics
+	enum
+	{
+		STATSX_TOTAL_DEFUSIONS = 0,
+		STATSX_BOMBS_DEFUSED,
+		STATSX_BOMBS_PLANTED,
+		STATSX_BOMB_EXPLOSIONS,
+		STATSX_MAX_OBJECTIVE
+	};
 #endif
 
 #define MAX_ERR_LENGTH			512
@@ -60,7 +91,7 @@
 #define SQL_VALUES				") VALUES ("
 #define SQL_END					");"
 
-#define SQL_SELECT_USER_TIME	"SELECT `online_time` AS online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id` ORDER BY online_time DESC LIMIT 1;"
+#define SQL_SELECT_USER_TIME	"SELECT `online_time` AS online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id` ORDER BY `online_time` DESC LIMIT 1;"
 #define SQL_SELECT_USER_INFO	"SELECT `auth_id`, `latest_ip`, SUM(`online_time`) as online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id`, `latest_ip` ORDER BY `created_at` desc LIMIT 1;"
 
 #define TASK_ID_ROUND_END		118855
@@ -1073,7 +1104,9 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3]
 
 select_user_info(sAuthId[])
 {
-	new Handle:query = SQL_PrepareQuery(g_dbConnect, fmt(SQL_SELECT_USER_TIME, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER], sAuthId));
+	new sql[512];
+	formatex(sql, charsmax(sql), SQL_SELECT_USER_TIME, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER], sAuthId);
+	new Handle:query = SQL_PrepareQuery(g_dbConnect, sql);
 	
 	// run the query
 	if(!SQL_Execute(query))

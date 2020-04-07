@@ -105,6 +105,16 @@ class UserDetail extends PageMain
 			'h_rleg'	=> './images/hit_rleg.png',
 			'h_lleg'	=> './images/hit_lleg.png',
 		);
+		$colors	  = [
+			['R' => 255,'G' => 0,	'B' => 0,],
+			['R' => 255,'G' => 85,	'B' => 0,],
+			['R' => 255,'G' => 170, 'B' => 0,],
+			['R' => 255,'G' => 255, 'B' => 0,],
+			['R' => 170,'G' => 255, 'B' => 0,],
+			['R' => 85,	'G' => 255, 'B' => 0,],
+			['R' => 0,	'G' => 255, 'B' => 0,],
+		];
+
 		$resource = [];
 		foreach($wstats as $stats)
 		{
@@ -115,43 +125,43 @@ class UserDetail extends PageMain
 			imagefilter($img, IMG_FILTER_NEGATE);
 			imagefilter($img, IMG_FILTER_COLORIZE, 0, 255, 0);
 
+			$hit_array = [
+				'h_head' 	=> $stats['h_head']
+			  , 'h_chest' 	=> $stats['h_chest']
+			  , 'h_stomach' => $stats['h_stomach']
+			  , 'h_rarm' 	=> $stats['h_rarm']
+			  , 'h_larm' 	=> $stats['h_larm']
+			  , 'h_rleg' 	=> $stats['h_rleg']
+			  , 'h_lleg' 	=> $stats['h_lleg']
+			];
+			arsort($hit_array);
+			$hit_keys = array_keys($hit_array);
+			$rank = 0;
+			$n = 0;
+			foreach (array_count_values($hit_array) as $point => $count) 
+			{
+				for ($i = 0; $i < $count; $i++) {
+					$acc[$hit_keys[$n++]] = $rank;
+				}
+				$rank += $count;
+			}
+
 			// シンプルな画像合成
 			foreach($imgFns as $key => $fn)
 			{
-				$blue = 0;
+				$blue  = 0;
+				$green = 255;
+				$red   = 0;
 				if ($key == 'main')
 				{
 					continue;
 				}
 				else
 				{
-					$hit_array = [
-						$stats['h_head']
-					  , $stats['h_chest']
-					  , $stats['h_stomach']
-					  , $stats['h_rarm']
-					  , $stats['h_larm']
-					  , $stats['h_rleg']
-					  , $stats['h_lleg']
-					];
-//					$acc = (stats_stat_percentile($hit_array, $stats[$key]));
-					$max = max($hit_array) ? max($hit_array) : 1;
-					$acc = ((floatval($stats[$key]) / floatval($max)) * 100);
-					$red	= 0;
-					$green	= 255;
-
 					if ($stats[$key] > 0)
 					{
-						if ($acc < 50.0)
-						{
-							$red   	= ($acc * (255 / 50));
-							$green  = 255;
-						}
-						else
-						{
-							$green	= 255 - ($acc * (255 / 50));	
-							$red	= 255;
-						}
+						$red 	= $colors[$acc[$key]]['R'];
+						$green	= $colors[$acc[$key]]['G'];	
 					}
 				}
 				$img2 = imagecreatefrompng($fn); // 合成する画像を取り込む
