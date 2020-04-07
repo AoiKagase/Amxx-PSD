@@ -7,7 +7,7 @@
 #include <sqlx>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.0"
+#define VERSION					"1.1"
 #define AUTHOR					"Aoi.Kagase"
 
 /*=====================================*/
@@ -60,7 +60,7 @@
 #define SQL_VALUES				") VALUES ("
 #define SQL_END					");"
 
-#define SQL_SELECT_USER_TIME	"SELECT SUM(`online_time`) AS online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id`;"
+#define SQL_SELECT_USER_TIME	"SELECT `online_time` AS online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id` ORDER BY online_time DESC LIMIT 1;"
 #define SQL_SELECT_USER_INFO	"SELECT `auth_id`, `latest_ip`, SUM(`online_time`) as online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id`, `latest_ip` ORDER BY `created_at` desc LIMIT 1;"
 
 #define TASK_ID_ROUND_END		118855
