@@ -3,7 +3,7 @@
 //=============================================
 
 // Supported BIOHAZARD.
-#define BIOHAZARD_SUPPORT
+// #define BIOHAZARD_SUPPORT
 
 // Supported More money than 16000.
 // #define UL_MONEY_SUPPORT
@@ -15,6 +15,7 @@
 #include <amxconst>
 #include <fakemeta>
 #include <hamsandwich>
+#include <vector>
 #include <xs>
 #if defined BIOHAZARD_SUPPORT
 	#include <biohazard>
@@ -30,6 +31,7 @@
 /*=====================================*/
 #if AMXX_VERSION_NUM < 190
 	#assert "AMX Mod X v1.9.0 or greater library required!"
+	#define MAX_PLAYERS				32
 #endif
 
 /*=====================================*/
@@ -45,7 +47,7 @@
 #if defined BIOHAZARD_SUPPORT
 	#define PLUGIN 					"Lasermine for BIOHAZARD"
 
-	#define CHAT_TAG 				"[BioLaser]"
+	#define CHAT_TAG 				"[Biohazard]"
 	#define CVAR_TAG				"bio_ltm"
 	#define LANG_KEY_NOT_BUY_TEAM	"NOT_BUY_TEAM"
 #else
@@ -95,6 +97,7 @@
 #define LANG_KEY_PLANT_WALL   		"PLANT_WALL"
 #define LANG_KEY_PLANT_GROUND 		"PLANT_GROUND"
 #define LANG_KEY_SORRY_IMPL   		"SORRY_IMPL"
+#define LANG_KEY_NOROUND			"NO_ROUND"
 
 // Remove Lasermine Entity Macro
 #define remove_entity(%1)			engfunc(EngFunc_RemoveEntity, %1)
@@ -119,7 +122,6 @@
 #define LASERMINE_BEAMENDPOINT2		pev_vuser2
 #define LASERMINE_BEAMENDPOINT3		pev_vuser3
 
-#define MAX_PLAYERS					32
 #define MAX_MINES					10
 #define OFFSET_TEAM 				114
 #define OFFSET_MONEY				115
@@ -134,9 +136,7 @@
 	#define CS_TEAM_ZOMBIE			4
 #endif
 // CS Status Data.
-#if !defined BIOHAZARD_SUPPORT
 #define cs_get_user_team(%1)		get_offset_value(%1, OFFSET_TEAM)
-#endif
 #define cs_set_user_team(%1,%2)		set_offset_value(%1, OFFSET_TEAM, %2)
 #define cs_get_user_deaths(%1)		get_offset_value(%1, OFFSET_DEATH)
 #define cs_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
@@ -161,6 +161,8 @@
 #define cp_must_wall(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_PLANT_WALL,	CHAT_TAG)
 #define cp_must_ground(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_PLANT_GROUND,	CHAT_TAG)
 #define cp_sorry(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_SORRY_IMPL,	CHAT_TAG)
+#define cp_noround(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOROUND, 		CHAT_TAG)
+
 
 //====================================================
 // ENUM AREA
@@ -228,6 +230,7 @@ enum ERROR
 	MUST_GROUND			,
 	NOT_IMPLEMENT		,
 	NOT_BUYZONE			,
+	NO_ROUND			,
 };
 
 //
@@ -237,6 +240,7 @@ enum CVAR_SETTING
 {
 	CVAR_ENABLE				= 0,    	// Plugin Enable.
 	CVAR_ACCESS_LEVEL		,		// Access level for 0 = ADMIN or 1 = ALL.
+	CVAR_NOROUND			,		// Check Started Round.
 	CVAR_CMD_MODE			,    	// 0 = +USE key, 1 = bind, 2 = each.
 	CVAR_MODE				,    	// 0 = Lasermine, 1 = Tripmine.
 	CVAR_MAX_HAVE			,    	// Max having ammo.
@@ -265,6 +269,7 @@ enum CVAR_SETTING
 	CVAR_MINE_GLOW_MODE     ,   	// Glowing color mode.
 	CVAR_MINE_GLOW_CT     	,   	// Glowing color for CT.
 	CVAR_MINE_GLOW_TR    	,   	// Glowing color for T.
+	CVAR_MINE_BROKEN		,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
 	CVAR_DEATH_REMOVE		,		// Dead Player Remove Lasermine.
 	CVAR_LASER_ACTIVATE		,		// Waiting for put lasermine. (0 = no progress bar.)
 	CVAR_LASER_RANGE		,		// Laserbeam range.
@@ -371,15 +376,7 @@ stock bool:is_user_friend(iAttacker, iTarget)
 		return true;
 	return false;
 }
-#if defined BIOHAZARD_SUPPORT
-stock cs_get_user_team(id)
-{
-	if (is_user_zombie(id))
-		return CS_TEAM_ZOMBIE;
 
-	return get_offset_value(id, OFFSET_TEAM);
-}
-#endif
 //====================================================
 //  PLUGIN INITIALIZE
 //====================================================
@@ -403,7 +400,9 @@ public plugin_init()
 	gCvar[CVAR_FRIENDLY_FIRE]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_friendly_fire"),		"0"			);	// Friendly fire. 0 or 1
 	gCvar[CVAR_START_DELAY]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),			"5"			);	// Round start delay time.
 	gCvar[CVAR_CMD_MODE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_cmd_mode"),				"1"			);	// 0 is +USE key, 1 is bind, 2 is each.
-
+#if defined BIOHAZARD_SUPPORT
+	gCvar[CVAR_NOROUND]			= register_cvar(fmt("%s%s", CVAR_TAG, "_check_started_round"),	"1"			);	// Check Started Round.
+#endif
 	// Ammo.
 	gCvar[CVAR_START_HAVE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_amount"),				"1"			);	// Round start have ammo count.
 	gCvar[CVAR_MAX_HAVE]       	= register_cvar(fmt("%s%s", CVAR_TAG, "_max_amount"),   		"2"			);	// Max having ammo.
@@ -435,6 +434,7 @@ public plugin_init()
 	gCvar[CVAR_MINE_GLOW_MODE]  = register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
 	gCvar[CVAR_MINE_GLOW_TR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_t"),	"255,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
 	gCvar[CVAR_MINE_GLOW_CT]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_ct"),	"0,0,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_MINE_BROKEN]		= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_broken"),			"0"			);	// Can broken Mines.(0 = mines, 1 = Team, 2 = Enemy)
 	gCvar[CVAR_EXPLODE_RADIUS] 	= register_cvar(fmt("%s%s", CVAR_TAG, "_explode_radius"),		"320.0"		);	// Explosion radius.
 	gCvar[CVAR_EXPLODE_DMG]		= register_cvar(fmt("%s%s", CVAR_TAG, "_explode_damage"),		"100"		);	// Explosion radius damage.
 
@@ -448,6 +448,7 @@ public plugin_init()
 	RegisterHam(Ham_Item_PreFrame,	"player", "KeepMaxSpeed", 	1);
 	RegisterHam(Ham_Killed, 		"player", "PlayerKilling", 	0);
 	RegisterHam(Ham_Think,			ENT_CLASS_NAME3, "LaserThink");
+	RegisterHam(Ham_TakeDamage,		ENT_CLASS_NAME3, "MinesTakeDamage");
 
 	// register_event("HLTV", 		"NewRound", 	"a", "1=0", "2=0") 
 	register_event("DeathMsg",  "DeathEvent",   "a");
@@ -464,6 +465,7 @@ public plugin_init()
 	register_forward(FM_PlayerPreThink, "PlayerPreThink");
 
 	register_dictionary("lasermine.txt");
+	register_cvar(AUTHOR, fmt("%s %s %s", CHAT_TAG, PLUGIN, VERSION), FCVAR_SERVER|FCVAR_SPONLY);
 
 	return PLUGIN_CONTINUE;
 }
@@ -869,15 +871,6 @@ set_mine_position(uID, iEnt)
 	// Rotate tripmine.
 	vector_to_angle(vNormal, vEntAngles);
 
-	// claymore add vector aim angle.
-	if (mode_claymore)
-	{
-		new Float:aimAngles[3];
-		vector_to_angle(vTraceDirection, aimAngles);
-		aimAngles[0] = 0.0;
-		aimAngles[2] = 0.0;
-		xs_vec_add(vEntAngles, aimAngles, vEntAngles);
-	}
 	// set angle.
 	set_pev(iEnt, pev_angles, vEntAngles);
 
@@ -1050,20 +1043,27 @@ bool:check_for_team(id)
 	get_pcvar_string(gCvar[CVAR_CBT], arg, charsmax(arg));
 
 	// Terrorist
+#if defined BIOHAZARD_SUPPORT
+	if(equali(arg, "Z") || equali(arg, "Zombie"))
+#else
 	if(equali(arg, "TR") || equali(arg, "T"))
+#endif
 		team = int:CS_TEAM_T;
 	else
 	// Counter-Terrorist
+#if defined BIOHAZARD_SUPPORT
+	if(equali(arg, "H") || equali(arg, "Human"))
+#else
 	if(equali(arg, "CT"))
+#endif
 		team = int:CS_TEAM_CT;
 	else
-#if defined BIOHAZARD_SUPPORT
-	if(equali(arg, "Z") || equali(arg, "Zombie"))
-		team = int:CS_TEAM_ZOMBIE;
-	else
-#endif
 	// All team.
+#if defined BIOHAZARD_SUPPORT
+	if(equali(arg, "ZH") || equali(arg, "HZ") || equali(arg, "ALL"))
+#else
 	if(equali(arg, "ALL"))
+#endif
 		team = int:CS_TEAM_UNASSIGNED;
 	else
 		team = int:CS_TEAM_UNASSIGNED;
@@ -1199,6 +1199,7 @@ show_error_message(id, ERROR:err_num)
 		case MUST_GROUND:		cp_must_ground(id);
 		case NOT_IMPLEMENT:		cp_sorry(id);
 		case NOT_BUYZONE:		cp_buyzone(id);
+		case NO_ROUND:			cp_noround(id);
 	}
 }
 
@@ -1316,6 +1317,20 @@ ERROR:check_for_onwall(id)
 }
 
 //====================================================
+// Check: Round Started
+//====================================================
+#if defined BIOHAZARD_SUPPORT
+ERROR:check_round_started()
+{
+	if (get_pcvar_num(gCvar[CVAR_NOROUND]))
+	{
+		if(!game_started())
+			return ERROR:NO_ROUND;
+	}
+	return ERROR:NONE;
+}
+#endif
+//====================================================
 // Check: Lasermine Deploy.
 //====================================================
 bool:check_for_deploy(id)
@@ -1328,6 +1343,15 @@ bool:check_for_deploy(id)
 		return false;
 	}
 
+#if defined BIOHAZARD_SUPPORT
+	// Check Started Round.
+	error = check_round_started();
+	if(error)
+	{
+		show_error_message(id, error);
+		return false;
+	}	
+#endif
 	// Have mine? (use buy system)
 	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
 	if (get_user_have_mine(id) <= int:0) 
@@ -1544,6 +1568,35 @@ public LaserThink(iEnt)
 	}
 
 	return HAM_SUPERCEDE;
+}
+
+//====================================================
+// Blocken Mines.
+//====================================================
+public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
+{
+	// We get the ID of the player who put the mine.
+	new iOwner = pev(victim, LASERMINE_OWNER);
+	switch(get_pcvar_num(gCvar[CVAR_MINE_BROKEN]))
+	{
+		// 0 = mines.
+		case 0:
+		{
+			// If the one who set the mine does not coincide with the one who attacked it, then we stop execution.
+			if(iOwner != attacker)
+				return HAM_SUPERCEDE;
+		}
+		// 1 = team.
+		case 1:
+		{
+			// If the team of the one who put the mine and the one who attacked match.
+			if(CsTeams:pev(victim, LASERMINE_TEAM) != CsTeams:cs_get_user_team(attacker))
+				return HAM_SUPERCEDE;
+		}
+		default:
+			return HAM_IGNORED;
+	}
+	return HAM_IGNORED;
 }
 
 //====================================================
@@ -2299,75 +2352,60 @@ set_offset_value(id, type, value)
 stock set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 {
 	new Float:vForward[3];
-	new Float:vAngles[3];
-	new Float:vFwd[3];
-	new Float:vR[3], Float:vU[3];
-	new Float:vDec[3];
 	new Float:vResultA[3];
 	new Float:vResultB[3];
 	new Float:vResultC[3];
 	new Float:hitPoint[3];
 	new Float:pAngles[3];
-
-
-	vAngles[0] = 90.0;
-	vAngles[1] = 0.0;
-	vAngles[2] = 0.0;
-
-	xs_anglevectors(vAngles, vFwd, vR, vU);
-
-	pev(iEnt, pev_angles, pAngles);	
-	xs_vec_add(vNormal, vFwd, vNormal);
-	xs_vec_add(vNormal, pAngles, vNormal);
-	xs_vec_mul_scalar(vNormal, 60.0, vNormal);
-
-	xs_vec_add(vOrigin, vNormal, vForward);
+	new Float:vFwd[3];
+	new Float:vRight[3];
+	new Float:vUp[3];
 	vResultA = vOrigin;
 	vResultB = vOrigin;
 	vResultC = vOrigin;
 
-	// for(new Float:i = 0.0; i < 180.0; i+=10.0)
-	// {
-	// 	for(new Float:j = -45.0; j < 45.0; j+= 10.0)
-	// 	{
-	// 		vAngles[0] = Float:i;
-	// 		vAngles[1] = Float:j;
-	// 		vAngles[2] = 0.0;
+	// pev(iEnt, pev_angles, vAngles);
+	// angle_vector(vAngles, ANGLEVECTOR_FORWARD, vAngles);
 
-	// 		xs_anglevectors(vAngles, vFwd, vR, vU);
-	// 		xs_vec_add(vNormal, vFwd, vDec);
-	// 		xs_vec_add(vFwd, pAngles, vDec);
-	// 		xs_vec_add(vNormal, vDec, vForward);
+	// xs_vec_mul_scalar(vAngles, 60.0, vAngles);
+	// xs_vec_add(vAngles, vOrigin, vAngles);
 
-			new trace = create_tr2();
-			// Trace line
-			engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
-			{
-				get_tr2(trace, TR_vecEndPos, hitPoint);
-			}
+	for (new i = 0; i < 3; i++)
+	{
+		pAngles[0] = random_float(-45.0, 45.0);
+		pAngles[1] = random_float(-180.0, 180.0);
+		pAngles[2] = random_float(-90.0, 90.0);
+		xs_anglevectors(pAngles, vFwd, vRight, vUp);
+		xs_vec_mul_scalar(vFwd, 300.0, vFwd);
+		xs_vec_add(vFwd, vNormal, vForward);
+		xs_vec_add(vOrigin, vForward, vForward);
 
-			if (xs_vec_distance(vOrigin, vResultA) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultA, hitPoint))
-			{
-				vResultC = vResultB;
-				vResultB = vResultA;
-				vResultA = hitPoint;
-			}
-			else
-			if (xs_vec_distance(vOrigin, vResultB) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultB, hitPoint))
-			{
-				vResultC = vResultB;
-				vResultB = hitPoint;
-			}
-			else
-			if (xs_vec_distance(vOrigin, vResultC) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultC, hitPoint))
-			{
-				vResultC = hitPoint;
-			}
-
-			// free the trace handle.
-			free_tr2(trace);
-	// 	}
-	// }
+		new trace = create_tr2();
+		// Trace line
+		engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
+		{
+			get_tr2(trace, TR_vecEndPos, hitPoint);
+		}
+		if (xs_vec_distance(vOrigin, vResultA) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultA, hitPoint))
+		{
+			vResultC = vResultB;
+			vResultB = vResultA;
+			vResultA = hitPoint;
+		}
+		else
+		if (xs_vec_distance(vOrigin, vResultB) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultB, hitPoint))
+		{
+			vResultC = vResultB;
+			vResultB = hitPoint;
+		}
+		else
+		if (xs_vec_distance(vOrigin, vResultC) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultC, hitPoint))
+		{
+			vResultC = hitPoint;
+		}
+		// free the trace handle.
+		free_tr2(trace);
+	}
 	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vResultA);
 	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vResultB);
 	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vResultC);
