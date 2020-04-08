@@ -1,0 +1,22 @@
+[en]
+REFER        = ^4%s ^1Refer to a lasermine rule with this server. say 'lasermine'.
+BOUGHT       = ^4%s ^1You have successfully bought a lasermine.
+NO_MONEY     = ^4%s ^1You don't have enough money to buy a lasermine! ^3($%i needed.)
+NOT_ACCESS   = ^4%s ^3You can't access, this command.
+NOT_ACTIVE   = ^4%s ^1Lasermines are not currently active.
+NOT_HAVE     = ^4%s ^1You don't have lasermine.
+NOT_BUYZONE  = ^4%s ^1You can buying in buyzone.
+NOT_PICKUP   = ^4%s ^1You can not pickup this mine.
+NOT_BUY      = ^4%s ^3Can't buying this server.
+NOT_BUY_TEAM = ^4%s ^1Your Team Can't buy and deploying lasermine!
+NOT_BUY_TEAMB= ^4%s ^1Your Zombie! Can't buy and deploying lasermine!
+MAX_DEPLOY   = ^4%s ^1Maximum mines have been deployed.
+MAX_HAVE     = ^4%s ^1You have a maximum lasermine.
+MAX_PPL      = ^4%s ^1Too many ppl on your team...
+DELAY_SEC    = ^4%s ^1You can buying and deploying lasermine in after ^4%i seconds.
+STATE_AMMO   = LaserMines Ammo: %i/%i
+STATE_INF    = LaserMines Ammo: Infinite.
+PLANT_WALL   = ^4%s ^1You must plant the lasermine on a wall!
+PLANT_GROUND = ^4%s ^1You must plant the Claymore on a ground!
+SORRY_IMPL   = ^4%s ^1Sorry. this mode is Not implemented.
+
