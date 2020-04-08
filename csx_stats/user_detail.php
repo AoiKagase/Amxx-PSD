@@ -74,8 +74,11 @@ class UserDetail extends PageMain
 			'auth_id'	=> $auth_id,
 		];
 		// Get Total Score;
-		$server_round = new T_SERVER_ROUND($this->dbh);
-		return $server_round->GetTeamWonCount($where)[0];
+		$server_round	= new T_SERVER_ROUND($this->dbh);
+		$round_info		= $server_round->GetTeamWonCount($where)[0];
+
+		$round_info['win_percent'] = round(($round_info['CT_WIN']+$round_info['T_WIN']) / ($round_info['CT_COUNT']+$round_info['T_COUNT']) * 100,0,PHP_ROUND_HALF_DOWN); 
+		return $round_info;
 	}
 
 	function get_user_wstats($auth_id)

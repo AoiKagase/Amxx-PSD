@@ -10,6 +10,22 @@
 		<div class="row">
 		<div class="modal-body">
 			<table class="table">
+				<thead>
+				<tr>
+					<th scope="col">Efficiency.</th>
+					<th scope="col">Accuracy.</th>
+					<th scope="col">Accuracy<br />HeadShots.</th>
+					<th scope="col">K/D Rate.</th>			
+				</tr>
+				</thead>
+				<tbody>
+					<td>{{ record.efficiency }}</td>
+					<td>{{ record.accuracy }}</td>
+					<td>{{ record.accuracyHS }}</td>
+					<td>{{ record.kdrate }}</td>
+				</tbody>
+			</table>
+			<table class="table">
 				<tbody>
 				<tr>
 					<th scope="row">HEAD</th>

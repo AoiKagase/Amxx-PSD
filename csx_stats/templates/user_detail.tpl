@@ -1,9 +1,29 @@
 {% extends 'inc_base.tpl' %}
 {% block title   	%}User Status{% endblock %}
 {% block javascript %}
+<script type="text/javascript">
 $(function() {
-	{# $("[id=row_WeaponDetail^]").on('show.bs.modal'); #}
+	$('.chart').easyPieChart({
+		// your configuration goes here
+		// easing:'easeOutQuart',
+		barColor:'rgba(0,255,0,1.0)',
+		trackColor:'rgba(255,0,0,1.0)',
+		lineCap:'square',
+		lineWidth: 12,
+		trackWidth: 12,
+		scaleLength:0,
+		scaleColor:false,
+		size:100,
+		animate:{ duration: 1000, enabled: true },
+		rotate:30,
+		onStep: function(from, to, percent) {
+			$(this.el).find('.percent').text(Math.round(percent));
+		}
+	});
 });
+</script>
+{% endblock %}
+{% block stylesheet %}
 {% endblock %}
 {% block content 	%}
 
@@ -74,7 +94,11 @@ $(function() {
 				</div>				   
 				<div class="card border-light mb-3" style="min-width:10rem; max-width: 10rem;">
 					<div class="card-body">
-						<h4 class="card-title">{{ team.WIN }}</h4>
+						<div class="chart" data-percent="{{ team.win_percent }}">
+						<h4 class="percent">
+							{{ team.win_percent }}
+						</h4>
+						</div>
 						<p class="card-text">Win</p>
 					</div>
 				</div>				   
@@ -98,10 +122,12 @@ $(function() {
 				<td scope="col">Damages</td>
 				<td scope="col">Shots</td>
 				<td scope="col">HeadShots</td>
+<!--
 				<td scope="col">Efficiency.</td>
 				<td scope="col">Accuracy.</td>
 				<td scope="col">Accuracy<br />HeadShots.</td>
 				<td scope="col">K/D Rate.</td>
+-->
 			</tr>
 			</thead>
 			<tbody>
@@ -118,11 +144,14 @@ $(function() {
 				<td>{{ record.csx_hits }}</td>
 				<td>{{ record.csx_dmg }}</td>
 				<td>{{ record.csx_shots }}</td>
-				<td>{{ record.csx_hs }}</td>
+				<td>{{ record.csx_hs }}{% include 'inc_wpn_detail.tpl' %}</td>
+				
+<!--
 				<td>{{ record.efficiency }}</td>
 				<td>{{ record.accuracy }}</td>
 				<td>{{ record.accuracyHS }}</td>
-				<td>{{ record.kdrate }}{% include 'inc_wpn_detail.tpl' %}</td>
+				<td>{{ record.kdrate }}</td>
+-->
 			</tr>
 			{% endfor %}
 		</table>
