@@ -12,6 +12,7 @@
 /*  INCLUDE AREA				       */
 /*=====================================*/
 #include <amxmodx>
+#include <amxmisc>
 #include <amxconst>
 #include <fakemeta>
 #include <hamsandwich>
@@ -42,7 +43,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.4a"
+#define VERSION 					"3.4b"
 
 #if defined BIOHAZARD_SUPPORT
 	#define PLUGIN 					"Lasermine for BIOHAZARD"
@@ -276,6 +277,7 @@ enum CVAR_SETTING
 	CVAR_ALLOW_PICKUP		,		// allow pickup.
 //  CVAR_LASER_THINK        ,   	// Laser line think.
 	CVAR_DIFENCE_SHIELD		,		// Shield hit.
+	CVAR_REALISTIC_DETAIL	,		// Spark Effect.
 };
 
 //
@@ -355,7 +357,7 @@ stock bool:fm_is_user_alive		(id)				{ return (pev(id,pev_deadflag) == DEAD_NO);
 stock bool:fm_get_user_buyzone	(id)				{ return bool:(get_pdata_int(id, OFFSET_MAPZONE) & PLAYER_IN_BUYZONE); }
 stock fm_get_entity_class_name	(id)
 {
-	new entityName[32];
+	new entityName[MAX_NAME_LENGTH];
 	pev(id, pev_classname, entityName, charsmax(entityName));
 	return entityName;
 }
@@ -385,6 +387,9 @@ public plugin_init()
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
 	// Add your code here...
+	register_concmd("bh_untakelm",	"luatlaser",	ADMIN_LEVEL_B, " - <num>"); 
+	register_concmd("bh_takelm", 	"puslaser",		ADMIN_LEVEL_B, " - <num>"); 
+
 	register_clcmd("+setlaser", "LaserMineProgressB");
 	register_clcmd("+dellaser", "RemoveProgress");
    	register_clcmd("-setlaser", "StopProgress");
@@ -443,12 +448,13 @@ public plugin_init()
 	gCvar[CVAR_LASER_ACTIVATE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1"			);	// Waiting for put lasermine. (int:seconds. 0 = no progress bar.)
 	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 	gCvar[CVAR_DIFENCE_SHIELD]	= register_cvar(fmt("%s%s", CVAR_TAG, "_shield_difence"),		"1"			);	// allow shiled difence.
-	
+	gCvar[CVAR_REALISTIC_DETAIL]= register_cvar(fmt("%s%s", CVAR_TAG, "_realistic_detail"), 	"1"			);	// Spark Effect.
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
 	RegisterHam(Ham_Item_PreFrame,	"player", "KeepMaxSpeed", 	1);
 	RegisterHam(Ham_Killed, 		"player", "PlayerKilling", 	0);
 	RegisterHam(Ham_Think,			ENT_CLASS_NAME3, "LaserThink");
 	RegisterHam(Ham_TakeDamage,		ENT_CLASS_NAME3, "MinesTakeDamage");
+	RegisterHam(Ham_TraceAttack,	ENT_CLASS_NAME3, "MinesShowInfo");
 
 	// register_event("HLTV", 		"NewRound", 	"a", "1=0", "2=0") 
 	register_event("DeathMsg",  "DeathEvent",   "a");
@@ -947,9 +953,8 @@ public RemoveMine(id)
 	if(get_distance_f(vOrigin, tOrigin) > 70.0)
 		return 1;
 	
-	new entityName[32];
-	entityName[0] = '^0';
-	pev(target, pev_classname, entityName, 31);
+	new entityName[MAX_NAME_LENGTH];
+	entityName = fm_get_entity_class_name(target);
 
 	// Check. is Target Entity Lasermine?
 	if(!equal(entityName, ENT_CLASS_NAME1))
@@ -1083,7 +1088,7 @@ ERROR:check_for_common(id)
 	new cvar_access = get_pcvar_num(gCvar[CVAR_ACCESS_LEVEL]);
 	new user_flags	= get_user_flags(id) & ADMIN_ACCESSLEVEL;
 	new is_alive	= fm_is_user_alive(id);
-	//new TRIPMINE_MODE:cvar_mode	= TRIPMINE_MODE:get_pcvar_num(gCvar[CVAR_MODE]);
+	new TRIPMINE_MODE:cvar_mode	= TRIPMINE_MODE:get_pcvar_num(gCvar[CVAR_MODE]);
 
 	// Plugin Enabled
 	if (!cvar_enable)
@@ -1098,8 +1103,8 @@ ERROR:check_for_common(id)
 		return ERROR:NOT_ALIVE;
 
 	// claymore.
-	// if (cvar_mode == MODE_BF4_CLAYMORE)
-	// 	return ERROR:NOT_IMPLEMENT;
+	if (cvar_mode == MODE_BF4_CLAYMORE)
+	 	return ERROR:NOT_IMPLEMENT;
 
 	// Can set Delay time?
 	return ERROR:check_for_time(id);
@@ -1239,9 +1244,8 @@ bool:check_for_remove(id)
 	if(get_distance_f(vOrigin, tOrigin) > 70.0)
 		return false;
 	
-	new entityName[32];
-	entityName[0] = '^0';
-	pev(target, pev_classname, entityName, charsmax(entityName));
+	new entityName[MAX_NAME_LENGTH];
+	entityName = fm_get_entity_class_name(target);
 
 	// is target lasermine?
 	if(!equal(entityName, ENT_CLASS_NAME1))
@@ -1392,7 +1396,7 @@ public LaserThink(iEnt)
 	if (!pev_valid(iEnt))
 		return HAM_IGNORED;
 
-	new entityName[32];
+	new entityName[MAX_NAME_LENGTH];
 	entityName = fm_get_entity_class_name(iEnt);
 
 	// is this lasermine? no.
@@ -1537,7 +1541,10 @@ public LaserThink(iEnt)
 		if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]))
 		{
 			for (new i = 0; i < loop; i++)
+			{
 				draw_laserline(iEnt, vOrigin, vEnd[i]);
+				draw_spark_for_wall(vEnd[i]);				
+			}
 		}
 
 		// Think time. random_float = laser line blinking.
@@ -1740,6 +1747,31 @@ draw_laserline(iEnt, const Float:vOrigin[3], const Float:vEndOrigin[3])
 	message_end();
 }
 
+draw_spark_for_wall(const Float:vEndOrigin[3])
+{
+   	// Sparks
+	if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
+	{
+		engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vEndOrigin, 0);
+		write_byte(TE_SPARKS); // TE id
+		engfunc(EngFunc_WriteCoord, vEndOrigin[0]); // x
+		engfunc(EngFunc_WriteCoord, vEndOrigin[1]); // y
+		engfunc(EngFunc_WriteCoord, vEndOrigin[2]); // z
+		message_end();
+      
+		// Effects when cut
+		engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
+		write_byte(TE_EXPLOSION);
+		engfunc(EngFunc_WriteCoord, vEndOrigin[0]);
+		engfunc(EngFunc_WriteCoord, vEndOrigin[1]);
+		engfunc(EngFunc_WriteCoord, vEndOrigin[2] - 10.0);
+		write_short(TE_SPARKS);	// sprite index
+		write_byte(1);	// scale in 0.1's
+		write_byte(30);	// framerate
+		write_byte(TE_EXPLFLAG_NODLIGHTS | TE_EXPLFLAG_NOPARTICLES | TE_EXPLFLAG_NOSOUND);	// flags
+		message_end();
+	}	
+}
 //====================================================
 // Stop Laser line.
 //====================================================
@@ -1946,10 +1978,7 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 		}
 	}
 
-	// new entityName[32];
-	// entityName 	  = fm_get_entity_class_name(iTarget);
 	new iAttacker = pev(iEnt,LASERMINE_OWNER);
-
 	if (get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]) && hitGroup == HIT_SHIELD)
 	{
 		emit_sound(iTarget, CHAN_VOICE, random_num(0, 1) == 1 ? ENT_SOUND8 : ENT_SOUND9, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
@@ -2016,7 +2045,7 @@ stock draw_spark(Float:origin[3])
 //====================================================
 public PlayerKilling(iVictim, iAttacker)
 {
-	static entityName[32];
+	static entityName[MAX_NAME_LENGTH];
 	entityName = fm_get_entity_class_name(iAttacker);
 	//
 	// Refresh Score info.
@@ -2223,7 +2252,7 @@ public client_disconnected(id)
 remove_all_lasermines(id)
 {
 	new iEnt = -1;
-	new entityName[32];
+	new entityName[MAX_NAME_LENGTH];
 	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", ENT_CLASS_NAME1)))
 	{
 		if (!pev_valid(iEnt))
@@ -2233,8 +2262,7 @@ remove_all_lasermines(id)
 		{
 			if (pev(iEnt, LASERMINE_OWNER) != id)
 				continue;
-			entityName[0] = '^0';
-			pev(iEnt, pev_classname, entityName, charsmax(entityName));
+			entityName = fm_get_entity_class_name(iEnt);
 				
 			if (equali(entityName, ENT_CLASS_NAME1))
 			{
@@ -2410,3 +2438,86 @@ stock set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vResultB);
 	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vResultC);
 }
+
+public MinesShowInfo(iVictim, iAttacker, Float:flDamage, Float:flDirection[3], iTr, iDamageBits)
+{ 
+	new entityName[MAX_NAME_LENGTH];
+	entityName = fm_get_entity_class_name(iVictim);
+
+	if (equali(entityName, ENT_CLASS_NAME1))
+	{
+		new name[MAX_NAME_LENGTH];
+		new id = pev(iVictim, LASERMINE_OWNER);
+		new Float:health = fm_get_user_health(iVictim);
+		get_user_name(id, name, charsmax(name));
+		set_hudmessage( 50, 100, 150, -1.0, 0.60, 0, 6.0, 1.1, 0.0, 0.0, -1);
+		show_hudmessage(iAttacker, "Owner: %s^nHealth: %d/%d", name, health, get_pcvar_num(gCvar[CVAR_MINE_HEALTH]));
+	}
+} 
+
+public luatlaser(id, level, cid) 
+{ 
+   if (!cmd_access(id, level, cid, 2)) 
+   { 
+      return PLUGIN_HANDLED 
+   } 
+
+   new arg[32] 
+    
+   read_argv(1, arg, 31) 
+   new player = cmd_target(id, arg, CMDTARGET_ALLOW_SELF) 
+    
+   if (!player) 
+      return PLUGIN_HANDLED 
+
+   delete_task(player); 
+   remove_all_lasermines(player); 
+
+   new namea[32],namep[32]; 
+   get_user_name(id,namea,charsmax(namea)); 
+   get_user_name(player,namep,charsmax(namep)); 
+   client_print_color(0, print_chat, "!g[Biohazard] !yAdminul !g%s !yi-a dezactivat laserele lui !g%s!y.", namea, namep);
+
+   return PLUGIN_HANDLED; 
+} 
+
+public puslaser(id, level, cid) 
+{ 
+   if (!cmd_access(id, level, cid, 2)) 
+   { 
+      return PLUGIN_HANDLED 
+   } 
+
+   new arg[32] 
+    
+   read_argv(1, arg, 31) 
+   new player = cmd_target(id, arg, CMDTARGET_ALLOW_SELF) 
+    
+   if (!player) 
+      return PLUGIN_HANDLED 
+
+   delete_task(player); 
+   set_start_ammo(player); 
+
+   new namea[MAX_NAME_LENGTH],namep[MAX_NAME_LENGTH]; 
+   get_user_name(id,namea,charsmax(namea)); 
+   get_user_name(player,namep,charsmax(namep)); 
+   client_print_color(0, print_chat, "!g[Biohazard] !yAdminul !g%s !yi-a reactivat laserele lui !g%s!y.", namea, namep);
+
+   return PLUGIN_HANDLED; 
+} 
+
+public checkIfspec(id) 
+{
+	if(get_user_mine_deployed(id) > int:0) 
+	{
+		if(CsTeams:cs_get_user_team(id) == CsTeams:CS_TEAM_SPECTATOR)
+		{
+			delete_task(id);
+			remove_all_lasermines(id);
+			new namep[MAX_NAME_LENGTH];
+			get_user_name(id,namep,charsmax(namep));
+			client_print_color(0, print_chat, "!g[Biohazard] !yLaserele lui !g%s !gau fost dezactivate deoarece s-a mutat la !gspectatori!y!",namep); 
+          } 
+     } 
+} 
