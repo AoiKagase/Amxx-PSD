@@ -68,7 +68,7 @@ Tester	Mr.Kaseijin
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
 #define PLUGIN 						"MONEY-GIVE"
-#define VERSION 					"2.01"
+#define VERSION 					"2.02"
 
 #define CHAT_TAG 					"[MONEY-GIVE]"
 #define CVAR_TAG					"amx_mgive"
