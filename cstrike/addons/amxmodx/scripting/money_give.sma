@@ -81,6 +81,7 @@ Tester	Mr.Kaseijin
 
 #define cs_get_user_team(%1)		CsTeams:get_pdata_int(%1,OFFSET_TEAM)
 #define cs_get_user_money(%1)		get_pdata_int(%1,OFFSET_MONEY)
+#define MAX_CVAR_LENGTH				64
 
 //====================================================
 // ENUM AREA
@@ -91,22 +92,17 @@ Tester	Mr.Kaseijin
 enum CVAR_SETTING
 {
 	CVAR_ENABLE             = 0,    // Plugin Enable.
-	CVAR_ACCESS_LEVEL       = 1,    // Access level for 0 = ADMIN or 1 = ALL.
-	CVAR_MAX_MONEY			= 2,	// Max have money. default:$16000
-	CVAR_ENEMIES			= 3,	// Menu display in Enemiy team.
-	CVAR_BOTS_MENU			= 4,	// Bots in menu. 0 = none, 1 = admin, 2 = all.
-	CVAR_BOTS_ACTION		= 5,	// Bots give money action.
+	CVAR_ACCESS_LEVEL       ,   	// Access level for 0 = ADMIN or 1 = ALL.
+	CVAR_MAX_MONEY			,		// Max have money. default:$16000
+	CVAR_ENEMIES			,		// Menu display in Enemiy team.
+	CVAR_BOTS_MENU			,		// Bots in menu. 0 = none, 1 = admin, 2 = all.
+	CVAR_BOTS_ACTION		,		// Bots give money action.
+	CVAR_MONEY_LIST			,		// Money list.
+	CVAR_MENU_SLOT			,		// Money list menu slot.
 }
 
 new gCvar[CVAR_SETTING];
-new int:gMoneyValues[]		= {
-							int:100,
-							int:500,
-							int:1000,
-							int:5000,
-							int:10000,
-							int:15000,
-};
+new Array:gMoneyValues;
 new gMsgMoney;
 
 /*=====================================*/
@@ -167,6 +163,8 @@ public plugin_init()
 	gCvar[CVAR_ENEMIES]		= register_cvar(fmt("%s%s", CVAR_TAG, "_menu_enemies"),	"0");		// enemies in menu. 
 	gCvar[CVAR_BOTS_MENU]	= register_cvar(fmt("%s%s", CVAR_TAG, "_menu_bots"), 	"0");		// Bots in menu. 
 	gCvar[CVAR_BOTS_ACTION]	= register_cvar(fmt("%s%s", CVAR_TAG, "_bots_action"), 	"0");		// Bots action. 
+	gCvar[CVAR_MONEY_LIST]	= register_cvar(fmt("%s%s", CVAR_TAG, "_money_list"),	"100,500,1000,5000,10000,15000");
+	gCvar[CVAR_MENU_SLOT]	= register_cvar(fmt("%s%s", CVAR_TAG, "_menu_slot"),	"6");
 
 	// Bots Action
 	register_event("DeathMsg", "bots_action", "a");
@@ -174,8 +172,38 @@ public plugin_init()
 	// Money Message.
 	gMsgMoney 				= get_user_msgid("Money");
 
+	init_money_list();
+
 	return PLUGIN_CONTINUE;
 } 
+
+//====================================================
+// Destruction.
+//====================================================
+public plugin_end() 
+{ 
+	ArrayDestroy(gMoneyValues);
+}
+
+//====================================================
+// Init Money List.
+//====================================================
+init_money_list()
+{
+	gMoneyValues = ArrayCreate(get_pcvar_num(gCvar[CVAR_MENU_SLOT]));
+	new cvar_money[MAX_CVAR_LENGTH];
+	get_pcvar_string(gCvar[CVAR_MONEY_LIST], cvar_money, charsmax(cvar_money));
+	formatex(cvar_money, charsmax(cvar_money), "%s%s", cvar_money, ",");
+
+	new i = 0;
+	new iPos = 0;
+	new szMoney[6];
+	while(i != -1)
+	{
+		i = split_string(cvar_money[iPos += i], ",", szMoney, charsmax(szMoney));
+		ArrayPushCell(gMoneyValues, str_to_num(szMoney));
+	}	
+}
 
 //====================================================
 // Main menu.
@@ -288,14 +316,15 @@ public mg_player_menu_handler(id, menu, item)
 public mg_money_menu(id, player)
 {
 	new menu = menu_create("Choose Money Value.:", "mg_money_menu_handler");
-	new szValue[16];
 	new i;
+	new szValue[16];
 	new szPlayer[3];
 	num_to_str(player, szPlayer, charsmax(szPlayer));
-
-	for(i = 0;i < sizeof(gMoneyValues); i++)
+	new money;
+	for(i = 0;i < ArraySize(gMoneyValues); i++)
 	{
-		formatex(szValue, charsmax(szValue), "^t$%6d", gMoneyValues[i]);
+		money = ArrayGetCell(gMoneyValues, i);
+		formatex(szValue, charsmax(szValue), "^t$%6d", money);
 		menu_additem(menu, szValue,	szPlayer, 0);
 	}
 	menu_display(id, menu, 0);
@@ -322,9 +351,9 @@ public mg_money_menu_handler(id, menu, item)
 			new int:youMoney = int:cs_get_user_money(id);				// You
 			new int:hisMoney = int:cs_get_user_money(player);			// He
 
-			new int:givMoney = int:gMoneyValues[item];
-			new oppName[32];
-			new youName[32];
+			new int:givMoney = int:ArrayGetCell(gMoneyValues, item);
+			new oppName[MAX_NAME_LENGTH];
+			new youName[MAX_NAME_LENGTH];
 
 			get_user_name(player, oppName, charsmax(oppName));
 			get_user_name(id, youName, charsmax(youName));
