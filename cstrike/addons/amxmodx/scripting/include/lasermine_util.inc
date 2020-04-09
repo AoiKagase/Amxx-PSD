@@ -20,7 +20,7 @@
 #define OFFSET_SET_DEATH			711
 #define PLAYER_IN_BUYZONE			(1<<0)
 // CS Status Data.
-#define cs_get_user_team(%1)		get_offset_value(%1, OFFSET_TEAM)
+#define cs_get_user_team(%1)		CsTeams:get_offset_value(%1, OFFSET_TEAM)
 #define cs_set_user_team(%1,%2)		set_offset_value(%1, OFFSET_TEAM, %2)
 #define cs_get_user_deaths(%1)		get_offset_value(%1, OFFSET_GET_DEATH)
 #define cs_set_user_deaths(%1,%2)	set_offset_value(%1, OFFSET_SET_DEATH, %2)

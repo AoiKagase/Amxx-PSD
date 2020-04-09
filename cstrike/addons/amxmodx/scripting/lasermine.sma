@@ -798,7 +798,7 @@ public RemoveMine(id)
 		case ALLOW_FRIENDLY:
 		{
 			// Check. is friendly team?
-			if(CsTeam:pev(target, LASERMINE_TEAM) != CsTeam:cs_get_user_team(uID))
+			if(CsTeams:pev(target, LASERMINE_TEAM) != cs_get_user_team(uID))
 				return 1;
 		}		
 	}
@@ -888,7 +888,7 @@ bool:check_for_remove(id)
 		case ALLOW_FRIENDLY:
 		{
 			// is team friendly?
-			if(CsTeam:pev(target, LASERMINE_TEAM) != CsTeam:cs_get_user_team(id))
+			if(CsTeams:pev(target, LASERMINE_TEAM) != cs_get_user_team(id))
 				return false;
 		}
 	}
@@ -1126,7 +1126,7 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 		case 1:
 		{
 			// If the team of the one who put the mine and the one who attacked match.
-			if(CsTeams:pev(victim, LASERMINE_TEAM) != CsTeams:cs_get_user_team(attacker))
+			if(CsTeams:pev(victim, LASERMINE_TEAM) != cs_get_user_team(attacker))
 				return HAM_SUPERCEDE;
 		}
 		default:
@@ -1248,8 +1248,8 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 		{
 			// Hit
 			emit_sound(iTarget, CHAN_WEAPON, ENT_SOUND4, 1.0, ATTN_NORM, 0, PITCH_NORM);
-			new CsTeam:aTeam = CsTeam:cs_get_user_team(iAttacker);
-			cs_set_user_team(iAttacker, int:((aTeam == CsTeam:CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T));
+			new CsTeams:aTeam = cs_get_user_team(iAttacker);
+			cs_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T));
 			// Damage Effect, Damage, Killing Logic.
 			ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
 			cs_set_user_team(iAttacker, int:aTeam);
@@ -1287,19 +1287,19 @@ public PlayerKilling(iVictim, iAttacker)
 	if (equali(entityName, ENT_CLASS_LASER))
 	{
 		// Get Target Team.
-		new aTeam = int:cs_get_user_team(iAttacker);
-		new vTeam = int:cs_get_user_team(iVictim);
+		new CsTeams:aTeam = cs_get_user_team(iAttacker);
+		new CsTeams:vTeam = cs_get_user_team(iVictim);
 
 		new score  = (vTeam != aTeam) ? 1 : -1;
 		new money  = (vTeam != aTeam) ? get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) : (get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) * -1);
 
 		// Attacker Frag.
 		// Add Attacker Frag (Friendly fire is minus).
-		new int:aFrag = int:fm_get_user_frags(iAttacker) + int:score;
-		new aDeath = cs_get_user_deaths(iAttacker);
+		new aFrag	= fm_get_user_frags(iAttacker) + score;
+		new aDeath	= cs_get_user_deaths(iAttacker);
 
 		cs_set_user_deaths(iAttacker, aDeath);
-		ExecuteHamB(Ham_AddPoints, iAttacker, aFrag - int:fm_get_user_frags(iAttacker), true);
+		ExecuteHamB(Ham_AddPoints, iAttacker, aFrag - fm_get_user_frags(iAttacker), true);
 
 		new tDeath = cs_get_user_deaths(iVictim);
 
@@ -1433,7 +1433,7 @@ public PlayerPreThink(id)
 {
 	if (!fm_is_user_alive(id)			// isDead?
 		|| is_user_bot(id) 				// is bot?
-		|| get_user_deploy_state(id) != int:STATE_IDLE	 // deploying?
+		|| get_user_deploy_state(id) != STATE_IDLE	 // deploying?
 		|| get_pcvar_num(gCvar[CVAR_CMD_MODE]) == 1) // +setlaser use?
 		return FMRES_IGNORED;
 
@@ -1563,7 +1563,7 @@ stock ERROR:check_for_time(id)
 stock bool:check_for_team(id)
 {
 	new arg[4];
-	new int:team;
+	new CsTeams:team;
 
 	// Get Cvar
 	get_pcvar_string(gCvar[CVAR_CBT], arg, charsmax(arg));
@@ -1574,7 +1574,7 @@ stock bool:check_for_team(id)
 #else
 	if(equali(arg, "TR") || equali(arg, "T"))
 #endif
-		team = int:CS_TEAM_T;
+		team = CS_TEAM_T;
 	else
 	// Counter-Terrorist
 #if defined BIOHAZARD_SUPPORT
@@ -1582,7 +1582,7 @@ stock bool:check_for_team(id)
 #else
 	if(equali(arg, "CT"))
 #endif
-		team = int:CS_TEAM_CT;
+		team = CS_TEAM_CT;
 	else
 	// All team.
 #if defined BIOHAZARD_SUPPORT
@@ -1590,12 +1590,12 @@ stock bool:check_for_team(id)
 #else
 	if(equali(arg, "ALL"))
 #endif
-		team = int:CS_TEAM_UNASSIGNED;
+		team = CS_TEAM_UNASSIGNED;
 	else
-		team = int:CS_TEAM_UNASSIGNED;
+		team = CS_TEAM_UNASSIGNED;
 
 	// Cvar setting equal your team? Not.
-	if(team != int:CS_TEAM_UNASSIGNED && team != int:cs_get_user_team(id))
+	if(team != CS_TEAM_UNASSIGNED && team != cs_get_user_team(id))
 		return false;
 
 	return true;
