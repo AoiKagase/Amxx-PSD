@@ -18,7 +18,7 @@
 #include <hamsandwich>
 #include <vector>
 #include <xs>
-#include <lasermine>
+#include <lasermine_util>
 
 #if defined BIOHAZARD_SUPPORT
 	#include <biohazard>

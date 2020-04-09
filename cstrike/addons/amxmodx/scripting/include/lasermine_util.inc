@@ -5,10 +5,10 @@
 //
 // =====================================
 
-#if defined _lasermine_included
+#if defined _lasermine_util_included
 	#endinput
 #endif
-#define _lasermine_included
+#define _lasermine_util_included
 #define OFFSET_TEAM 				114
 #define OFFSET_MONEY				115
 #if cellbits == 32
