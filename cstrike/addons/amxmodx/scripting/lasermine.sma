@@ -1834,69 +1834,75 @@ stock mine_glowing(iEnt)
 //====================================================
 // Claymore Wire Endpoint
 //====================================================
-stock set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
+set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 {
-	new Float:vAngles[3];
-	new Float:vForward[3];
-	new Float:vResultA[3];
-	new Float:vResultB[3];
-	new Float:vResultC[3];
-	new Float:hitPoint[3];
-	new Float:pAngles[3];
-	new Float:vFwd[3];
-	new Float:vRight[3];
-	new Float:vUp[3];
-	vResultA = vOrigin;
-	vResultB = vOrigin;
-	vResultC = vOrigin;
+	new Float:vAngles	[3];
+	new Float:vForward	[3];
+	new Float:vResult	[3][3];
+	new Float:hitPoint	[3];
+	new Float:pAngles	[3];
+	new Float:vFwd		[3];
+	new Float:vRight	[3];
+	new Float:vUp		[3];
+	new trace = create_tr2();
+	new Float:pitch;
+	new Float:yaw;
 
+	hitPoint	= vOrigin;
 	pev(iEnt, pev_angles, vAngles);
-	//angle_vector(vAngles, ANGLEVECTOR_FORWARD, vAngles);
 
-	// xs_vec_mul_scalar(vAngles, 60.0, vAngles);
-	// xs_vec_add(vAngles, vOrigin, vAngles);
+	// roll zero
+	pAngles[2] = 0.0;
 
 	for (new i = 0; i < 3; i++)
 	{
-		pAngles[0] = random_float(-120.0, -60.0);
-		pAngles[1] = random_float(-45.0, 45.0);
-		pAngles[2] = 0.0;
-		xs_vec_sub(pAngles, vAngles, pAngles);
-		xs_anglevectors(pAngles, vFwd, vRight, vUp);
-	
-		xs_vec_mul_scalar(vFwd, 300.0, vFwd);
-		xs_vec_add(vFwd, vNormal, vForward);
-		xs_vec_add(vOrigin, vForward, vForward);
+		// Wire A Center.
+		while(xs_vec_distance(vOrigin, hitPoint) > 300.0)
+		{
+			switch(i)
+			{
+				case 0: // center
+				{
+					pitch 	= random_float(-120.0, -60.0);
+					yaw		= random_float(-45.0, 45.0);
+				}
+				case 1: // right
+				{
+					pitch 	= random_float(-120.0, -45.0);
+					yaw		= random_float(0.0, 60.0);
+				}
+				case 2: // left
+				{
+					pitch 	= random_float(-120.0, -45.0);
+					yaw		= random_float(-60.0, 0.0);
+				}
+			}
 
-		new trace = create_tr2();
-		// Trace line
-		engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
-		{
-			get_tr2(trace, TR_vecEndPos, hitPoint);
+			pAngles[0] = pitch;
+			pAngles[1] = yaw;
+
+			xs_vec_sub(pAngles, vAngles, pAngles);
+			xs_anglevectors(pAngles, vFwd, vRight, vUp);
+		
+			xs_vec_mul_scalar(vFwd, 300.0, vFwd);
+			xs_vec_add(vFwd, vNormal, vForward);
+			xs_vec_add(vOrigin, vForward, vForward);
+
+			// Trace line
+			engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
+			{
+				get_tr2(trace, TR_vecEndPos, hitPoint);
+			}
 		}
-		if (xs_vec_distance(vOrigin, vResultA) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultA, hitPoint))
-		{
-			vResultC = vResultB;
-			vResultB = vResultA;
-			vResultA = hitPoint;
-		}
-		else
-		if (xs_vec_distance(vOrigin, vResultB) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultB, hitPoint))
-		{
-			vResultC = vResultB;
-			vResultB = hitPoint;
-		}
-		else
-		if (xs_vec_distance(vOrigin, vResultC) < xs_vec_distance(vOrigin, hitPoint) && !xs_vec_equal(vResultC, hitPoint))
-		{
-			vResultC = hitPoint;
-		}
-		// free the trace handle.
-		free_tr2(trace);
+		vResult[i] = hitPoint;
 	}
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vResultA);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vResultB);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vResultC);
+
+	// free the trace handle.
+	free_tr2(trace);
+
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vResult[0]);
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vResult[1]);
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vResult[2]);
 }
 
 //====================================================
