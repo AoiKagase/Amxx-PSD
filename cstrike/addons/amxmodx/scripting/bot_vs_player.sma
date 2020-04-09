@@ -1,7 +1,7 @@
 #pragma semicolon 1
 #include <amxmodx> 
 #include <amxconst>
-#include <fakemeta>
+#include <cstrike>
 #include <hamsandwich>
 
 #define PLUGIN 						"Bot vs Player"
@@ -12,57 +12,19 @@
 #define CHAT_TAG	                "PvB"
 #define TEAM_SELECT_VGUI_MENU_ID    2
 #define AUTO_TEAM_JOIN_DELAY        0.1
-#define OFFSET_TEAM 				114
-#define OFFSET_DEFUSE_PLANT			193 
-#define HAS_DEFUSE_KIT				(1<<16) // 65536
 
 // CS Status Data.
-#define cs_get_user_team(%1)		get_offset_value(%1,OFFSET_TEAM)
-#define cs_set_user_team(%1,%2)		set_offset_value(%1,OFFSET_TEAM,%2)
-#define cs_get_user_defuse(%1)		(get_pdata_int(%1,OFFSET_DEFUSE_PLANT) & HAS_DEFUSE_KIT)
 
 new g_msg_vgui;
 new g_msg_smenu;
-stock	cs_set_user_defuse(id, iDefusekit = 1, iRed = 0, iGreen = 160, iBlue = 0, icon[] = "defuser", iFlash = 0)
-{
-    static iMsgStatusIcon;
-    if( iMsgStatusIcon || (iMsgStatusIcon = get_user_msgid("StatusIcon")) )
-    {
-        if( iDefusekit )
-        {
-            set_pev(id, pev_body, 1);
 
-            set_pdata_int(id, OFFSET_DEFUSE_PLANT, get_pdata_int(id, OFFSET_DEFUSE_PLANT) | HAS_DEFUSE_KIT);
-
-            message_begin(MSG_ONE_UNRELIABLE, iMsgStatusIcon, _, id);
-            write_byte(iFlash ? 2 : 1);
-            write_string(icon);
-            write_byte(iRed);
-            write_byte(iGreen);
-            write_byte(iBlue);
-            message_end();
-        }
-        else
-        {
-            set_pdata_int(id, OFFSET_DEFUSE_PLANT, get_pdata_int(id, OFFSET_DEFUSE_PLANT) & ~HAS_DEFUSE_KIT);
-
-            message_begin(MSG_ONE_UNRELIABLE, iMsgStatusIcon, _, id);
-            write_byte(0);
-            write_string(icon);
-            message_end();
-
-            set_pev(id, pev_body, 0);
-        }
-    }
-}
-
-enum CVARS
+enum _:CVARS
 {
 	CVARS_ENABLE,
 }
 
 new g_cvars[CVARS];
-new CsTeam:g_player_round;
+new CsTeams:g_player_round;
 
 public plugin_init() 
 { 
@@ -80,7 +42,7 @@ public plugin_init()
 	register_logevent("Event_CTWin", 6, "3=CTs_Win", 		"3=VIP_Escaped", 		"3=Bomb_Defused",  "3=All_Hostages_Rescued", "3=CTs_PreventEscape", "3=Escaping_Terrorists_Neutralized");
 	register_logevent("Event_TRWin", 6, "3=Terrorists_Win", "3=VIP_Assassinated",	"3=Target_Bombed", "3=Hostages_Not_Rescued", "3=Terrorists_Escaped");
 
-	g_player_round = CsTeam:CS_TEAM_CT;
+	g_player_round = CS_TEAM_CT;
 	RegisterHam(Ham_Spawn, "player", "round_start_pre", 0);
 }
 
@@ -90,7 +52,7 @@ public client_connect(id)
 	{
 		if (is_user_bot(id) && !is_user_alive(id))
 		{
-			new num = int:((g_player_round != CsTeam:CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT);
+			new CsTeams:num = ((g_player_round != CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT);
 			cs_set_user_team(id, num);
 		}
 	}
@@ -119,7 +81,7 @@ public auto_join(menu_msgid[], id)
 
 	set_msg_block(menu_msgid[0], BLOCK_SET);
 	new team[2];
-	new CsTeam:num = (g_player_round == CsTeam:CS_TEAM_CT) ? (CsTeam:CS_TEAM_CT) : (CsTeam:CS_TEAM_T);
+	new CsTeams:num = (g_player_round == CS_TEAM_CT) ? CS_TEAM_CT : CS_TEAM_T;
 	num_to_str(int:num, team, charsmax(team));
 
 	engclient_cmd(id, "jointeam",  team);
@@ -135,9 +97,9 @@ public round_end()
 
 public Event_TRWin()
 {
-	if (g_player_round != CsTeam:CS_TEAM_T)
+	if (g_player_round != CS_TEAM_T)
 	{
-		g_player_round 	= CsTeam:CS_TEAM_T;
+		g_player_round 	= CS_TEAM_T;
 		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Boooo, Your team lost to BOT.");
 		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Swap teams for Terrorist.");
 	}
@@ -151,9 +113,9 @@ public Event_TRWin()
 
 public Event_CTWin()
 {
-	if (g_player_round != CsTeam:CS_TEAM_CT)
+	if (g_player_round != CS_TEAM_CT)
 	{
-		g_player_round 	= CsTeam:CS_TEAM_CT;
+		g_player_round 	= CS_TEAM_CT;
 		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Boooo, Your team lost to BOT.");
 		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Swap teams for Counter-Terrorist.");
 	}
@@ -186,17 +148,17 @@ bot_player_balance()
 public round_start_pre(id)
 {
 	bot_player_balance();
-	new num =  int:((g_player_round == CsTeam:CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT);
+	new CsTeams:team =  (g_player_round == CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT;
 
 	if (!is_user_connected(id))
 		return PLUGIN_CONTINUE;
 
 	if (!is_user_bot(id))
-		cs_set_user_team(id, int:g_player_round);
+		cs_set_user_team(id, g_player_round);
 	else
-		cs_set_user_team(id, num);
+		cs_set_user_team(id, team);
 
-	if (CsTeam:cs_get_user_team(id) == CsTeam:CS_TEAM_T)
+	if (cs_get_user_team(id) == CS_TEAM_T)
 	{
 		if(cs_get_user_defuse(id))
    			cs_set_user_defuse(id, 0);
@@ -224,22 +186,4 @@ public message_vgui_menu(msgid, dest, id)
 	set_force_team_join_task(id, msgid);
 
 	return PLUGIN_HANDLED;
-}
-
-//====================================================
-// Gets offset data
-//====================================================
-get_offset_value(id, type)
-{
-	new key = type;
-	return get_pdata_int(id, key);	
-}
-
-//====================================================
-// Sets offset data
-//====================================================
-set_offset_value(id, type, value)
-{
-	new key = type;
-	set_pdata_int(id, key, value);	
 }
