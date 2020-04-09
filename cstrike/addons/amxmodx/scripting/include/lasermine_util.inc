@@ -9,6 +9,23 @@
 	#endinput
 #endif
 #define _lasermine_util_included
+
+#define ENT_MODELS					"models/v_tripmine.mdl"
+#define ENT_SOUND1					"weapons/mine_deploy.wav"
+#define ENT_SOUND2					"weapons/mine_charge.wav"
+#define ENT_SOUND3					"weapons/mine_activate.wav"
+#define ENT_SOUND4					"items/gunpickup2.wav"
+#define ENT_SOUND5					"debris/beamstart9.wav"
+#define ENT_SOUND6					"weapons/ric_metal-1.wav"
+#define ENT_SOUND7					"weapons/ric_metal-2.wav"
+#define ENT_SOUND8					"debris/bustglass1.wav"
+#define ENT_SOUND9					"debris/bustglass2.wav"
+#define ENT_SPRITE1 				"sprites/laserbeam.spr"
+#define ENT_SPRITE2 				"sprites/eexplo.spr"
+
+#define ENT_CLASS_LASER				"lasermine"
+#define ENT_CLASS_BREAKABLE			"func_breakable"
+
 #define OFFSET_TEAM 				114
 #define OFFSET_MONEY				115
 #if cellbits == 32
@@ -20,12 +37,12 @@
 #define OFFSET_SET_DEATH			711
 #define PLAYER_IN_BUYZONE			(1<<0)
 // CS Status Data.
-#define cs_get_user_team(%1)		CsTeams:get_offset_value(%1, OFFSET_TEAM)
-#define cs_set_user_team(%1,%2)		set_offset_value(%1, OFFSET_TEAM, %2)
-#define cs_get_user_deaths(%1)		get_offset_value(%1, OFFSET_GET_DEATH)
-#define cs_set_user_deaths(%1,%2)	set_offset_value(%1, OFFSET_SET_DEATH, %2)
-#define cs_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
-#define cs_set_user_money(%1,%2)	set_offset_value(%1, OFFSET_MONEY, %2)
+#define lm_get_user_team(%1)		CsTeams:get_offset_value(%1, OFFSET_TEAM)
+#define lm_set_user_team(%1,%2)		set_offset_value(%1, OFFSET_TEAM, %2)
+#define lm_get_user_deaths(%1)		get_offset_value(%1, OFFSET_GET_DEATH)
+#define lm_set_user_deaths(%1,%2)	set_offset_value(%1, OFFSET_SET_DEATH, %2)
+#define lm_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
+#define lm_set_user_money(%1,%2)	set_offset_value(%1, OFFSET_MONEY, %2)
 
 // Lasermine Data Save Area.
 #define LASERMINE_TEAM				pev_iuser1
@@ -77,9 +94,12 @@ enum _:TRIPMINE_THINK
 
 enum _:TRIPMINE_SOUND
 {
-	POWERUP_SOUND			= 0,
-	ACTIVATE_SOUND			,
-	STOP_SOUND				,
+	SOUND_POWERUP			= 0,
+	SOUND_ACTIVATE			,
+	SOUND_STOP				,
+	SOUND_PICKUP			,
+	SOUND_HIT				,
+	SOUND_HIT_SHIELD		,
 };
 
 enum _:TRIPMINE_DMGMODE
@@ -194,32 +214,32 @@ new Float:gPlayerFloat[MAX_PLAYERS][PLAYER_DATA_FLOAT];
 //====================================================
 //  Player Data functions
 //====================================================
-stock set_user_delay_count		(id, int:value) 	{ gPlayerInt[id][PLAYER_DELAY_COUNT]	= int:value; }
-stock set_user_have_mine		(id, int:value) 	{ gPlayerInt[id][PLAYER_HAVE_MINE]		= int:value; }
-stock set_user_mine_deployed	(id, int:value)		{ gPlayerInt[id][PLAYER_DEPLOYED]		= int:value; }
-stock set_user_deploy_state		(id, int:value)		{ gPlayerInt[id][PLAYER_MINE_SETTING]	= int:value; }
-stock set_user_health			(id, Float:health)	{ health > 0 ? set_pev(id, pev_health, health) : user_kill(id, 1); }
-stock set_user_frags			(id, int:frags)		{ set_pev(id, pev_frags, frags); }
-stock save_user_max_speed		(id, Float:value)	{ gPlayerFloat[id][PLAYER_MAX_SPEED]	= Float:value; }
-stock set_user_max_speed		(id, Float:value)	{ engfunc(EngFunc_SetClientMaxspeed, id, value);set_pev(id, pev_maxspeed, value); }
+stock lm_set_user_delay_count	(id, int:value) 	{ gPlayerInt[id][PLAYER_DELAY_COUNT]	= int:value; }
+stock lm_set_user_have_mine		(id, int:value) 	{ gPlayerInt[id][PLAYER_HAVE_MINE]		= int:value; }
+stock lm_set_user_mine_deployed	(id, int:value)		{ gPlayerInt[id][PLAYER_DEPLOYED]		= int:value; }
+stock lm_set_user_deploy_state	(id, int:value)		{ gPlayerInt[id][PLAYER_MINE_SETTING]	= int:value; }
+stock lm_set_user_health		(id, Float:health)	{ health > 0 ? set_pev(id, pev_health, health) : user_kill(id, 1); }
+stock lm_set_user_frags			(id, int:frags)		{ set_pev(id, pev_frags, frags); }
+stock lm_save_user_max_speed	(id, Float:value)	{ gPlayerFloat[id][PLAYER_MAX_SPEED]	= Float:value; }
+stock lm_set_user_max_speed		(id, Float:value)	{ engfunc(EngFunc_SetClientMaxspeed, id, value);set_pev(id, pev_maxspeed, value); }
 
-stock int:get_user_delay_count	(id) 				{ return int:gPlayerInt[id][PLAYER_DELAY_COUNT]; }
-stock int:get_user_have_mine	(id) 				{ return int:gPlayerInt[id][PLAYER_HAVE_MINE]; }
-stock int:get_user_mine_deployed(id) 				{ return int:gPlayerInt[id][PLAYER_DEPLOYED]; }
-stock int:get_user_deploy_state	(id)				{ return int:gPlayerInt[id][PLAYER_MINE_SETTING]; }
-stock Float:load_user_max_speed	(id)				{ return Float:gPlayerFloat[id][PLAYER_MAX_SPEED]; }
-stock Float:get_user_max_speed	(id)				{ return Float:pev(id, pev_maxspeed); }
-stock Float:fm_get_user_health	(id)
+stock int:lm_get_user_delay_count	(id) 			{ return int:gPlayerInt[id][PLAYER_DELAY_COUNT]; }
+stock int:lm_get_user_have_mine	(id) 				{ return int:gPlayerInt[id][PLAYER_HAVE_MINE]; }
+stock int:lm_get_user_mine_deployed(id) 			{ return int:gPlayerInt[id][PLAYER_DEPLOYED]; }
+stock int:lm_get_user_deploy_state	(id)			{ return int:gPlayerInt[id][PLAYER_MINE_SETTING]; }
+stock Float:lm_load_user_max_speed	(id)			{ return Float:gPlayerFloat[id][PLAYER_MAX_SPEED]; }
+stock Float:lm_get_user_max_speed	(id)			{ return Float:pev(id, pev_maxspeed); }
+stock Float:lm_get_user_health	(id)
 {
 	new Float:health;
 	pev(id, pev_health, health);
 	return health;
 }
-stock fm_get_user_frags			(id)				{ return pev(id, pev_frags);}
-stock bool:fm_is_user_godmode	(id) 				{ return (pev(id, pev_takedamage) == DAMAGE_NO); }
-stock bool:fm_is_user_alive		(id)				{ return (pev(id,pev_deadflag) == DEAD_NO);}
-stock bool:fm_get_user_buyzone	(id)				{ return bool:(get_pdata_int(id, OFFSET_MAPZONE) & PLAYER_IN_BUYZONE);}
-stock fm_get_entity_class_name	(id)
+stock lm_get_user_frags			(id)				{ return pev(id, pev_frags);}
+stock bool:lm_is_user_godmode	(id) 				{ return (pev(id, pev_takedamage) == DAMAGE_NO); }
+stock bool:lm_is_user_alive		(id)				{ return (pev(id,pev_deadflag) == DEAD_NO);}
+stock bool:lm_get_user_buyzone	(id)				{ return bool:(get_pdata_int(id, OFFSET_MAPZONE) & PLAYER_IN_BUYZONE);}
+stock lm_get_entity_class_name	(id)
 {
 	new entityName[MAX_NAME_LENGTH];
 	pev(id, pev_classname, entityName, charsmax(entityName));
@@ -229,13 +249,8 @@ stock fm_get_entity_class_name	(id)
 //====================================================
 // Glow Rendering
 //====================================================
-stock set_glow_rendering(iEnt, fx = kRenderFxNone, r = 255, g = 255, b = 255, render = kRenderNormal, amount = 16)
+stock lm_set_glow_rendering(iEnt, fx = kRenderFxNone, Float:renderColor[3], render = kRenderNormal, amount = 16)
 {
-	static Float:renderColor[3];
-	renderColor[0] = float(r);
-	renderColor[1] = float(g);
-	renderColor[2] = float(b);
-
 	set_pev(iEnt, pev_renderfx, fx);
 	set_pev(iEnt, pev_rendercolor, renderColor);
 	set_pev(iEnt, pev_rendermode, render);
@@ -247,7 +262,7 @@ stock set_glow_rendering(iEnt, fx = kRenderFxNone, r = 255, g = 255, b = 255, re
 //====================================================
 // Function: Count to deployed in team.
 //====================================================
-stock int:TeamDeployedCount(id)
+stock int:lm_get_team_deployed_count(id)
 {
 	static int:i;
 	static int:count;
@@ -256,7 +271,7 @@ stock int:TeamDeployedCount(id)
 	static team[3] = '^0';
 
 	// Witch your team?
-	switch(CsTeams:cs_get_user_team(id))
+	switch(CsTeams:lm_get_user_team(id))
 	{
 		case CS_TEAM_CT: team = "CT";
 		case CS_TEAM_T : team = "T";
@@ -270,7 +285,7 @@ stock int:TeamDeployedCount(id)
 	// Count your team deployed lasermine.
 	count = int:0;
 	for(i = int:0;i < num;i++)
-		count += get_user_mine_deployed(players[i]);
+		count += lm_get_user_mine_deployed(players[i]);
 
 	return count;
 }
@@ -278,7 +293,7 @@ stock int:TeamDeployedCount(id)
 //====================================================
 // Show Progress Bar.
 //====================================================
-stock show_progress(id, int:time, msg)
+stock lm_show_progress(id, int:time, msg)
 {
 	if (pev_valid(id))
 	{
@@ -291,7 +306,7 @@ stock show_progress(id, int:time, msg)
 //====================================================
 // Hide Progress Bar.
 //====================================================
-stock hide_progress(id, msg)
+stock lm_hide_progress(id, msg)
 {
 	if (pev_valid(id))
 	{
@@ -304,7 +319,7 @@ stock hide_progress(id, msg)
 //====================================================
 // Draw Spark
 //====================================================
-stock draw_spark(Float:origin[3])
+stock lm_draw_spark(Float:origin[3])
 {
 	message_begin(MSG_ALL, SVC_TEMPENTITY);
 	write_byte(TE_SPARKS);
@@ -314,7 +329,7 @@ stock draw_spark(Float:origin[3])
 	message_end();
 }
 
-stock draw_spark_for_wall(const Float:vEndOrigin[3])
+stock lm_draw_spark_for_wall(const Float:vEndOrigin[3])
 {
    	// Sparks
 	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vEndOrigin, 0);
@@ -369,7 +384,7 @@ stock set_offset_value(id, type, value)
 //====================================================
 // Flashing Money Hud
 //====================================================
-stock flash_money_hud(id, value, msg)
+stock lm_flash_money_hud(id, value, msg)
 {
 	if (pev_valid(id))
 	{
@@ -385,7 +400,7 @@ stock flash_money_hud(id, value, msg)
 //====================================================
 // Draw Laserline
 //====================================================
-stock draw_laser(const iEnt, /* const Float:vOrigin[3],*/ const Float:vEndOrigin[3], const tcolor[3], const width, const bright, const beam)
+stock lm_draw_laser(const iEnt, /* const Float:vOrigin[3],*/ const Float:vEndOrigin[3], const tcolor[3], const width, const bright, const beam)
 {
 	// Draw Laser line message.
 	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
@@ -414,10 +429,10 @@ stock draw_laser(const iEnt, /* const Float:vOrigin[3],*/ const Float:vEndOrigin
 //====================================================
 // Effect Explosion.
 //====================================================
-stock create_explosion(iEnt, boom)
+stock lm_create_explosion(iEnt, boom)
 {
 	// Stop laser line.
-	stop_laserline(iEnt);
+	lm_stop_laserline(iEnt);
 
 	// Get position.
 	new Float:vOrigin[3];
@@ -439,7 +454,7 @@ stock create_explosion(iEnt, boom)
 //====================================================
 // Stop Laser line.
 //====================================================
-stock stop_laserline(iEnt)
+stock lm_stop_laserline(iEnt)
 {
 	// Laser line stop.
 	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
@@ -451,7 +466,7 @@ stock stop_laserline(iEnt)
 //====================================================
 // Explosion Damage.
 //====================================================
-stock create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
+stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 {
 	// Get given parameters
 	
@@ -497,7 +512,7 @@ stock create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 			continue;
 
 		// is alive?
-		if (!fm_is_user_alive(rEnt))
+		if (!lm_is_user_alive(rEnt))
 			continue;
 		
 		// friendly fire
@@ -577,7 +592,7 @@ stock create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 //====================================================
 // show status text 
 //====================================================
-stock status_text(id, szText[], msg)
+stock lm_show_status_text(id, szText[], msg)
 {
 	engfunc(EngFunc_MessageBegin, MSG_ONE, msg, {0, 0, 0}, id);
 	write_byte(0);
@@ -588,7 +603,7 @@ stock status_text(id, szText[], msg)
 //====================================================
 // Hit Shield Effect 
 //====================================================
-stock hit_shield(id, Float:dmg)
+stock lm_hit_shield(id, Float:dmg)
 {
 	static Float:punchangle[3];
 	punchangle[0] = (dmg * random_float(-0.15, 0.15));
@@ -607,7 +622,7 @@ stock hit_shield(id, Float:dmg)
 //====================================================
 // Remove all Entity.
 //====================================================
-stock remove_all_entity(id, className[])
+stock lm_remove_all_entity(id, className[])
 {
 	new iEnt = -1;
 	new entityName[MAX_NAME_LENGTH];
@@ -620,11 +635,11 @@ stock remove_all_entity(id, className[])
 		{
 			if (pev(iEnt, LASERMINE_OWNER) != id)
 				continue;
-			entityName = fm_get_entity_class_name(iEnt);
+			entityName = lm_get_entity_class_name(iEnt);
 				
 			if (equali(entityName, className))
 			{
-				play_sound(iEnt, STOP_SOUND);
+				lm_play_sound(iEnt, SOUND_STOP);
 				remove_entity(iEnt);
 			}
 		}
@@ -632,5 +647,51 @@ stock remove_all_entity(id, className[])
 			set_pev(iEnt, pev_flags, FL_KILLME);
 	}
 	// reset deploy count.
-	set_user_mine_deployed(id, int:0);
+	lm_set_user_mine_deployed(id, int:0);
 }
+
+
+//====================================================
+// Play sound.
+//====================================================
+stock lm_play_sound(iEnt, iSoundType)
+{
+	switch (iSoundType)
+	{
+		case SOUND_POWERUP:
+		{
+			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND1, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, 0, PITCH_NORM);
+		}
+		case SOUND_ACTIVATE:
+		{
+			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, 1, 75);
+		}
+		case SOUND_STOP:
+		{
+			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, SND_STOP, PITCH_NORM);
+			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, SND_STOP, 75);
+		}
+		case SOUND_PICKUP:
+		{
+			emit_sound(iEnt, CHAN_ITEM, ENT_SOUND4, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		}
+		case SOUND_HIT:
+		{
+			emit_sound(iEnt, CHAN_WEAPON, ENT_SOUND5, 1.0, ATTN_NORM, 0, PITCH_NORM);
+		}
+		case SOUND_HIT_SHIELD:
+		{
+			emit_sound(iEnt, CHAN_VOICE, random_num(0, 1) == 1 ? ENT_SOUND6 : ENT_SOUND7, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		}
+	}
+}
+// #define ENT_SOUND1					"weapons/mine_deploy.wav"
+// #define ENT_SOUND2					"weapons/mine_charge.wav"
+// #define ENT_SOUND3					"weapons/mine_activate.wav"
+// #define ENT_SOUND4					"items/gunpickup2.wav"
+// #define ENT_SOUND5					"debris/beamstart9.wav"
+// #define ENT_SOUND6					"weapons/ric_metal-1.wav"
+// #define ENT_SOUND7					"weapons/ric_metal-2.wav"
+// #define ENT_SOUND8					"debris/bustglass1.wav"
+// #define ENT_SOUND9					"debris/bustglass2.wav"

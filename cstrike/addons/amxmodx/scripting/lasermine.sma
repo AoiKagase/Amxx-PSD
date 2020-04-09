@@ -61,22 +61,6 @@
 #define AUTHOR 						"Aoi.Kagase"
 #define VERSION 					"3.4b"
 
-#define ENT_MODELS					"models/v_tripmine.mdl"
-#define ENT_SOUND1					"weapons/mine_deploy.wav"
-#define ENT_SOUND2					"weapons/mine_charge.wav"
-#define ENT_SOUND3					"weapons/mine_activate.wav"
-#define ENT_SOUND4					"debris/beamstart9.wav"
-#define ENT_SOUND5					"items/gunpickup2.wav"
-#define ENT_SOUND6					"debris/bustglass1.wav"
-#define ENT_SOUND7					"debris/bustglass2.wav"
-#define ENT_SOUND8					"weapons/ric_metal-1.wav"
-#define ENT_SOUND9					"weapons/ric_metal-2.wav"
-#define ENT_SPRITE1 				"sprites/laserbeam.spr"
-#define ENT_SPRITE2 				"sprites/eexplo.spr"
-
-#define ENT_CLASS_LASER				"lasermine"
-#define ENT_CLASS_BREAKABLE			"func_breakable"
-
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
 //#define STR_CANTDEPLOY			"Your team can't deploying lasermine!"
@@ -348,7 +332,7 @@ bool:is_valid_takedamage(iAttacker, iTarget)
 	if (get_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE]))
 		return true;
 
-	if (cs_get_user_team(iAttacker) != cs_get_user_team(iTarget))
+	if (lm_get_user_team(iAttacker) != lm_get_user_team(iTarget))
 		return true;
 
 	return false;
@@ -357,35 +341,12 @@ bool:is_valid_takedamage(iAttacker, iTarget)
 bool:is_user_friend(iAttacker, iTarget)
 {
 	if (get_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE]))
-	if (cs_get_user_team(iAttacker) == cs_get_user_team(iTarget))
+	if (lm_get_user_team(iAttacker) == lm_get_user_team(iTarget))
 		return true;
 	return false;
 }
 
 
-//====================================================
-// Play sound.
-//====================================================
-play_sound(iEnt, i_SoundType)
-{
-	switch (i_SoundType)
-	{
-		case POWERUP_SOUND:
-		{
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND1, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, 0, PITCH_NORM);
-		}
-		case ACTIVATE_SOUND:
-		{
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, 1, 75);
-		}
-		case STOP_SOUND:
-		{
-			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, SND_STOP, PITCH_NORM);
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, SND_STOP, 75);
-		}
-	}
-}
 
 //====================================================
 // Round Start Initialize
@@ -403,16 +364,16 @@ public NewRound(id)
 		return PLUGIN_CONTINUE;
 
 	// alive?
-	if (fm_is_user_alive(id) && pev(id, pev_flags) & (FL_CLIENT)) 
+	if (lm_is_user_alive(id) && pev(id, pev_flags) & (FL_CLIENT)) 
 	{
 		// Delay time reset
-		set_user_delay_count(id, int:floatround(get_gametime()));
+		lm_set_user_delay_count(id, int:floatround(get_gametime()));
 
 		// Task Delete.
 		delete_task(id);
 
 		// Removing already put lasermine.
-		remove_all_entity(id, ENT_CLASS_LASER);
+		lm_remove_all_entity(id, ENT_CLASS_LASER);
 
 		// Round start set ammo.
 		set_start_ammo(id);
@@ -428,11 +389,11 @@ public NewRound(id)
 //====================================================
 public KeepMaxSpeed(id)
 {
-	if (fm_is_user_alive(id))
+	if (lm_is_user_alive(id))
 	{
-		new Float:now_speed = get_user_max_speed(id);
+		new Float:now_speed = lm_get_user_max_speed(id);
 		if (now_speed > 1.0 && now_speed < 300.0)
-			save_user_max_speed(id, get_user_max_speed(id));
+			lm_save_user_max_speed(id, lm_get_user_max_speed(id));
 	}
 
 	return PLUGIN_CONTINUE;
@@ -451,10 +412,10 @@ set_start_ammo(id)
 		return;
 
 	// Getting have ammo.
-	new int:haveammo = get_user_have_mine(id);
+	new int:haveammo = lm_get_user_have_mine(id);
 
 	// Set largest.
-	set_user_have_mine(id, (haveammo <= stammo ? stammo : haveammo));
+	lm_set_user_have_mine(id, (haveammo <= stammo ? stammo : haveammo));
 
 	return;
 }
@@ -479,7 +440,7 @@ public DeathEvent()
 
 	// Dead Player remove lasermine.
 	if (get_pcvar_num(gCvar[CVAR_DEATH_REMOVE]))
-		remove_all_entity(vID, ENT_CLASS_LASER);
+		lm_remove_all_entity(vID, ENT_CLASS_LASER);
 
 	return PLUGIN_CONTINUE;
 }
@@ -496,11 +457,11 @@ public LaserMineProgressA(id)
 	new Float:wait = get_pcvar_float(gCvar[CVAR_LASER_ACTIVATE]);
 	if (wait > 0)
 	{
-		show_progress(id, int:floatround(wait), gMsgBarTime);
+		lm_show_progress(id, int:floatround(wait), gMsgBarTime);
 	}
 
 	// Set Flag. start progress.
-	set_user_deploy_state(id, int:STATE_DEPLOYING);
+	lm_set_user_deploy_state(id, int:STATE_DEPLOYING);
 
 	// Start Task. Put Lasermine.
 	set_task(wait, "SpawnMine", (TASK_PLANT + id));
@@ -531,12 +492,10 @@ public RemoveProgress(id)
 
 	new Float:wait = get_pcvar_float(gCvar[CVAR_LASER_ACTIVATE]);
 	if (wait > 0)
-	{
-		show_progress(id, int:floatround(wait), gMsgBarTime);
-	}
+		lm_show_progress(id, int:floatround(wait), gMsgBarTime);
 
 	// Set Flag. start progress.
-	set_user_deploy_state(id, int:STATE_DEPLOYING);
+	lm_set_user_deploy_state(id, int:STATE_DEPLOYING);
 
 	// Start Task. Remove Lasermine.
 	set_task(wait, "RemoveMine", (TASK_RELEASE + id));
@@ -549,7 +508,7 @@ public RemoveProgress(id)
 //====================================================
 public StopProgress(id)
 {
-	hide_progress(id, gMsgBarTime);
+	lm_hide_progress(id, gMsgBarTime);
 	delete_task(id);
 
 	return PLUGIN_HANDLED;
@@ -605,7 +564,7 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	set_pev(iEnt, pev_dmg, 100.0);
 
 	// set entity health.
-	set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
+	lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
 
 	// solid complete.
 	set_pev(iEnt, pev_solid, SOLID_BBOX);
@@ -615,7 +574,7 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 
 	// Save results to be used later.
 	set_pev(iEnt, LASERMINE_OWNER, uID );
-	set_pev(iEnt, LASERMINE_TEAM, int:cs_get_user_team(uID));
+	set_pev(iEnt, LASERMINE_TEAM, int:lm_get_user_team(uID));
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
@@ -626,18 +585,18 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
 
 	// Power up sound.
-	play_sound(iEnt, POWERUP_SOUND);
+	lm_play_sound(iEnt, SOUND_POWERUP);
 
 	// Cound up. deployed.
-	set_user_mine_deployed(uID, get_user_mine_deployed(uID) + int:1);
+	lm_set_user_mine_deployed(uID, lm_get_user_mine_deployed(uID) + int:1);
 	// Cound down. have ammo.
-	set_user_have_mine(uID, get_user_have_mine(uID) - int:1);
+	lm_set_user_have_mine(uID, lm_get_user_have_mine(uID) - int:1);
 
 	// Refresh show ammo.
 	show_ammo(uID);
 
 	// Set Flag. end progress.
-	set_user_deploy_state(uID, int:STATE_DEPLOYED);
+	lm_set_user_deploy_state(uID, int:STATE_DEPLOYED);
 
 }
 
@@ -776,7 +735,7 @@ public RemoveMine(id)
 		return 1;
 	
 	new entityName[MAX_NAME_LENGTH];
-	entityName = fm_get_entity_class_name(target);
+	entityName = lm_get_entity_class_name(target);
 
 	// Check. is Target Entity Lasermine?
 	if(!equal(entityName, ENT_CLASS_LASER))
@@ -798,7 +757,7 @@ public RemoveMine(id)
 		case ALLOW_FRIENDLY:
 		{
 			// Check. is friendly team?
-			if(CsTeams:pev(target, LASERMINE_TEAM) != cs_get_user_team(uID))
+			if(CsTeams:pev(target, LASERMINE_TEAM) != lm_get_user_team(uID))
 				return 1;
 		}		
 	}
@@ -807,19 +766,19 @@ public RemoveMine(id)
 	remove_entity(target);
 
 	// Collect for this removed lasermine.
-	set_user_have_mine(uID, get_user_have_mine(uID) + int:1);
+	lm_set_user_have_mine(uID, lm_get_user_have_mine(uID) + int:1);
 
 	if (pev_valid(ownerID))
 	{
 		// Return to before deploy count.
-		set_user_mine_deployed(ownerID, get_user_mine_deployed(ownerID) - int:1);
+		lm_set_user_mine_deployed(ownerID, lm_get_user_mine_deployed(ownerID) - int:1);
 	}
 
 	// Play sound.
-	emit_sound(uID, CHAN_ITEM, ENT_SOUND5, VOL_NORM, ATTN_NORM, 0, PITCH_NORM)
+	lm_play_sound(uID, SOUND_PICKUP);
 
 	// Set Flag. end progress.
-	set_user_deploy_state(uID, int:STATE_DEPLOYED);
+	lm_set_user_deploy_state(uID, int:STATE_DEPLOYED);
 
 	// Refresh show ammo.
 	show_ammo(uID)
@@ -842,7 +801,7 @@ bool:check_for_remove(id)
 
 	// have max ammo? (use buy system.)
 	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
-	if (get_user_have_mine(id) + int:1 > cvar_ammo) 
+	if (lm_get_user_have_mine(id) + int:1 > cvar_ammo) 
 		return false;
 
 	new target;
@@ -865,7 +824,7 @@ bool:check_for_remove(id)
 		return false;
 	
 	new entityName[MAX_NAME_LENGTH];
-	entityName = fm_get_entity_class_name(target);
+	entityName = lm_get_entity_class_name(target);
 
 	// is target lasermine?
 	if(!equal(entityName, ENT_CLASS_LASER))
@@ -888,7 +847,7 @@ bool:check_for_remove(id)
 		case ALLOW_FRIENDLY:
 		{
 			// is team friendly?
-			if(CsTeams:pev(target, LASERMINE_TEAM) != cs_get_user_team(id))
+			if(CsTeams:pev(target, LASERMINE_TEAM) != lm_get_user_team(id))
 				return false;
 		}
 	}
@@ -911,7 +870,7 @@ public LaserThink(iEnt)
 		return HAM_IGNORED;
 
 	new entityName[MAX_NAME_LENGTH];
-	entityName = fm_get_entity_class_name(iEnt);
+	entityName = lm_get_entity_class_name(iEnt);
 
 	// is this lasermine? no.
 	if (!equal(entityName, ENT_CLASS_LASER))
@@ -938,7 +897,7 @@ public LaserThink(iEnt)
 			// next state.
 			set_pev(iEnt, LASERMINE_STEP, BEAMUP_THINK);
 			// activate sound.
-			play_sound(iEnt, ACTIVATE_SOUND);
+			lm_play_sound(iEnt, SOUND_ACTIVATE);
 		}
 
 		mine_glowing(iEnt);
@@ -967,7 +926,7 @@ public LaserThink(iEnt)
 			{
 				draw_laserline(iEnt, vEnd[i]);
 				if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
-					draw_spark_for_wall(vEnd[i]);
+					lm_draw_spark_for_wall(vEnd[i]);
 			}
 		}
 
@@ -1016,7 +975,7 @@ public LaserThink(iEnt)
 				continue;
 
 			// is dead?
-			if (!fm_is_user_alive(iTarget))
+			if (!lm_is_user_alive(iTarget))
 				continue;
 
 			// Hit friend and No FF.
@@ -1024,7 +983,7 @@ public LaserThink(iEnt)
 				continue;
 
 			// is godmode?
-			if (fm_is_user_godmode(iTarget))
+			if (lm_is_user_godmode(iTarget))
 				continue;
 
 
@@ -1035,7 +994,7 @@ public LaserThink(iEnt)
 			if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
 			{
 				if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
-					draw_spark_for_wall(hitPoint);
+					lm_draw_spark_for_wall(hitPoint);
 			}
 
 			// Mode. Lasermine / Tripmine / Claymore wire trap.
@@ -1065,7 +1024,7 @@ public LaserThink(iEnt)
 		}
 		// Get mine health.
 		static Float:iHealth;
-		iHealth = fm_get_user_health(iEnt);
+		iHealth = lm_get_user_health(iEnt);
 
 		// break?
 		if (iHealth < 0 || (pev(iEnt, pev_flags) & FL_KILLME))
@@ -1087,16 +1046,16 @@ public LaserThink(iEnt)
 		// Stopping entity to think
 		set_pev(iEnt, pev_nextthink, 0.0);
 		// 
-		play_sound(iEnt, STOP_SOUND);
+		lm_play_sound(iEnt, SOUND_STOP);
 
 		// Count down. deployed lasermines.
-		set_user_mine_deployed(iOwner, get_user_mine_deployed(iOwner) - int:1);
+		lm_set_user_mine_deployed(iOwner, lm_get_user_mine_deployed(iOwner) - int:1);
 
 		// effect explosion.
-		create_explosion(iEnt, gBoom);
+		lm_create_explosion(iEnt, gBoom);
 	
 		// damage.
-		create_explosion_damage(iEnt, iOwner, get_pcvar_float(gCvar[CVAR_EXPLODE_DMG]), get_pcvar_float(gCvar[CVAR_EXPLODE_RADIUS]));
+		lm_create_explosion_damage(iEnt, iOwner, get_pcvar_float(gCvar[CVAR_EXPLODE_DMG]), get_pcvar_float(gCvar[CVAR_EXPLODE_RADIUS]));
 
 		// remove this.
 		remove_entity(iEnt);
@@ -1126,7 +1085,7 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 		case 1:
 		{
 			// If the team of the one who put the mine and the one who attacked match.
-			if(CsTeams:pev(victim, LASERMINE_TEAM) != cs_get_user_team(attacker))
+			if(CsTeams:pev(victim, LASERMINE_TEAM) != lm_get_user_team(attacker))
 				return HAM_SUPERCEDE;
 		}
 		default:
@@ -1188,7 +1147,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		width = 1;
 	}
 
-	draw_laser(iEnt, vEndOrigin, tcolor, width, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), gBeam);
+	lm_draw_laser(iEnt, vEndOrigin, tcolor, width, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), gBeam);
 }
 
 //====================================================
@@ -1235,29 +1194,27 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 	new iAttacker = pev(iEnt,LASERMINE_OWNER);
 	if (get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]) && hitGroup == HIT_SHIELD)
 	{
-		emit_sound(iTarget, CHAN_VOICE, random_num(0, 1) == 1 ? ENT_SOUND8 : ENT_SOUND9, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-		draw_spark(hitPoint);
+		lm_play_sound(iTarget, SOUND_HIT_SHIELD);
+		lm_draw_spark(hitPoint);
 
         // EMIT_SOUND(pEntity->edict(), CHAN_VOICE, (RANDOM_LONG(0, 1) == 1) ? "weapons/ric_metal-1.wav" : "weapons/ric_metal-2.wav", VOL_NORM, ATTN_NORM);
         // UTIL_Sparks(tr.vecEndPos);
-		hit_shield(iTarget, dmg);
+		lm_hit_shield(iTarget, dmg);
 	}
 	else
 	{
+		lm_play_sound(iTarget, SOUND_HIT);
 		if (is_user_friend(iAttacker, iTarget))
 		{
 			// Hit
-			emit_sound(iTarget, CHAN_WEAPON, ENT_SOUND4, 1.0, ATTN_NORM, 0, PITCH_NORM);
-			new CsTeams:aTeam = cs_get_user_team(iAttacker);
-			cs_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T));
+			new CsTeams:aTeam = lm_get_user_team(iAttacker);
+			lm_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T));
 			// Damage Effect, Damage, Killing Logic.
 			ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
-			cs_set_user_team(iAttacker, int:aTeam);
+			lm_set_user_team(iAttacker, int:aTeam);
 		}
 		else
 		{
-			// Hit
-			emit_sound(iTarget, CHAN_WEAPON, ENT_SOUND4, 1.0, ATTN_NORM, 0, PITCH_NORM);
 			// Damage Effect, Damage, Killing Logic.
 			ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
 		}
@@ -1280,35 +1237,35 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 public PlayerKilling(iVictim, iAttacker)
 {
 	static entityName[MAX_NAME_LENGTH];
-	entityName = fm_get_entity_class_name(iAttacker);
+	entityName = lm_get_entity_class_name(iAttacker);
 	//
 	// Refresh Score info.
 	//
 	if (equali(entityName, ENT_CLASS_LASER))
 	{
 		// Get Target Team.
-		new CsTeams:aTeam = cs_get_user_team(iAttacker);
-		new CsTeams:vTeam = cs_get_user_team(iVictim);
+		new CsTeams:aTeam = lm_get_user_team(iAttacker);
+		new CsTeams:vTeam = lm_get_user_team(iVictim);
 
 		new score  = (vTeam != aTeam) ? 1 : -1;
 		new money  = (vTeam != aTeam) ? get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) : (get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) * -1);
 
 		// Attacker Frag.
 		// Add Attacker Frag (Friendly fire is minus).
-		new aFrag	= fm_get_user_frags(iAttacker) + score;
-		new aDeath	= cs_get_user_deaths(iAttacker);
+		new aFrag	= lm_get_user_frags(iAttacker) + score;
+		new aDeath	= lm_get_user_deaths(iAttacker);
 
-		cs_set_user_deaths(iAttacker, aDeath);
-		ExecuteHamB(Ham_AddPoints, iAttacker, aFrag - fm_get_user_frags(iAttacker), true);
+		lm_set_user_deaths(iAttacker, aDeath);
+		ExecuteHamB(Ham_AddPoints, iAttacker, aFrag - lm_get_user_frags(iAttacker), true);
 
-		new tDeath = cs_get_user_deaths(iVictim);
+		new tDeath = lm_get_user_deaths(iVictim);
 
-		cs_set_user_deaths(iVictim, tDeath);
+		lm_set_user_deaths(iVictim, tDeath);
 		ExecuteHamB(Ham_AddPoints, iVictim, 0, true);
 
 		// Get Money attacker.
-		cs_set_user_money(iAttacker, cs_get_user_money(iAttacker) + money);
-		flash_money_hud(iAttacker, cs_get_user_money(iAttacker) + money, gMsgMoney);
+		lm_set_user_money(iAttacker, lm_get_user_money(iAttacker) + money);
+		lm_flash_money_hud(iAttacker, lm_get_user_money(iAttacker) + money, gMsgMoney);
 		return HAM_HANDLED;
 	}
 	return HAM_IGNORED;
@@ -1327,14 +1284,15 @@ public BuyLasermine(id)
 	}
 
 	new cost = get_pcvar_num(gCvar[CVAR_COST]);
-	cs_set_user_money(id,cs_get_user_money(id) - cost);
-	flash_money_hud(id, cs_get_user_money(id) - cost, gMsgMoney);
+	lm_set_user_money(id,lm_get_user_money(id) - cost);
+	lm_flash_money_hud(id, lm_get_user_money(id) - cost, gMsgMoney);
 
-	set_user_have_mine(id, get_user_have_mine(id) + int:1);
+	lm_set_user_have_mine(id, lm_get_user_have_mine(id) + int:1);
 
 	cp_bought(id);
 
-	emit_sound(id, CHAN_ITEM, ENT_SOUND5, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+	lm_play_sound(id, SOUND_PICKUP);
+
 	show_ammo(id);
 
 	return PLUGIN_HANDLED;
@@ -1347,12 +1305,12 @@ show_ammo(id)
 { 
 	new ammo[51];
 	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
-		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_AMMO, get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
+		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_AMMO, lm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
 	else
 		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_INF);
 
 	if (pev_valid(id))
-		status_text(id, ammo, gMsgStatusText);
+		lm_show_status_text(id, ammo, gMsgStatusText);
 } 
 
 //====================================================
@@ -1404,22 +1362,22 @@ public SayLasermine(id)
 //====================================================
 public PlayerPostThink(id) 
 {
-	switch (get_user_deploy_state(id))
+	switch (lm_get_user_deploy_state(id))
 	{
 		case STATE_IDLE:
 		{
-			new bool:now_speed = (get_user_max_speed(id) <= 1.0)
+			new bool:now_speed = (lm_get_user_max_speed(id) <= 1.0)
 			if (now_speed)
 				ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
 		}
 		case STATE_DEPLOYING:
 		{
-			set_user_max_speed(id, 1.0);
+			lm_set_user_max_speed(id, 1.0);
 		}
 		case STATE_DEPLOYED:
 		{
 			ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
-			set_user_deploy_state(id, STATE_IDLE);
+			lm_set_user_deploy_state(id, STATE_IDLE);
 		}
 	}
 
@@ -1431,9 +1389,9 @@ public PlayerPostThink(id)
 //====================================================
 public PlayerPreThink(id)
 {
-	if (!fm_is_user_alive(id)			// isDead?
+	if (!lm_is_user_alive(id)			// isDead?
 		|| is_user_bot(id) 				// is bot?
-		|| get_user_deploy_state(id) != STATE_IDLE	 // deploying?
+		|| lm_get_user_deploy_state(id) != STATE_IDLE	 // deploying?
 		|| get_pcvar_num(gCvar[CVAR_CMD_MODE]) == 1) // +setlaser use?
 		return FMRES_IGNORED;
 
@@ -1454,9 +1412,9 @@ public client_putinserver(id)
 		return PLUGIN_CONTINUE;
 
 	// reset deploy count.
-	set_user_mine_deployed(id, int:0);
+	lm_set_user_mine_deployed(id, int:0);
 	// reset hove mine.
-	set_user_have_mine(id, int:0);
+	lm_set_user_have_mine(id, int:0);
 
 	return PLUGIN_CONTINUE;
 }
@@ -1476,7 +1434,7 @@ public client_disconnected(id)
 	// delete task.
 	delete_task(id);
 	// remove all lasermine.
-	remove_all_entity(id, ENT_CLASS_LASER);
+	lm_remove_all_entity(id, ENT_CLASS_LASER);
 
 	return PLUGIN_CONTINUE;
 }
@@ -1504,7 +1462,7 @@ delete_task(id)
 	if (task_exists((TASK_RELEASE + id)))
 		remove_task((TASK_RELEASE + id));
 
-	set_user_deploy_state(id, STATE_IDLE);
+	lm_set_user_deploy_state(id, STATE_IDLE);
 	return;
 }
 
@@ -1517,7 +1475,7 @@ stock ERROR:check_for_common(id)
 	new cvar_enable = get_pcvar_num(gCvar[CVAR_ENABLE]);
 	new cvar_access = get_pcvar_num(gCvar[CVAR_ACCESS_LEVEL]);
 	new user_flags	= get_user_flags(id) & ADMIN_ACCESSLEVEL;
-	new is_alive	= fm_is_user_alive(id);
+	new is_alive	= lm_is_user_alive(id);
 	//new cvar_mode	= get_pcvar_num(gCvar[CVAR_MODE]);
 
 	// Plugin Enabled
@@ -1548,7 +1506,7 @@ stock ERROR:check_for_time(id)
 	new int:cvar_delay = int:get_pcvar_num(gCvar[CVAR_START_DELAY]);
 
 	// gametime - playertime = delay count.
-	gNowTime = int:floatround(get_gametime()) - get_user_delay_count(id);
+	gNowTime = int:floatround(get_gametime()) - lm_get_user_delay_count(id);
 
 	// check.
 	if(gNowTime >= cvar_delay)
@@ -1570,7 +1528,7 @@ stock bool:check_for_team(id)
 
 	// Terrorist
 #if defined BIOHAZARD_SUPPORT
-	if(equali(arg, "Z") || equali(arg, "Zombie"))
+	if(equali(arg, "Z")  || equali(arg, "Zombie"))
 #else
 	if(equali(arg, "TR") || equali(arg, "T"))
 #endif
@@ -1595,7 +1553,7 @@ stock bool:check_for_team(id)
 		team = CS_TEAM_UNASSIGNED;
 
 	// Cvar setting equal your team? Not.
-	if(team != CS_TEAM_UNASSIGNED && team != cs_get_user_team(id))
+	if(team != CS_TEAM_UNASSIGNED && team != lm_get_user_team(id))
 		return false;
 
 	return true;
@@ -1619,15 +1577,15 @@ stock ERROR:check_for_buy(id)
 			return ERROR:CANT_BUY_TEAM;
 
 		// Have Max?
-		if (get_user_have_mine(id) >= cvar_maxhave)
+		if (lm_get_user_have_mine(id) >= cvar_maxhave)
 			return ERROR:HAVE_MAX;
 
 		// buyzone area?
-		if (cvar_buyzone && !fm_get_user_buyzone(id))
+		if (cvar_buyzone && !lm_get_user_buyzone(id))
 			return ERROR:NOT_BUYZONE;
 
 		// Have money?
-		if (cs_get_user_money(id) < cvar_cost)
+		if (lm_get_user_money(id) < cvar_cost)
 			return ERROR:NO_MONEY;
 
 
@@ -1646,12 +1604,12 @@ stock ERROR:check_for_max_deploy(id)
 	new int:cvar_maxhave = int:get_pcvar_num(gCvar[CVAR_MAX_HAVE]);
 	new int:cvar_teammax = int:get_pcvar_num(gCvar[CVAR_TEAM_MAX]);
 	// Max deployed per player.
-	if (get_user_mine_deployed(id) >= cvar_maxhave)
+	if (lm_get_user_mine_deployed(id) >= cvar_maxhave)
 		return ERROR:MAXIMUM_DEPLOYED;
 
 	//// client_print(id,print_chat,"[Lasermine] your team deployed %d",TeamDeployedCount(id))
 	// Max deployed per team.
-	if(TeamDeployedCount(id) >= cvar_teammax)
+	if(lm_get_team_deployed_count(id) >= cvar_teammax)
 		return ERROR:MANY_PPL;
 
 	return ERROR:NONE;
@@ -1763,7 +1721,7 @@ stock bool:check_for_deploy(id)
 #endif
 	// Have mine? (use buy system)
 	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
-	if (get_user_have_mine(id) <= int:0) 
+	if (lm_get_user_have_mine(id) <= int:0) 
 	{
 		show_error_message(id, ERROR:DONT_HAVE);
 		return false;
@@ -1793,7 +1751,7 @@ stock bool:check_for_deploy(id)
 //====================================================
 stock mine_glowing(iEnt)
 {
-	new tcolor	[3];
+	new Float:tcolor[3];
 	new sRGB	[13];
 	new sColor	[4];
 	new sRGBLen 	= charsmax(sRGB);
@@ -1828,9 +1786,9 @@ stock mine_glowing(iEnt)
 		while(n < sizeof(tcolor))
 		{
 			i = split_string(sRGB[iPos += i], ",", sColor, sColorLen);
-			tcolor[n++] = str_to_num(sColor);
+			tcolor[n++] = float(str_to_num(sColor));
 		}
-		set_glow_rendering(iEnt, kRenderFxGlowShell, tcolor[0], tcolor[1], tcolor[2], kRenderNormal, 5);
+		lm_set_glow_rendering(iEnt, kRenderFxGlowShell, tcolor, kRenderNormal, 5);
 	}
 }
 
@@ -1921,14 +1879,14 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 	iHit = get_tr2(iTrace, TR_pHit);
 	if (pev_valid(iHit))
 	{
-		if (fm_is_user_alive(iHit))
+		if (lm_is_user_alive(iHit))
 		{
-			szName = fm_get_entity_class_name(iHit);
+			szName = lm_get_entity_class_name(iHit);
 
 			if (equali(szName, ENT_CLASS_LASER))
 			{
 				iOwner = pev(iHit, LASERMINE_OWNER);
-				health = floatround(fm_get_user_health(iHit));
+				health = floatround(lm_get_user_health(iHit));
 				get_user_name(iOwner, szName, charsmax(szName));
 				//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
 				set_hudmessage( 50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
@@ -1955,7 +1913,7 @@ public admin_remove_laser(id, level, cid)
 		return PLUGIN_HANDLED;
 
 	delete_task(player); 
-	remove_all_entity(player, ENT_CLASS_LASER);
+	lm_remove_all_entity(player, ENT_CLASS_LASER);
 
 	new namea[MAX_NAME_LENGTH],namep[MAX_NAME_LENGTH]; 
 	get_user_name(id, namea, charsmax(namea));
@@ -1997,12 +1955,12 @@ public CheckSpectator()
 	id = read_data(1);
 	read_data(2, szTeam, charsmax(szTeam));
 
-	if(get_user_mine_deployed(id) > int:0) 
+	if(lm_get_user_mine_deployed(id) > int:0) 
 	{
 		if (szTeam[0] == 'U' || szTeam[0] == 'S')
 		{
 			delete_task(id);
-			remove_all_entity(id, ENT_CLASS_LASER);
+			lm_remove_all_entity(id, ENT_CLASS_LASER);
 			new namep[MAX_NAME_LENGTH];
 			get_user_name(id, namep, charsmax(namep));
 			cp_remove_spec(0, namep);
