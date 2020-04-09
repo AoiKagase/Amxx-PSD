@@ -607,7 +607,7 @@ stock hit_shield(id, Float:dmg)
 //====================================================
 // Remove all Entity.
 //====================================================
-remove_all_entity(id, className[])
+stock remove_all_entity(id, className[])
 {
 	new iEnt = -1;
 	new entityName[MAX_NAME_LENGTH];
