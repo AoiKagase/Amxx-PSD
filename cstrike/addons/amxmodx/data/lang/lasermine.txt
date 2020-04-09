@@ -19,4 +19,6 @@ STATE_INF    = LaserMines Ammo: Infinite.
 PLANT_WALL   = ^4%s ^1You must plant the lasermine on a wall!
 PLANT_GROUND = ^4%s ^1You must plant the Claymore on a ground!
 SORRY_IMPL   = ^4%s ^1Sorry. this mode is Not implemented.
-
+ALL_REMOVE   = ^4%s ^1admin's removed all %s's lasermine.
+TAKE_MINE    = ^4%s ^1admin's gave for %s lasermine.
+REMOVE_SPEC	 = ^4%s ^1%s is all lasers have been removed because moved to the spectator!

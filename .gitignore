@@ -76,3 +76,11 @@ cstrike/addons/amxmodx/scripting/include/tsx.inc
 cstrike/addons/amxmodx/scripting/include/vault.inc
 cstrike/addons/amxmodx/scripting/include/vector.inc
 cstrike/addons/amxmodx/scripting/include/xs.inc
+cstrike/addons/amxmodx/scripting/bio_antiblock.sma
+cstrike/addons/amxmodx/scripting/bio_boatescape.sma
+cstrike/addons/amxmodx/scripting/bio_radar.sma
+cstrike/addons/amxmodx/scripting/bio_smokeflare.sma
+cstrike/addons/amxmodx/scripting/biohazard.cfg
+cstrike/addons/amxmodx/scripting/biohazard.sma
+cstrike/addons/amxmodx/scripting/customflashlight.sma
+cstrike/addons/amxmodx/scripting/spawn_editor.sma

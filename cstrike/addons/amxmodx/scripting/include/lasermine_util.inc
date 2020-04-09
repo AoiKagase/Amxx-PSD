@@ -1,12 +1,14 @@
-/* Laser/Tripmine Entity functions
-*
-*  by Aoi.Kagase
-*/
+// =====================================
+//	Laser/Tripmine Entity functions
+//
+// 	by Aoi.Kagase
+//
+// =====================================
 
-#if defined _lasermine_included
+#if defined _lasermine_util_included
 	#endinput
 #endif
-#define _lasermine_included
+#define _lasermine_util_included
 #define OFFSET_TEAM 				114
 #define OFFSET_MONEY				115
 #if cellbits == 32
@@ -18,12 +20,28 @@
 #define OFFSET_SET_DEATH			711
 #define PLAYER_IN_BUYZONE			(1<<0)
 // CS Status Data.
-#define cs_get_user_team(%1)		get_offset_value(%1, OFFSET_TEAM)
+#define cs_get_user_team(%1)		CsTeams:get_offset_value(%1, OFFSET_TEAM)
 #define cs_set_user_team(%1,%2)		set_offset_value(%1, OFFSET_TEAM, %2)
 #define cs_get_user_deaths(%1)		get_offset_value(%1, OFFSET_GET_DEATH)
 #define cs_set_user_deaths(%1,%2)	set_offset_value(%1, OFFSET_SET_DEATH, %2)
 #define cs_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
 #define cs_set_user_money(%1,%2)	set_offset_value(%1, OFFSET_MONEY, %2)
+
+// Lasermine Data Save Area.
+#define LASERMINE_TEAM				pev_iuser1
+#define LASERMINE_OWNER				pev_iuser2
+#define LASERMINE_STEP				pev_iuser3
+#define LASERMINE_HITING			pev_iuser4
+#define LASERMINE_COUNT				pev_fuser1
+#define LASERMINE_POWERUP			pev_fuser2
+#define LASERMINE_BEAMTHINK			pev_fuser3
+#define LASERMINE_BEAMENDPOINT1		pev_vuser1
+#define LASERMINE_BEAMENDPOINT2		pev_vuser2
+#define LASERMINE_BEAMENDPOINT3		pev_vuser3
+
+// Remove Lasermine Entity Macro
+#define remove_entity(%1)			engfunc(EngFunc_RemoveEntity, %1)
+
 //====================================================
 // ENUM AREA
 //====================================================
@@ -348,6 +366,9 @@ stock set_offset_value(id, type, value)
 	return;
 }
 
+//====================================================
+// Flashing Money Hud
+//====================================================
 stock flash_money_hud(id, value, msg)
 {
 	if (pev_valid(id))
@@ -562,4 +583,54 @@ stock status_text(id, szText[], msg)
 	write_byte(0);
 	write_string(szText);
 	message_end();	
+}
+
+//====================================================
+// Hit Shield Effect 
+//====================================================
+stock hit_shield(id, Float:dmg)
+{
+	static Float:punchangle[3];
+	punchangle[0] = (dmg * random_float(-0.15, 0.15));
+	punchangle[2] = (dmg * random_float(-0.15, 0.15));
+	if (punchangle[0] < 4.0)
+		punchangle[0] = -4.0;
+	if (punchangle[2] < -5.0)
+		punchangle[2] = -5.0;
+	else
+		if (punchangle[2] > 5.0)
+			punchangle[2] = 5.0;
+
+	set_pev(id, pev_punchangle, punchangle);	
+}
+
+//====================================================
+// Remove all Entity.
+//====================================================
+remove_all_entity(id, className[])
+{
+	new iEnt = -1;
+	new entityName[MAX_NAME_LENGTH];
+	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
+	{
+		if (!pev_valid(iEnt))
+			continue;
+
+		if (is_user_connected(id))
+		{
+			if (pev(iEnt, LASERMINE_OWNER) != id)
+				continue;
+			entityName = fm_get_entity_class_name(iEnt);
+				
+			if (equali(entityName, className))
+			{
+				play_sound(iEnt, STOP_SOUND);
+				remove_entity(iEnt);
+			}
+		}
+		else
+			set_pev(iEnt, pev_flags, FL_KILLME);
+	}
+	// reset deploy count.
+	set_user_mine_deployed(id, int:0);
 }
