@@ -1182,9 +1182,9 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 	// Test. Claymore color is black wire.
 	if (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE)
 	{
-		tcolor[0] = 255;
-		tcolor[1] = 255;
-		tcolor[2] = 255;
+		tcolor[0] = 20;
+		tcolor[1] = 20;
+		tcolor[2] = 20;
 		width = 1;
 	}
 
@@ -1851,7 +1851,6 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 	new Float:pitch;
 	new Float:yaw;
 
-	hitPoint	= vOrigin;
 	pev(iEnt, pev_angles, vAngles);
 
 	// roll zero
@@ -1859,35 +1858,39 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 
 	for (new i = 0; i < 3; i++)
 	{
+		hitPoint	= vOrigin;
 		// Wire A Center.
-		while(xs_vec_distance(vOrigin, hitPoint) > 300.0)
+		while(xs_vec_distance(vOrigin, hitPoint) > 300.0 || xs_vec_equal(vOrigin, hitPoint))
 		{
 			switch(i)
 			{
+				// pitch:down 0, back 90, up 180, forward 270(-90)
+				// yaw  :left 90, right -90 
 				case 0: // center
 				{
-					pitch 	= random_float(-120.0, -60.0);
-					yaw		= random_float(-45.0, 45.0);
+					pitch 	= random_float(220.0, 290.0);
+					yaw		= random_float(-25.0,  25.0);
 				}
 				case 1: // right
 				{
-					pitch 	= random_float(-120.0, -45.0);
-					yaw		= random_float(0.0, 60.0);
+					pitch 	= random_float(260.0, 290.0);
+					yaw		= random_float(-30.0, -60.0);
 				}
 				case 2: // left
 				{
-					pitch 	= random_float(-120.0, -45.0);
-					yaw		= random_float(-60.0, 0.0);
+					pitch 	= random_float(260.0, 290.0);
+					yaw		= random_float( 30.0,  60.0);
 				}
 			}
 
 			pAngles[0] = pitch;
 			pAngles[1] = yaw;
 
-			xs_vec_sub(pAngles, vAngles, pAngles);
+			xs_vec_add(pAngles, vAngles, pAngles);
 			xs_anglevectors(pAngles, vFwd, vRight, vUp);
 		
 			xs_vec_mul_scalar(vFwd, 300.0, vFwd);
+			// xs_vec_add(vOrigin, vFwd, vForward);
 			xs_vec_add(vFwd, vNormal, vForward);
 			xs_vec_add(vOrigin, vForward, vForward);
 
@@ -1928,7 +1931,7 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 				health = floatround(fm_get_user_health(iHit));
 				get_user_name(iOwner, szName, charsmax(szName));
 				//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
-				set_hudmessage( 50, 100, 150, -1.0, 0.60, 0, 6.0, 0.1, 0.0, 0.0, -1);
+				set_hudmessage( 50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
 				show_hudmessage(id, "Owner: %s^nHealth: %i/%i", szName, health, get_pcvar_num(gCvar[CVAR_MINE_HEALTH]));
 			}
 		}
