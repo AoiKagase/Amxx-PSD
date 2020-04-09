@@ -2,6 +2,7 @@
 #include <amxmodx> 
 #include <amxconst>
 #include <cstrike>
+#include <cs_team_changer>
 #include <hamsandwich>
 
 #define PLUGIN 						"Bot vs Player"
@@ -24,7 +25,7 @@ enum _:CVARS
 }
 
 new g_cvars[CVARS];
-new CsTeams:g_player_round;
+new CSTeam:g_player_round;
 
 public plugin_init() 
 { 
@@ -42,7 +43,7 @@ public plugin_init()
 	register_logevent("Event_CTWin", 6, "3=CTs_Win", 		"3=VIP_Escaped", 		"3=Bomb_Defused",  "3=All_Hostages_Rescued", "3=CTs_PreventEscape", "3=Escaping_Terrorists_Neutralized");
 	register_logevent("Event_TRWin", 6, "3=Terrorists_Win", "3=VIP_Assassinated",	"3=Target_Bombed", "3=Hostages_Not_Rescued", "3=Terrorists_Escaped");
 
-	g_player_round = CS_TEAM_CT;
+	g_player_round = CSTEAM_CT;
 	RegisterHam(Ham_Spawn, "player", "round_start_pre", 0);
 }
 
@@ -52,8 +53,8 @@ public client_connect(id)
 	{
 		if (is_user_bot(id) && !is_user_alive(id))
 		{
-			new CsTeams:num = ((g_player_round != CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT);
-			cs_set_user_team(id, num);
+			new CSTeam:num = ((g_player_round != CSTEAM_CT) ? CSTEAM_TERRORIST : CSTEAM_CT);
+			cs_set_team(id, num);
 		}
 	}
 }
@@ -81,7 +82,7 @@ public auto_join(menu_msgid[], id)
 
 	set_msg_block(menu_msgid[0], BLOCK_SET);
 	new team[2];
-	new CsTeams:num = (g_player_round == CS_TEAM_CT) ? CS_TEAM_CT : CS_TEAM_T;
+	new CSTeam:num = (g_player_round == CSTEAM_CT) ? CSTEAM_CT : CSTEAM_TERRORIST;
 	num_to_str(int:num, team, charsmax(team));
 
 	engclient_cmd(id, "jointeam",  team);
@@ -91,15 +92,15 @@ public auto_join(menu_msgid[], id)
 }
 public round_end()
 {
-//	g_player_round 	= CsTeam:((g_player_round == CsTeam:CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT);
+//	g_player_round 	= CsTeam:((g_player_round == CsTeam:CSTEAM_CT) ? CSTEAM_TERRORIST : CSTEAM_CT);
 	bot_player_balance();
 }
 
 public Event_TRWin()
 {
-	if (g_player_round != CS_TEAM_T)
+	if (g_player_round != CSTEAM_TERRORIST)
 	{
-		g_player_round 	= CS_TEAM_T;
+		g_player_round 	= CSTEAM_TERRORIST;
 		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Boooo, Your team lost to BOT.");
 		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Swap teams for Terrorist.");
 	}
@@ -113,9 +114,9 @@ public Event_TRWin()
 
 public Event_CTWin()
 {
-	if (g_player_round != CS_TEAM_CT)
+	if (g_player_round != CSTEAM_CT)
 	{
-		g_player_round 	= CS_TEAM_CT;
+		g_player_round 	= CSTEAM_CT;
 		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Boooo, Your team lost to BOT.");
 		client_print_color(0, print_chat, "^4[%s]^2%s", CHAT_TAG, "Swap teams for Counter-Terrorist.");
 	}
@@ -148,15 +149,15 @@ bot_player_balance()
 public round_start_pre(id)
 {
 	bot_player_balance();
-	new CsTeams:team =  (g_player_round == CS_TEAM_CT) ? CS_TEAM_T : CS_TEAM_CT;
+	new CSTeam:team =  (g_player_round == CSTEAM_CT) ? CSTEAM_TERRORIST : CSTEAM_CT;
 
 	if (!is_user_connected(id))
 		return PLUGIN_CONTINUE;
 
 	if (!is_user_bot(id))
-		cs_set_user_team(id, g_player_round);
+		cs_set_team(id, g_player_round);
 	else
-		cs_set_user_team(id, team);
+		cs_set_team(id, team);
 
 	if (cs_get_user_team(id) == CS_TEAM_T)
 	{
