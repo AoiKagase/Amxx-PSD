@@ -72,7 +72,7 @@
 #define ENT_SOUND8					"weapons/ric_metal-1.wav"
 #define ENT_SOUND9					"weapons/ric_metal-2.wav"
 #define ENT_SPRITE1 				"sprites/laserbeam.spr"
-#define ENT_SPRITE2 				"sprites/zerogxplode.spr"
+#define ENT_SPRITE2 				"sprites/eexplo.spr"
 
 #define ENT_CLASS_LASER				"lasermine"
 #define ENT_CLASS_TARGET			"info_target"
