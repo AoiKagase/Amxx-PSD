@@ -84,3 +84,11 @@ cstrike/addons/amxmodx/scripting/biohazard.cfg
 cstrike/addons/amxmodx/scripting/biohazard.sma
 cstrike/addons/amxmodx/scripting/customflashlight.sma
 cstrike/addons/amxmodx/scripting/spawn_editor.sma
+cstrike/addons/amxmodx/scripting/include/basebuilder.inc
+cstrike/addons/amxmodx/scripting/include/bulletdamage.inc
+cstrike/addons/amxmodx/scripting/include/colorchat.inc
+cstrike/addons/amxmodx/scripting/include/credits.inc
+cstrike/addons/amxmodx/scripting/include/money_ul.inc
+cstrike/addons/amxmodx/scripting/include/ns2amx.inc
+cstrike/addons/amxmodx/scripting/include/profiler.inc
+cstrike/addons/amxmodx/scripting/include/svn_version.inc
