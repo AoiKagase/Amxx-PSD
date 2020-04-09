@@ -1375,14 +1375,17 @@ public SayLasermine(id)
 	{
 		const SIZE = 1024;
 		new msg[SIZE + 1], len = 0;
-		len += formatex(msg[len], SIZE - len, "<html><body>");
-		len += formatex(msg[len], SIZE - len, "<p><b>LaserMine</b></p><br/><br/>");
-		len += formatex(msg[len], SIZE - len, "<p>You can be setting the mine on the wall.</p><br/>");
-		len += formatex(msg[len], SIZE - len, "<p>That laser will give what touched it damage.</p><br/><br/>");
-		len += formatex(msg[len], SIZE - len, "<p><b>LaserMine Commands</b></p><br/><br/>");
-		len += formatex(msg[len], SIZE - len, "<p><b>Say /buy lasermine</b> or <b>Say /lm</b> //buying lasermine<br/>");
-		len += formatex(msg[len], SIZE - len, "<b>buy_lasermine</b> //bind ^"F2^" buy_lasermine : using F2 buying lasermine<br/>");
-		len += formatex(msg[len], SIZE - len, "<b>+setlaser</b> //bind mouse3 +setlaser : using mouse3 set lasermine on wall<br/>");
+		len += formatex(msg[len], SIZE - len, "<html><head><style>body{background-color:gray;color:white;} table{border-color:black;}</style></head><body>");
+		len += formatex(msg[len], SIZE - len, "<p><b>Laser/TripMine Entity v%s</b></p>", VERSION);
+		len += formatex(msg[len], SIZE - len, "<p>You can be setting the mine on the wall.</p>");
+		len += formatex(msg[len], SIZE - len, "<p>That laser will give what touched it damage.</p>");
+		len += formatex(msg[len], SIZE - len, "<p><b>Commands</b></p>");
+		len += formatex(msg[len], SIZE - len, "<table border='1' cellspacing='0' cellpadding='10'>");
+		len += formatex(msg[len], SIZE - len, "<tr><td>say</td><td><b>/buy lasermine</b> or <b>/lm</td><td rowspan='2'>buying lasermine</td></tr>");
+		len += formatex(msg[len], SIZE - len, "<tr><td>console</td><td><b>buy_lasermine</b></td></tr>");
+		len += formatex(msg[len], SIZE - len, "<tr><tr><td rowspan='2'>bind</td><td><b>+setlaser</b></td><td>bind j +setlaser :using j set lasermine on wall.</td></tr>");
+		len += formatex(msg[len], SIZE - len, "<tr><td><b>+dellaser</b></td><td>bind k +dellaser :using k remove lasermine.</td></tr>");
+		len += formatex(msg[len], SIZE - len, "</table>");
 		len += formatex(msg[len], SIZE - len, "</body></html>");
 		show_motd(id, msg, "Lasermine Entity help");
 		return PLUGIN_HANDLED;
