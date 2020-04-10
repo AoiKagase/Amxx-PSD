@@ -56,9 +56,6 @@
 #define LASERMINE_BEAMENDPOINT2		pev_vuser2
 #define LASERMINE_BEAMENDPOINT3		pev_vuser3
 
-// Remove Lasermine Entity Macro
-#define remove_entity(%1)			engfunc(EngFunc_RemoveEntity, %1)
-
 //====================================================
 // ENUM AREA
 //====================================================
@@ -185,6 +182,9 @@ enum CVAR_SETTING
 	CVAR_CM_RIGHT_PITCH		,		// Claymore Wire Area Right Pitch.
 	CVAR_CM_RIGHT_YAW		,		// Claymore Wire Area Right Yaw.
 	CVAR_CM_TRIAL_FREQ		,		// Claymore Wire trial frequency.
+	CVAR_CM_WIRE_COLOR		,
+	CVAR_CM_WIRE_COLOR_T	,
+	CVAR_CM_WIRE_COLOR_CT	,
 };
 
 //
@@ -414,7 +414,7 @@ stock lm_draw_laser(const iEnt, /* const Float:vOrigin[3],*/ const Float:vEndOri
 	// Draw Laser line message.
 	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
 	write_byte(TE_BEAMENTPOINT);
-	write_short(iEnt);
+	write_short(iEnt | 0x1000);
 	// engfunc(EngFunc_WriteCoord, vOrigin[0]);
 	// engfunc(EngFunc_WriteCoord, vOrigin[1]);
 	// engfunc(EngFunc_WriteCoord, vOrigin[2]);
@@ -467,8 +467,8 @@ stock lm_stop_laserline(iEnt)
 {
 	// Laser line stop.
 	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
-	write_byte(99); //99 = KillBeam
-	write_short(iEnt);
+	write_byte(TE_KILLBEAM); //99 = KillBeam
+	write_short(iEnt | 0x1000);
 	message_end();
 }
 
@@ -649,7 +649,7 @@ stock lm_remove_all_entity(id, className[])
 			if (equali(entityName, className))
 			{
 				lm_play_sound(iEnt, SOUND_STOP);
-				remove_entity(iEnt);
+				lm_remove_entity(iEnt);
 			}
 		}
 		else
@@ -695,12 +695,10 @@ stock lm_play_sound(iEnt, iSoundType)
 		}
 	}
 }
-// #define ENT_SOUND1					"weapons/mine_deploy.wav"
-// #define ENT_SOUND2					"weapons/mine_charge.wav"
-// #define ENT_SOUND3					"weapons/mine_activate.wav"
-// #define ENT_SOUND4					"items/gunpickup2.wav"
-// #define ENT_SOUND5					"debris/beamstart9.wav"
-// #define ENT_SOUND6					"weapons/ric_metal-1.wav"
-// #define ENT_SOUND7					"weapons/ric_metal-2.wav"
-// #define ENT_SOUND8					"debris/bustglass1.wav"
-// #define ENT_SOUND9					"debris/bustglass2.wav"
+
+stock lm_remove_entity(iEnt)
+{
+	lm_stop_laserline(iEnt);
+	engfunc(EngFunc_RemoveEntity, iEnt);
+}
+

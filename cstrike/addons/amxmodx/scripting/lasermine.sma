@@ -214,13 +214,16 @@ public plugin_init()
 	// Claymore Settings. (Color is Laser color)
 	gCvar[CVAR_CM_WIRE_RANGE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_range"),		"300"		);	// wire range.
 	gCvar[CVAR_CM_WIRE_WIDTH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_width"),		"2"			);	// wire width.
-	gCvar[CVAR_CM_CENTER_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_pitch"),	"220.0,290.0");	// wire area center pitch.
-	gCvar[CVAR_CM_CENTER_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_yaw"),	"-25.0,25.0");	// wire area center yaw.
-	gCvar[CVAR_CM_LEFT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_pitch"),	"260.0,290.0");	// wire area left pitch.
-	gCvar[CVAR_CM_LEFT_YAW]		= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_yaw"),		"30.0,60.0"	);	// wire area left yaw.
-	gCvar[CVAR_CM_RIGHT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_pitch"),	"260.0,290.0");	// wire area right pitch.
-	gCvar[CVAR_CM_RIGHT_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_yaw"),	"-30.0,-60.0");	// wire area right yaw.
+	gCvar[CVAR_CM_CENTER_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_pitch"),	"220,290"	);	// wire area center pitch.
+	gCvar[CVAR_CM_CENTER_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_yaw"),	"-25,25"	);	// wire area center yaw.
+	gCvar[CVAR_CM_LEFT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_pitch"),	"260,290"	);	// wire area left pitch.
+	gCvar[CVAR_CM_LEFT_YAW]		= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_yaw"),		"30,60"		);	// wire area left yaw.
+	gCvar[CVAR_CM_RIGHT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_pitch"),	"260,290"	);	// wire area right pitch.
+	gCvar[CVAR_CM_RIGHT_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_yaw"),	"-30,-60"	);	// wire area right yaw.
 	gCvar[CVAR_CM_TRIAL_FREQ]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_trial_freq"),	"3"			);	// wire trial frequency.
+	gCvar[CVAR_CM_WIRE_COLOR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
+	gCvar[CVAR_CM_WIRE_COLOR_T] = register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_t"),		"20,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
+	gCvar[CVAR_CM_WIRE_COLOR_CT]= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_ct"),		"0,0,20"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
 
 	// Register Hamsandwich
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
@@ -775,7 +778,7 @@ public RemoveMine(id)
 	}
 
 	// Remove!
-	remove_entity(target);
+	lm_remove_entity(target);
 
 	// Collect for this removed lasermine.
 	lm_set_user_have_mine(uID, lm_get_user_have_mine(uID) + int:1);
@@ -1005,6 +1008,8 @@ public LaserThink(iEnt)
 			// drawing spark.
 			if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
 			{
+				// draw_laserline(iEnt, vEnd[i]);
+
 				if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
 					lm_draw_spark_for_wall(hitPoint);
 			}
@@ -1039,7 +1044,7 @@ public LaserThink(iEnt)
 		iHealth = lm_get_user_health(iEnt);
 
 		// break?
-		if (iHealth < 0 || (pev(iEnt, pev_flags) & FL_KILLME))
+		if (iHealth <= 0 || (pev(iEnt, pev_flags) & FL_KILLME))
 		{
 			// next step explosion.
 			set_pev(iEnt, LASERMINE_STEP, EXPLOSE_THINK);
@@ -1070,7 +1075,7 @@ public LaserThink(iEnt)
 		lm_create_explosion_damage(iEnt, iOwner, get_pcvar_float(gCvar[CVAR_EXPLODE_DMG]), get_pcvar_float(gCvar[CVAR_EXPLODE_RADIUS]));
 
 		// remove this.
-		remove_entity(iEnt);
+		lm_remove_entity(iEnt);
 		return HAM_HANDLED;
 	}
 
@@ -1143,20 +1148,30 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		formatex(sRGB, sRGBLen, "0,255,0");
 	}
 
+	// Test. Claymore color is black wire.
+	if (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE)
+	{
+		if (get_pcvar_num(gCvar[CVAR_CM_WIRE_COLOR]) == 0)
+		{
+		switch(teamid)
+		{
+			case CS_TEAM_T:
+				get_pcvar_string(gCvar[CVAR_CM_WIRE_COLOR_T],  sRGB, sRGBLen);
+			case CS_TEAM_CT:
+				get_pcvar_string(gCvar[CVAR_CM_WIRE_COLOR_CT], sRGB, sRGBLen);
+			default:
+				formatex(sRGB, sRGBLen, "20,20,20");
+		}
+
+		}
+		width = get_pcvar_num(gCvar[CVAR_CM_WIRE_WIDTH]);
+	}
+
 	formatex(sRGB, sRGBLen, "%s%s", sRGB, ",");
 	while(n < sizeof(tcolor))
 	{
 		i = split_string(sRGB[iPos += i], ",", sColor, sColorLen);
 		tcolor[n++] = str_to_num(sColor);
-	}
-
-	// Test. Claymore color is black wire.
-	if (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE)
-	{
-		tcolor[0] = 20;
-		tcolor[1] = 20;
-		tcolor[2] = 20;
-		width = 1;
 	}
 
 	lm_draw_laser(iEnt, vEndOrigin, tcolor, width, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), gBeam);
@@ -1808,18 +1823,16 @@ Float:get_claymore_wire_endpoint(CVAR_SETTING:cvar)
 {
 	new i = 0, n = 0, iPos = 0;
 	new Float:values[2];
-	new sCvarValue	[11];
-	new sSplit		[2];
+	new sCvarValue	[20];
+	new sSplit		[20];
 
-	new sCvarValueLen	= charsmax(sCvarValue);
 	new sSplitLen		= charsmax(sSplit);
 
-	get_pcvar_string(gCvar[cvar], sCvarValue, sCvarValueLen);
+	get_pcvar_string(gCvar[cvar], sCvarValue, charsmax(sCvarValue));
 
-	formatex(sCvarValue, sCvarValueLen, "%s%s", sCvarValue, ",");
-	while(n < sizeof(values))
+	formatex(sCvarValue, charsmax(sCvarValue), "%s%s", sCvarValue, ",");
+	while((i = split_string(sCvarValue[iPos += i], ",", sSplit, sSplitLen)) != -1 && n < sizeof(values))
 	{
-		i = split_string(sCvarValue[iPos += i], ",", sSplit, sSplitLen);
 		values[n++] = str_to_float(sSplit);
 	}
 	return random_float(values[0], values[1]);
@@ -1854,10 +1867,11 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 	for (new i = 0; i < 3; i++)
 	{
 		hitPoint	= vOrigin;
+		vTmp		= vOrigin;
 		n = 0;
 		while(n < freq)
 		{
-			while(xs_vec_distance(vOrigin, hitPoint) > range || xs_vec_equal(vOrigin, hitPoint))
+			while(xs_vec_distance(vOrigin, vTmp) > range || xs_vec_equal(vOrigin, vTmp))
 			{
 				switch(i)
 				{
