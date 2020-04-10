@@ -22,3 +22,4 @@ SORRY_IMPL   = ^4%s ^1Sorry. this mode is Not implemented.
 ALL_REMOVE   = ^4%s ^1admin's removed all %s's lasermine.
 TAKE_MINE    = ^4%s ^1admin's gave for %s lasermine.
 REMOVE_SPEC	 = ^4%s ^1%s is all lasers have been removed because moved to the spectator!
+MINE_HUD_MSG = Owner: %s^nHealth: %i/%i

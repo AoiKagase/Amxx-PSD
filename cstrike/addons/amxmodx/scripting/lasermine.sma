@@ -87,6 +87,7 @@
 #define LANG_KEY_ALL_REMOVE			"ALL_REMOVE"
 #define LANG_KEY_GIVE_MINE			"GIVE_MINE"
 #define LANG_KEY_REMOVE_SPEC		"REMOVE_SPEC"
+#define LANG_KEY_MINE_HUD			"MINE_HUD_MSG"
 
 // ADMIN LEVEL
 #define ADMIN_ACCESSLEVEL			ADMIN_LEVEL_H
@@ -1875,6 +1876,7 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 { 
 	static iHit, szName[MAX_NAME_LENGTH], iOwner, health;
+	static hudMsg[32];
 
 	iHit = get_tr2(iTrace, TR_pHit);
 	if (pev_valid(iHit))
@@ -1888,9 +1890,10 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 				iOwner = pev(iHit, LASERMINE_OWNER);
 				health = floatround(lm_get_user_health(iHit));
 				get_user_name(iOwner, szName, charsmax(szName));
+				formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG_KEY_MINE_HUD, szName, health, get_pcvar_num(gCvar[CVAR_MINE_HEALTH]));
 				//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
-				set_hudmessage( 50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
-				show_hudmessage(id, "Owner: %s^nHealth: %i/%i", szName, health, get_pcvar_num(gCvar[CVAR_MINE_HEALTH]));
+				set_hudmessage(50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
+				show_hudmessage(id, hudMsg);
 			}
 		}
     }
