@@ -135,7 +135,7 @@ enum _:ERROR
 //
 // CVAR SETTINGS
 //
-enum _:CVAR_SETTING
+enum CVAR_SETTING
 {
 	CVAR_ENABLE				= 0,    // Plugin Enable.
 	CVAR_ACCESS_LEVEL		,		// Access level for 0 = ADMIN or 1 = ALL.
@@ -176,6 +176,15 @@ enum _:CVAR_SETTING
 //  CVAR_LASER_THINK        ,   	// Laser line think.
 	CVAR_DIFENCE_SHIELD		,		// Shield hit.
 	CVAR_REALISTIC_DETAIL	,		// Spark Effect.
+	CVAR_CM_WIRE_RANGE		,		// Claymore Wire Range.
+	CVAR_CM_WIRE_WIDTH		,		// Claymore Wire Width.
+	CVAR_CM_CENTER_PITCH	,		// Claymore Wire Area Center Pitch.
+	CVAR_CM_CENTER_YAW		,		// Claymore Wire Area Center Yaw.
+	CVAR_CM_LEFT_PITCH		,		// Claymore Wire Area Left Pitch.
+	CVAR_CM_LEFT_YAW		,		// Claymore Wire Area Left Yaw.
+	CVAR_CM_RIGHT_PITCH		,		// Claymore Wire Area Right Pitch.
+	CVAR_CM_RIGHT_YAW		,		// Claymore Wire Area Right Yaw.
+	CVAR_CM_TRIAL_FREQ		,		// Claymore Wire trial frequency.
 };
 
 //

@@ -211,6 +211,17 @@ public plugin_init()
 	gCvar[CVAR_DIFENCE_SHIELD]	= register_cvar(fmt("%s%s", CVAR_TAG, "_shield_difence"),		"1"			);	// allow shiled difence.
 	gCvar[CVAR_REALISTIC_DETAIL]= register_cvar(fmt("%s%s", CVAR_TAG, "_realistic_detail"), 	"0"			);	// Spark Effect.
 
+	// Claymore Settings. (Color is Laser color)
+	gCvar[CVAR_CM_WIRE_RANGE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_range"),		"300"		);	// wire range.
+	gCvar[CVAR_CM_WIRE_WIDTH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_width"),		"2"			);	// wire width.
+	gCvar[CVAR_CM_CENTER_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_pitch"),	"220.0,290.0");	// wire area center pitch.
+	gCvar[CVAR_CM_CENTER_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_yaw"),	"-25.0,25.0");	// wire area center yaw.
+	gCvar[CVAR_CM_LEFT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_pitch"),	"260.0,290.0");	// wire area left pitch.
+	gCvar[CVAR_CM_LEFT_YAW]		= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_yaw"),		"30.0,60.0"	);	// wire area left yaw.
+	gCvar[CVAR_CM_RIGHT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_pitch"),	"260.0,290.0");	// wire area right pitch.
+	gCvar[CVAR_CM_RIGHT_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_yaw"),	"-30.0,-60.0");	// wire area right yaw.
+	gCvar[CVAR_CM_TRIAL_FREQ]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_trial_freq"),	"3"			);	// wire trial frequency.
+
 	// Register Hamsandwich
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
 	RegisterHam(Ham_Item_PreFrame,	"player", "KeepMaxSpeed", 	1);
@@ -1793,6 +1804,27 @@ stock mine_glowing(iEnt)
 	}
 }
 
+Float:get_claymore_wire_endpoint(CVAR_SETTING:cvar)
+{
+	new i = 0, n = 0, iPos = 0;
+	new Float:values[2];
+	new sCvarValue	[11];
+	new sSplit		[2];
+
+	new sCvarValueLen	= charsmax(sCvarValue);
+	new sSplitLen		= charsmax(sSplit);
+
+	get_pcvar_string(gCvar[cvar], sCvarValue, sCvarValueLen);
+
+	formatex(sCvarValue, sCvarValueLen, "%s%s", sCvarValue, ",");
+	while(n < sizeof(values))
+	{
+		i = split_string(sCvarValue[iPos += i], ",", sSplit, sSplitLen);
+		values[n++] = str_to_float(sSplit);
+	}
+	return random_float(values[0], values[1]);
+}
+
 //====================================================
 // Claymore Wire Endpoint
 //====================================================
@@ -1802,6 +1834,7 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 	new Float:vForward	[3];
 	new Float:vResult	[3][3];
 	new Float:hitPoint	[3];
+	new Float:vTmp		[3];
 	new Float:pAngles	[3];
 	new Float:vFwd		[3];
 	new Float:vRight	[3];
@@ -1809,7 +1842,10 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 	new trace = create_tr2();
 	new Float:pitch;
 	new Float:yaw;
-
+	new Float:range;
+	new n = 0;
+	new freq = get_pcvar_num(gCvar[CVAR_CM_TRIAL_FREQ]);
+	range = get_pcvar_float(gCvar[CVAR_CM_WIRE_RANGE]);
 	pev(iEnt, pev_angles, vAngles);
 
 	// roll zero
@@ -1818,46 +1854,53 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 	for (new i = 0; i < 3; i++)
 	{
 		hitPoint	= vOrigin;
-		// Wire A Center.
-		while(xs_vec_distance(vOrigin, hitPoint) > 300.0 || xs_vec_equal(vOrigin, hitPoint))
+		n = 0;
+		while(n < freq)
 		{
-			switch(i)
+			while(xs_vec_distance(vOrigin, hitPoint) > range || xs_vec_equal(vOrigin, hitPoint))
 			{
-				// pitch:down 0, back 90, up 180, forward 270(-90)
-				// yaw  :left 90, right -90 
-				case 0: // center
+				switch(i)
 				{
-					pitch 	= random_float(220.0, 290.0);
-					yaw		= random_float(-25.0,  25.0);
+					// pitch:down 0, back 90, up 180, forward 270(-90)
+					// yaw  :left 90, right -90 
+					case 0: // center
+					{
+						pitch 	= get_claymore_wire_endpoint(CVAR_CM_CENTER_PITCH);
+						yaw		= get_claymore_wire_endpoint(CVAR_CM_CENTER_YAW);
+					}
+					case 1: // right
+					{
+						pitch 	= get_claymore_wire_endpoint(CVAR_CM_RIGHT_PITCH);
+						yaw		= get_claymore_wire_endpoint(CVAR_CM_RIGHT_YAW);
+					}
+					case 2: // left
+					{
+						pitch 	= get_claymore_wire_endpoint(CVAR_CM_LEFT_PITCH);
+						yaw		= get_claymore_wire_endpoint(CVAR_CM_LEFT_YAW);
+					}
 				}
-				case 1: // right
+
+				pAngles[0] = pitch;
+				pAngles[1] = yaw;
+
+				xs_vec_add(pAngles, vAngles, pAngles);
+				xs_anglevectors(pAngles, vFwd, vRight, vUp);
+			
+				xs_vec_mul_scalar(vFwd, range, vFwd);
+				// xs_vec_add(vOrigin, vFwd, vForward);
+				xs_vec_add(vFwd, vNormal, vForward);
+				xs_vec_add(vOrigin, vForward, vForward);
+
+				// Trace line
+				engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
 				{
-					pitch 	= random_float(260.0, 290.0);
-					yaw		= random_float(-30.0, -60.0);
-				}
-				case 2: // left
-				{
-					pitch 	= random_float(260.0, 290.0);
-					yaw		= random_float( 30.0,  60.0);
+					get_tr2(trace, TR_vecEndPos, vTmp);
 				}
 			}
+			if (xs_vec_distance(vOrigin, vTmp) > xs_vec_distance(vOrigin, hitPoint))
+				hitPoint = vTmp;
 
-			pAngles[0] = pitch;
-			pAngles[1] = yaw;
-
-			xs_vec_add(pAngles, vAngles, pAngles);
-			xs_anglevectors(pAngles, vFwd, vRight, vUp);
-		
-			xs_vec_mul_scalar(vFwd, 300.0, vFwd);
-			// xs_vec_add(vOrigin, vFwd, vForward);
-			xs_vec_add(vFwd, vNormal, vForward);
-			xs_vec_add(vOrigin, vForward, vForward);
-
-			// Trace line
-			engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
-			{
-				get_tr2(trace, TR_vecEndPos, hitPoint);
-			}
+			n++;
 		}
 		vResult[i] = hitPoint;
 	}
