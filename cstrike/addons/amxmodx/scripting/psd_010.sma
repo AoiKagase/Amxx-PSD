@@ -1004,7 +1004,7 @@ public reset_database()
 //client disconnect update
 public client_disconnected(id)
 {
-	if (!is_user_bot(id))
+	if (!is_user_bot(id) && is_user_connected(id))
 	{
 		new sAuthid[MAX_AUTHID_LENGTH];
 
@@ -1040,7 +1040,7 @@ public client_putinserver(id)
 //
 public client_infochanged(id)
 {
-	if (!is_user_bot(id))
+	if (!is_user_bot(id) && is_user_connected(id))
 	{
 		new sAuthid	[MAX_AUTHID_LENGTH];
 		new sName	[MAX_NAME_LENGTH * 3];
@@ -1072,7 +1072,7 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3]
 		formatex(sName, charsmax(sName), "BOT");
 
 	get_user_ip(id, sIp, charsmax(sIp), 1);
-
+	g_playtime[id] = (g_playtime[id] <= 0) ? get_systime() : g_playtime[id];
 	new playtime = select_user_info(sAuthId) + (get_systime() - g_playtime[id]);
 	g_playtime[id] = get_systime();
 
