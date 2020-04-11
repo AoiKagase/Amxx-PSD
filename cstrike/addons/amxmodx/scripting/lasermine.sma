@@ -52,6 +52,22 @@
 #endif
 
 /*=====================================*/
+/*  Resource Setting AREA					       */
+/*=====================================*/
+#define ENT_MODELS					"models/v_tripmine.mdl"
+#define ENT_SOUND1					"weapons/mine_deploy.wav"
+#define ENT_SOUND2					"weapons/mine_charge.wav"
+#define ENT_SOUND3					"weapons/mine_activate.wav"
+#define ENT_SOUND4					"items/gunpickup2.wav"
+#define ENT_SOUND5					"debris/beamstart9.wav"
+#define ENT_SOUND6					"weapons/ric_metal-1.wav"
+#define ENT_SOUND7					"weapons/ric_metal-2.wav"
+#define ENT_SOUND8					"debris/bustglass1.wav"
+#define ENT_SOUND9					"debris/bustglass2.wav"
+#define ENT_SPRITE1 				"sprites/laserbeam.spr"
+#define ENT_SPRITE2 				"sprites/eexplo.spr"
+
+/*=====================================*/
 /*  MACRO AREA					       */
 /*=====================================*/
 //
@@ -125,6 +141,64 @@
 #define cp_gave(%1,%2,%3)			client_print_color(%1, %1, "%L", %1, LANG_KEY_GIVE_MINE,	CHAT_TAG, %2, %3)
 #define cp_remove_spec(%1,%2)		client_print_color(%1, %1, "%L", %1, LANG_KEY_REMOVE_SPEC,	CHAT_TAG, %2)
 
+//
+// CVAR SETTINGS
+//
+enum CVAR_SETTING
+{
+	CVAR_ENABLE				= 0,    // Plugin Enable.
+	CVAR_ACCESS_LEVEL		,		// Access level for 0 = ADMIN or 1 = ALL.
+	CVAR_NOROUND			,		// Check Started Round.
+	CVAR_CMD_MODE			,    	// 0 = +USE key, 1 = bind, 2 = each.
+	CVAR_MODE				,    	// 0 = Lasermine, 1 = Tripmine.
+	CVAR_MAX_HAVE			,    	// Max having ammo.
+	CVAR_START_HAVE			,    	// Start having ammo.
+	CVAR_FRAG_MONEY         ,    	// Get money per kill.
+	CVAR_COST               ,    	// Buy cost.
+	CVAR_BUY_ZONE           ,    	// Stay in buy zone can buy.
+	CVAR_LASER_DMG          ,    	// Laser hit Damage.
+	CVAR_TEAM_MAX           ,    	// Max deployed in team.
+	CVAR_EXPLODE_RADIUS     ,   	// Explosion Radius.
+	CVAR_EXPLODE_DMG        ,   	// Explosion Damage.
+	CVAR_FRIENDLY_FIRE      ,   	// Friendly Fire.
+	CVAR_CBT                ,   	// Can buy team. TR/CT/ALL
+	CVAR_BUY_MODE           ,   	// Buy mode. 0 = off, 1 = on.
+	CVAR_START_DELAY        ,   	// Round start delay time.
+	// Laser design.
+	CVAR_LASER_VISIBLE      ,   	// Laser line Visiblity. 0 = off, 1 = on.
+	CVAR_LASER_BRIGHT       ,   	// Laser line brightness.
+	CVAR_LASER_COLOR        ,   	// Laser line color. 0 = team color, 1 = green
+	CVAR_LASER_COLOR_TR     ,   	// Laser line color. 0 = team color, 1 = green
+	CVAR_LASER_COLOR_CT     ,   	// Laser line color. 0 = team color, 1 = green
+	CVAR_LASER_DMG_MODE     ,   	// Laser line damage mode. 0 = frame rate dmg, 1 = once dmg, 2 = 1second dmg.
+	CVAR_LASER_DMG_DPS      ,   	// Laser line damage mode 2 only, damage/seconds. default 1 (sec)
+	CVAR_MINE_HEALTH        ,   	// Lasermine health. (Can break.)
+	CVAR_MINE_GLOW          ,   	// Glowing tripmine.
+	CVAR_MINE_GLOW_MODE     ,   	// Glowing color mode.
+	CVAR_MINE_GLOW_CT     	,   	// Glowing color for CT.
+	CVAR_MINE_GLOW_TR    	,   	// Glowing color for T.
+	CVAR_MINE_BROKEN		,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
+	CVAR_DEATH_REMOVE		,		// Dead Player Remove Lasermine.
+	CVAR_LASER_ACTIVATE		,		// Waiting for put lasermine. (0 = no progress bar.)
+	CVAR_LASER_RANGE		,		// Laserbeam range.
+	CVAR_ALLOW_PICKUP		,		// allow pickup.
+//  CVAR_LASER_THINK        ,   	// Laser line think.
+	CVAR_DIFENCE_SHIELD		,		// Shield hit.
+	CVAR_REALISTIC_DETAIL	,		// Spark Effect.
+	CVAR_CM_WIRE_RANGE		,		// Claymore Wire Range.
+	CVAR_CM_WIRE_WIDTH		,		// Claymore Wire Width.
+	CVAR_CM_CENTER_PITCH	,		// Claymore Wire Area Center Pitch.
+	CVAR_CM_CENTER_YAW		,		// Claymore Wire Area Center Yaw.
+	CVAR_CM_LEFT_PITCH		,		// Claymore Wire Area Left Pitch.
+	CVAR_CM_LEFT_YAW		,		// Claymore Wire Area Left Yaw.
+	CVAR_CM_RIGHT_PITCH		,		// Claymore Wire Area Right Pitch.
+	CVAR_CM_RIGHT_YAW		,		// Claymore Wire Area Right Yaw.
+	CVAR_CM_TRIAL_FREQ		,		// Claymore Wire trial frequency.
+	CVAR_CM_WIRE_COLOR		,
+	CVAR_CM_WIRE_COLOR_T	,
+	CVAR_CM_WIRE_COLOR_CT	,
+};
+
 //====================================================
 //  GLOBAL VARIABLES
 //====================================================
@@ -151,12 +225,12 @@ public plugin_init()
 	register_concmd("lm_remove", 	"admin_remove_laser",ADMIN_ACCESSLEVEL, " - <num>"); 
 	register_concmd("lm_give", 		"admin_give_laser",  ADMIN_ACCESSLEVEL, " - <num>"); 
 
-	register_clcmd("+setlaser", 	"LaserMineProgressB");
-	register_clcmd("+dellaser", 	"RemoveProgress");
-   	register_clcmd("-setlaser", 	"StopProgress");
-   	register_clcmd("-dellaser", 	"StopProgress");
-	register_clcmd("say", 			"SayLasermine");
-	register_clcmd("buy_lasermine", "BuyLasermine");
+	register_clcmd("+setlaser", 	"lm_progress_deploy");
+	register_clcmd("+dellaser", 	"lm_progress_remove");
+   	register_clcmd("-setlaser", 	"lm_progress_stop");
+   	register_clcmd("-dellaser", 	"lm_progress_stop");
+	register_clcmd("say", 			"lm_say_lasermine");
+	register_clcmd("buy_lasermine", "lm_buy_lasermine");
 
 	// CVar settings.
 	// Common.
@@ -463,7 +537,7 @@ public DeathEvent()
 //====================================================
 // Put LaserMine Start Progress A
 //====================================================
-public LaserMineProgressA(id)
+public lm_progress_deploy_main(id)
 {
 	// Deploying Check.
 	if (!check_for_deploy(id))
@@ -487,11 +561,11 @@ public LaserMineProgressA(id)
 //====================================================
 // Put LaserMine Start Progress B
 //====================================================
-public LaserMineProgressB(id)
+public lm_progress_deploy(id)
 {
 	// Mode check. Bind Key Command.
 	if(get_pcvar_num(gCvar[CVAR_CMD_MODE]) != 0)
-		LaserMineProgressA(id);
+		lm_progress_deploy_main(id);
 
 	return PLUGIN_HANDLED;
 }
@@ -499,7 +573,7 @@ public LaserMineProgressB(id)
 //====================================================
 // Removing target put lasermine.
 //====================================================
-public RemoveProgress(id)
+public lm_progress_remove(id)
 {
 	// Removing Check.
 	if (!check_for_remove(id))
@@ -521,7 +595,7 @@ public RemoveProgress(id)
 //====================================================
 // Stopping Progress.
 //====================================================
-public StopProgress(id)
+public lm_progress_stop(id)
 {
 	lm_hide_progress(id, gMsgBarTime);
 	delete_task(id);
@@ -1301,7 +1375,7 @@ public PlayerKilling(iVictim, iAttacker)
 //====================================================
 // Buy Lasermine.
 //====================================================
-public BuyLasermine(id)
+public lm_buy_lasermine(id)
 {	
 	new ERROR:error = check_for_buy(id);
 	if( error )
@@ -1343,7 +1417,7 @@ show_ammo(id)
 //====================================================
 // Chat command.
 //====================================================
-public SayLasermine(id)
+public lm_say_lasermine(id)
 {
 	if(!get_pcvar_num(gCvar[CVAR_ENABLE]))
 		return PLUGIN_CONTINUE;
@@ -1353,7 +1427,7 @@ public SayLasermine(id)
 	
 	if (equali(said,"/buy lasermine") || equali(said,"/lm"))
 	{
-		BuyLasermine(id);
+		lm_buy_lasermine(id);
 //		return PLUGIN_HANDLED;
 	} else 
 	if (equali(said, "lasermine") || equali(said, "/lasermine"))
@@ -1424,7 +1498,7 @@ public PlayerPreThink(id)
 
 	// [USE] Key.
 	if(pev(id, pev_button ) & IN_USE && !(pev(id, pev_oldbuttons ) & IN_USE ))
-		LaserMineProgressA(id);			// deploying.
+		lm_progress_deploy_main(id);			// deploying.
 
 	return FMRES_IGNORED;
 }
@@ -2026,4 +2100,40 @@ public CheckSpectator()
 			cp_remove_spec(0, namep);
 		} 
      } 
+}
+
+//====================================================
+// Play sound.
+//====================================================
+stock lm_play_sound(iEnt, iSoundType)
+{
+	switch (iSoundType)
+	{
+		case SOUND_POWERUP:
+		{
+			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND1, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, 0, PITCH_NORM);
+		}
+		case SOUND_ACTIVATE:
+		{
+			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, 1, 75);
+		}
+		case SOUND_STOP:
+		{
+			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, SND_STOP, PITCH_NORM);
+			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, SND_STOP, 75);
+		}
+		case SOUND_PICKUP:
+		{
+			emit_sound(iEnt, CHAN_ITEM, ENT_SOUND4, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		}
+		case SOUND_HIT:
+		{
+			emit_sound(iEnt, CHAN_WEAPON, ENT_SOUND5, 1.0, ATTN_NORM, 0, PITCH_NORM);
+		}
+		case SOUND_HIT_SHIELD:
+		{
+			emit_sound(iEnt, CHAN_VOICE, random_num(0, 1) == 1 ? ENT_SOUND6 : ENT_SOUND7, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		}
+	}
 }
