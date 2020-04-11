@@ -117,6 +117,8 @@
 #define TASK_RESET					15500
 #define TASK_RELEASE				15900
 
+#define MAX_CLAYMORE				40
+
 // Client Print Command Macro.
 #define cp_debug(%1)				client_print_color(%1, %1, "^4[Laesrmine Debug] ^1Can't Create Entity")
 #define cp_refer(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_REFER,		CHAT_TAG)
@@ -1704,14 +1706,25 @@ stock ERROR:check_for_max_deploy(id)
 {
 	new int:cvar_maxhave = int:get_pcvar_num(gCvar[CVAR_MAX_HAVE]);
 	new int:cvar_teammax = int:get_pcvar_num(gCvar[CVAR_TEAM_MAX]);
+	new cvar_mode = get_pcvar_num(gCvar[CVAR_MODE]);
+
 	// Max deployed per player.
 	if (lm_get_user_mine_deployed(id) >= cvar_maxhave)
 		return ERROR:MAXIMUM_DEPLOYED;
 
 	//// client_print(id,print_chat,"[Lasermine] your team deployed %d",TeamDeployedCount(id))
 	// Max deployed per team.
-	if(lm_get_team_deployed_count(id) >= cvar_teammax)
-		return ERROR:MANY_PPL;
+	new int:team_count = lm_get_team_deployed_count(id);
+	if (cvar_mode == MODE_BF4_CLAYMORE)
+	{
+		if(team_count >= cvar_teammax || team_count >= int:(MAX_CLAYMORE / 2))
+			return ERROR:MANY_PPL;
+	}
+	else
+	{
+		if(team_count >= cvar_teammax || team_count >= int:(MAX_LASER_ENTITY / 2))
+			return ERROR:MANY_PPL;
+	}
 
 	return ERROR:NONE;
 }
@@ -2007,7 +2020,7 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 { 
 	static iHit, szName[MAX_NAME_LENGTH], iOwner, health;
-	static hudMsg[32];
+	static hudMsg[64];
 
 	iHit = get_tr2(iTrace, TR_pHit);
 	if (pev_valid(iHit))

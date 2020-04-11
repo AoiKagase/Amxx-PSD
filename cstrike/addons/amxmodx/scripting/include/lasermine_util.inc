@@ -12,6 +12,7 @@
 
 #define ENT_CLASS_LASER				"lasermine"
 #define ENT_CLASS_BREAKABLE			"func_breakable"
+#define MAX_LASER_ENTITY			128
 
 #define OFFSET_TEAM 				114
 #define OFFSET_MONEY				115
@@ -563,7 +564,7 @@ stock lm_hit_shield(id, Float:dmg)
 stock lm_remove_all_entity(id, className[])
 {
 	new iEnt = -1;
-	new entityName[MAX_NAME_LENGTH];
+
 	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
 	{
 		if (!pev_valid(iEnt))
@@ -573,16 +574,9 @@ stock lm_remove_all_entity(id, className[])
 		{
 			if (pev(iEnt, LASERMINE_OWNER) != id)
 				continue;
-			entityName = lm_get_entity_class_name(iEnt);
-				
-			if (equali(entityName, className))
-			{
-				lm_play_sound(iEnt, SOUND_STOP);
-				lm_remove_entity(iEnt);
-			}
 		}
-		else
-			set_pev(iEnt, pev_flags, FL_KILLME);
+		lm_play_sound(iEnt, SOUND_STOP);
+		lm_remove_entity(iEnt);
 	}
 	// reset deploy count.
 	lm_set_user_mine_deployed(id, int:0);
