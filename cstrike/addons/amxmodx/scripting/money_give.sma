@@ -98,7 +98,6 @@ enum CVAR_SETTING
 	CVAR_BOTS_MENU			,		// Bots in menu. 0 = none, 1 = admin, 2 = all.
 	CVAR_BOTS_ACTION		,		// Bots give money action.
 	CVAR_MONEY_LIST			,		// Money list.
-	CVAR_MENU_SLOT			,		// Money list menu slot.
 }
 
 new gCvar[CVAR_SETTING];
@@ -157,14 +156,13 @@ public plugin_init()
 	register_clcmd("say_team",	"say_mg");
 
 	// CVar settings.
-	gCvar[CVAR_ENABLE]		= register_cvar(fmt("%s", 	CVAR_TAG), 					"1");		// 0 = off, 1 = on.
+	gCvar[CVAR_ENABLE]		= register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),		"1");		// 0 = off, 1 = on.
 	gCvar[CVAR_ACCESS_LEVEL]= register_cvar(fmt("%s%s", CVAR_TAG, "_acs"),			"0");   	// 0 = all, 1 = admin
 	gCvar[CVAR_MAX_MONEY]	= register_cvar(fmt("%s%s", CVAR_TAG, "_max"),			"16000");	// Max have money. 
 	gCvar[CVAR_ENEMIES]		= register_cvar(fmt("%s%s", CVAR_TAG, "_menu_enemies"),	"0");		// enemies in menu. 
 	gCvar[CVAR_BOTS_MENU]	= register_cvar(fmt("%s%s", CVAR_TAG, "_menu_bots"), 	"0");		// Bots in menu. 
 	gCvar[CVAR_BOTS_ACTION]	= register_cvar(fmt("%s%s", CVAR_TAG, "_bots_action"), 	"0");		// Bots action. 
 	gCvar[CVAR_MONEY_LIST]	= register_cvar(fmt("%s%s", CVAR_TAG, "_money_list"),	"100,500,1000,5000,10000,15000");
-	gCvar[CVAR_MENU_SLOT]	= register_cvar(fmt("%s%s", CVAR_TAG, "_menu_slot"),	"6");
 
 	// Bots Action
 	register_event("DeathMsg", "bots_action", "a");
@@ -190,7 +188,7 @@ public plugin_end()
 //====================================================
 init_money_list()
 {
-	gMoneyValues = ArrayCreate(get_pcvar_num(gCvar[CVAR_MENU_SLOT]));
+	gMoneyValues = ArrayCreate(1);
 	new cvar_money[MAX_CVAR_LENGTH];
 	get_pcvar_string(gCvar[CVAR_MONEY_LIST], cvar_money, charsmax(cvar_money));
 	formatex(cvar_money, charsmax(cvar_money), "%s%s", cvar_money, ",");
@@ -198,9 +196,8 @@ init_money_list()
 	new i = 0;
 	new iPos = 0;
 	new szMoney[6];
-	while(i != -1)
+	while((i = split_string(cvar_money[iPos += i], ",", szMoney, charsmax(szMoney))) != -1)
 	{
-		i = split_string(cvar_money[iPos += i], ",", szMoney, charsmax(szMoney));
 		ArrayPushCell(gMoneyValues, str_to_num(szMoney));
 	}	
 }
