@@ -169,6 +169,7 @@ enum CVAR_SETTING
 	// Laser design.
 	CVAR_LASER_VISIBLE      ,   	// Laser line Visiblity. 0 = off, 1 = on.
 	CVAR_LASER_BRIGHT       ,   	// Laser line brightness.
+	CVAR_LASER_WIDTH		,		// Laser line width.
 	CVAR_LASER_COLOR        ,   	// Laser line color. 0 = team color, 1 = green
 	CVAR_LASER_COLOR_TR     ,   	// Laser line color. 0 = team color, 1 = green
 	CVAR_LASER_COLOR_CT     ,   	// Laser line color. 0 = team color, 1 = green
@@ -215,6 +216,7 @@ new gEntMine;
 #if !defined UL_MONEY_SUPPORT
 	new gMsgMoney;
 #endif
+new Float:gDeployPos[MAX_PLAYERS][3];
 
 //====================================================
 //  PLUGIN INITIALIZE
@@ -264,7 +266,8 @@ public plugin_init()
 	gCvar[CVAR_LASER_COLOR_TR] 	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_color_t"),		"255,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
 	gCvar[CVAR_LASER_COLOR_CT] 	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_color_ct"),		"0,0,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
 
-	gCvar[CVAR_LASER_BRIGHT]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_brightness"),		"255"		);	// laser line brightness.
+	gCvar[CVAR_LASER_BRIGHT]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_brightness"),		"255"		);	// laser line brightness. 0 to 255
+	gCvar[CVAR_LASER_WIDTH]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_width"),			"2"			);	// laser line width. 0 to 255
 	gCvar[CVAR_LASER_DMG]      	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_damage"),			"60.0"		);	// laser hit dmg. Float Value!
 	gCvar[CVAR_LASER_DMG_MODE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_damage_mode"),	"0"			);	// Laser line damage mode. 0 = frame dmg, 1 = once dmg, 2 = 1 second dmg.
 	gCvar[CVAR_LASER_DMG_DPS]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_laser_dps"),			"1"			);	// laser line damage mode 2 only, damage/seconds. default 1 (sec)
@@ -698,23 +701,13 @@ set_mine_position(uID, iEnt)
 {
 	// Vector settings.
 	new Float:vOrigin[3];
-	new	Float:vNewOrigin[3],Float:vNormal[3],Float:vTraceDirection[3],
+	new	Float:vNewOrigin[3],Float:vNormal[3],
 		Float:vTraceEnd[3],Float:vEntAngles[3];
 	new bool:mode_claymore = (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE);
 
 	// get user position.
 	pev(uID, pev_origin, vOrigin);
-
-	// get user aiming direction.
-	velocity_by_aim( uID, 128, vTraceDirection );
-
-	if (mode_claymore)
-	{
-		// Claymore is ground position.
-		vTraceDirection[2] = -128.0;
-	}
-
-	xs_vec_add( vTraceDirection, vOrigin, vTraceEnd );
+	xs_vec_add( gDeployPos[uID], vOrigin, vTraceEnd );
 
     // create the trace handle.
 	new trace = create_tr2();
@@ -1199,7 +1192,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 	new sRGBLen 	= charsmax(sRGB);
 	new sColorLen	= charsmax(sColor);
 	new CsTeams:teamid = CsTeams:pev(iEnt, LASERMINE_TEAM);
-	new width = 5;
+	new width 		= get_pcvar_num(gCvar[CVAR_LASER_WIDTH]);
 	new i = 0, n = 0, iPos = 0;
 	// Color mode. 0 = team color.
 	if(get_pcvar_num(gCvar[CVAR_LASER_COLOR]) == 0)
@@ -1759,7 +1752,6 @@ stock show_error_message(id, ERROR:err_num)
 //====================================================
 stock ERROR:check_for_onwall(id)
 {
-	new Float:vTraceDirection[3];
 	new Float:vTraceEnd[3];
 	new Float:vOrigin[3];
 	new bool:mode_claymore = (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE);
@@ -1768,14 +1760,13 @@ stock ERROR:check_for_onwall(id)
 	pev(id, pev_origin, vOrigin);
 	
 	// Get wall position.
-	velocity_by_aim(id, 128, vTraceDirection);
-	xs_vec_add(vTraceDirection, vOrigin, vTraceEnd);
-
+	velocity_by_aim(id, 128, gDeployPos[id]);
 	if (mode_claymore)
 	{
 		// Claymore is ground position.
-		vTraceDirection[2] = -128.0;
+		gDeployPos[id][2] = -128.0;
 	}
+	xs_vec_add(gDeployPos[id], vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
