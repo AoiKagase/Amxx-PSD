@@ -50,16 +50,16 @@
 	#define CVAR_TAG				"amx_cm"
 	#define LANG_KEY_NOT_BUY_TEAM 	"NOT_BUY_TEAM"
 #endif
-#define ENT_CLASS_LASER				"claymore"
+#define ENT_CLASS_CLAYMORE				"claymore"
 
 /*=====================================*/
 /*  Resource Setting AREA					       */
 /*=====================================*/
-#define ENT_MODELS					"models/lasermine/claymore.mdl"
-#define ENT_SPRITE1 				"sprites/lasermine/claymore_wire.spr"
+#define ENT_MODELS					"models/claymore/claymore.mdl"
+#define ENT_SPRITE1 				"sprites/claymore/claymore_wire.spr"
 #define ENT_SPRITE2 				"sprites/eexplo.spr"
-#define ENT_SOUND1					"lasermine/claymore_deploy.wav"
-#define ENT_SOUND2					"lasermine/claymore_wallhit.wav"
+#define ENT_SOUND1					"claymore/claymore_deploy.wav"
+#define ENT_SOUND2					"claymore/claymore_wallhit.wav"
 #define ENT_SOUND3					"items/gunpickup2.wav"
 #define ENT_SOUND4					"weapons/ric_metal-1.wav"
 #define ENT_SOUND5					"weapons/ric_metal-2.wav"
@@ -78,7 +78,7 @@
 
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
-//#define STR_CANTDEPLOY			"Your team can't deploying lasermine!"
+//#define STR_CANTDEPLOY			"Your team can't deploying claymore!"
 
 #define LANG_KEY_REFER				"REFER"
 #define LANG_KEY_BOUGHT       		"BOUGHT"
@@ -181,7 +181,7 @@ enum CVAR_SETTING
 	CVAR_MINE_GLOW_TR    	,   	// Glowing color for T.
 	CVAR_MINE_BROKEN		,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
 	CVAR_DEATH_REMOVE		,		// Dead Player Remove Lasermine.
-	CVAR_LASER_ACTIVATE		,		// Waiting for put lasermine. (0 = no progress bar.)
+	CVAR_LASER_ACTIVATE		,		// Waiting for put claymore. (0 = no progress bar.)
 	CVAR_LASER_RANGE		,		// Laserbeam range.
 	CVAR_ALLOW_PICKUP		,		// allow pickup.
 //  CVAR_LASER_THINK        ,   	// Laser line think.
@@ -225,21 +225,21 @@ public plugin_init()
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
 	// Add your code here...
-	register_concmd("lm_remove", 	"admin_remove_laser",ADMIN_ACCESSLEVEL, " - <num>"); 
-	register_concmd("lm_give", 		"admin_give_laser",  ADMIN_ACCESSLEVEL, " - <num>"); 
+	register_concmd("cm_remove", 	"admin_remove_laser",ADMIN_ACCESSLEVEL, " - <num>"); 
+	register_concmd("cm_give", 		"admin_give_laser",  ADMIN_ACCESSLEVEL, " - <num>"); 
 
-	register_clcmd("+setcm", 	"lm_progress_deploy");
-	register_clcmd("+delcm", 	"lm_progress_remove");
-   	register_clcmd("-setcm", 	"lm_progress_stop");
-   	register_clcmd("-delcm", 	"lm_progress_stop");
-	register_clcmd("say", 		"lm_say_lasermine");
-	register_clcmd("buy_cm",	"lm_buy_lasermine");
+	register_clcmd("+setcm", 	"cm_progress_deploy");
+	register_clcmd("+delcm", 	"cm_progress_remove");
+   	register_clcmd("-setcm", 	"cm_progress_stop");
+   	register_clcmd("-delcm", 	"cm_progress_stop");
+	register_clcmd("say", 		"cm_say_claymore");
+	register_clcmd("buy_cm",	"cm_buy_claymore");
 
 	// CVar settings.
 	// Common.
 	gCvar[CVAR_ENABLE]	        = register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),				"1"			);	// 0 = off, 1 = on.
 	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_access"),				"0"			);	// 0 = all, 1 = admin
-	gCvar[CVAR_MODE]           	= register_cvar(fmt("%s%s", CVAR_TAG, "_mode"),   				"2"			);	// 0 = lasermine, 1 = tripmine, 2 = claymore wire trap
+	gCvar[CVAR_MODE]           	= register_cvar(fmt("%s%s", CVAR_TAG, "_mode"),   				"2"			);	// 0 = claymore, 1 = tripmine, 2 = claymore wire trap
 	gCvar[CVAR_FRIENDLY_FIRE]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_friendly_fire"),		"0"			);	// Friendly fire. 0 or 1
 	gCvar[CVAR_START_DELAY]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),			"5"			);	// Round start delay time.
 	gCvar[CVAR_CMD_MODE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_cmd_mode"),				"1"			);	// 0 is +USE key, 1 is bind, 2 is each.
@@ -283,8 +283,8 @@ public plugin_init()
 	gCvar[CVAR_EXPLODE_DMG]		= register_cvar(fmt("%s%s", CVAR_TAG, "_explode_damage"),		"100"		);	// Explosion radius damage.
 
 	// Misc Settings.
-	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"			);	// Dead Player remove lasermine. 0 = off, 1 = on.
-	gCvar[CVAR_LASER_ACTIVATE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1"			);	// Waiting for put lasermine. (int:seconds. 0 = no progress bar.)
+	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"			);	// Dead Player remove claymore. 0 = off, 1 = on.
+	gCvar[CVAR_LASER_ACTIVATE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1"			);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
 	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 	gCvar[CVAR_DIFENCE_SHIELD]	= register_cvar(fmt("%s%s", CVAR_TAG, "_shield_difence"),		"1"			);	// allow shiled difence.
 	gCvar[CVAR_REALISTIC_DETAIL]= register_cvar(fmt("%s%s", CVAR_TAG, "_realistic_detail"), 	"0"			);	// Spark Effect.
@@ -327,7 +327,7 @@ public plugin_init()
 	register_forward(FM_TraceLine,		"MinesShowInfo", 1);
 
 	// Multi Language Dictionary.
-	register_dictionary("lasermine.txt");
+	register_dictionary("claymore.txt");
 
 	register_cvar(AUTHOR, fmt("%s %s %s", CHAT_TAG, PLUGIN, VERSION), FCVAR_SERVER|FCVAR_SPONLY);
 
@@ -463,8 +463,8 @@ public NewRound(id)
 		// Task Delete.
 		delete_task(id);
 
-		// Removing already put lasermine.
-		lm_remove_all_entity(id, ENT_CLASS_LASER);
+		// Removing already put claymore.
+		lm_remove_all_entity(id, ENT_CLASS_CLAYMORE);
 
 		// Round start set ammo.
 		set_start_ammo(id);
@@ -529,9 +529,9 @@ public DeathEvent()
 	if (is_user_connected(vID)) 
 		delete_task(vID);
 
-	// Dead Player remove lasermine.
+	// Dead Player remove claymore.
 	if (get_pcvar_num(gCvar[CVAR_DEATH_REMOVE]))
-		lm_remove_all_entity(vID, ENT_CLASS_LASER);
+		lm_remove_all_entity(vID, ENT_CLASS_CLAYMORE);
 
 	return PLUGIN_CONTINUE;
 }
@@ -539,7 +539,7 @@ public DeathEvent()
 //====================================================
 // Put LaserMine Start Progress A
 //====================================================
-public lm_progress_deploy_main(id)
+public cm_progress_deploy_main(id)
 {
 	// Deploying Check.
 	if (!check_for_deploy(id))
@@ -563,19 +563,19 @@ public lm_progress_deploy_main(id)
 //====================================================
 // Put LaserMine Start Progress B
 //====================================================
-public lm_progress_deploy(id)
+public cm_progress_deploy(id)
 {
 	// Mode check. Bind Key Command.
 	if(get_pcvar_num(gCvar[CVAR_CMD_MODE]) != 0)
-		lm_progress_deploy_main(id);
+		cm_progress_deploy_main(id);
 
 	return PLUGIN_HANDLED;
 }
 
 //====================================================
-// Removing target put lasermine.
+// Removing target put claymore.
 //====================================================
-public lm_progress_remove(id)
+public cm_progress_remove(id)
 {
 	// Removing Check.
 	if (!check_for_remove(id))
@@ -597,7 +597,7 @@ public lm_progress_remove(id)
 //====================================================
 // Stopping Progress.
 //====================================================
-public lm_progress_stop(id)
+public cm_progress_stop(id)
 {
 	lm_hide_progress(id, gMsgBarTime);
 	delete_task(id);
@@ -621,7 +621,7 @@ public SpawnMine(id)
 		return PLUGIN_HANDLED_MAIN;
 	}
 
-	set_spawn_entity_setting(iEnt, uID, ENT_CLASS_LASER);
+	set_spawn_entity_setting(iEnt, uID, ENT_CLASS_CLAYMORE);
 
 	return 1;
 }
@@ -819,7 +819,7 @@ public RemoveMine(id)
 	entityName = lm_get_entity_class_name(target);
 
 	// Check. is Target Entity Lasermine?
-	if(!equal(entityName, ENT_CLASS_LASER))
+	if(!equal(entityName, ENT_CLASS_CLAYMORE))
 		return 1;
 
 	new ownerID = pev(target, LASERMINE_OWNER);
@@ -846,7 +846,7 @@ public RemoveMine(id)
 	// Remove!
 	lm_remove_entity(target);
 
-	// Collect for this removed lasermine.
+	// Collect for this removed claymore.
 	lm_set_user_have_mine(uID, lm_get_user_have_mine(uID) + int:1);
 
 	if (pev_valid(ownerID))
@@ -907,8 +907,8 @@ bool:check_for_remove(id)
 	new entityName[MAX_NAME_LENGTH];
 	entityName = lm_get_entity_class_name(target);
 
-	// is target lasermine?
-	if(!equal(entityName, ENT_CLASS_LASER))
+	// is target claymore?
+	if(!equal(entityName, ENT_CLASS_CLAYMORE))
 		return false;
 
 
@@ -953,8 +953,8 @@ public LaserThink(iEnt)
 	new entityName[MAX_NAME_LENGTH];
 	entityName = lm_get_entity_class_name(iEnt);
 
-	// is this lasermine? no.
-	if (!equal(entityName, ENT_CLASS_LASER))
+	// is this claymore? no.
+	if (!equal(entityName, ENT_CLASS_CLAYMORE))
 		return HAM_IGNORED;
 
 	static Float:fCurrTime
@@ -965,7 +965,7 @@ public LaserThink(iEnt)
 	fCurrTime = get_gametime();
 	step = TRIPMINE_THINK:pev(iEnt, LASERMINE_STEP);
 
-	// lasermine state.
+	// claymore state.
 	// Power up.
 	if (step == TRIPMINE_THINK:POWERUP_THINK)
 	{
@@ -1131,7 +1131,7 @@ public LaserThink(iEnt)
 		// 
 		lm_play_sound(iEnt, SOUND_STOP);
 
-		// Count down. deployed lasermines.
+		// Count down. deployed claymores.
 		lm_set_user_mine_deployed(iOwner, lm_get_user_mine_deployed(iOwner) - int:1);
 
 		// effect explosion.
@@ -1334,7 +1334,7 @@ public PlayerKilling(iVictim, iAttacker)
 	//
 	// Refresh Score info.
 	//
-	if (equali(entityName, ENT_CLASS_LASER))
+	if (equali(entityName, ENT_CLASS_CLAYMORE))
 	{
 		// Get Target Team.
 		new CsTeams:aTeam = lm_get_user_team(iAttacker);
@@ -1367,7 +1367,7 @@ public PlayerKilling(iVictim, iAttacker)
 //====================================================
 // Buy Lasermine.
 //====================================================
-public lm_buy_lasermine(id)
+public cm_buy_claymore(id)
 {	
 	new ERROR:error = check_for_buy(id);
 	if( error )
@@ -1409,7 +1409,7 @@ show_ammo(id)
 //====================================================
 // Chat command.
 //====================================================
-public lm_say_lasermine(id)
+public cm_say_claymore(id)
 {
 	if(!get_pcvar_num(gCvar[CVAR_ENABLE]))
 		return PLUGIN_CONTINUE;
@@ -1419,7 +1419,7 @@ public lm_say_lasermine(id)
 	
 	if (equali(said,"/buy claymore") || equali(said,"/cm"))
 	{
-		lm_buy_lasermine(id);
+		cm_buy_claymore(id);
 //		return PLUGIN_HANDLED;
 	} else 
 	if (equali(said, "claymore") || equali(said, "/claymore"))
@@ -1432,10 +1432,10 @@ public lm_say_lasermine(id)
 		len += formatex(msg[len], SIZE - len, "<p>That laser will give what touched it damage.</p>");
 		len += formatex(msg[len], SIZE - len, "<p><b>Commands</b></p>");
 		len += formatex(msg[len], SIZE - len, "<table border='1' cellspacing='0' cellpadding='10'>");
-		len += formatex(msg[len], SIZE - len, "<tr><td>say</td><td><b>/buy lasermine</b> or <b>/lm</td><td rowspan='2'>buying lasermine</td></tr>");
-		len += formatex(msg[len], SIZE - len, "<tr><td>console</td><td><b>buy_lasermine</b></td></tr>");
-		len += formatex(msg[len], SIZE - len, "<tr><tr><td rowspan='2'>bind</td><td><b>+setlaser</b></td><td>bind j +setlaser :using j set lasermine on wall.</td></tr>");
-		len += formatex(msg[len], SIZE - len, "<tr><td><b>+dellaser</b></td><td>bind k +dellaser :using k remove lasermine.</td></tr>");
+		len += formatex(msg[len], SIZE - len, "<tr><td>say</td><td><b>/buy claymore</b> or <b>/lm</td><td rowspan='2'>buying claymore</td></tr>");
+		len += formatex(msg[len], SIZE - len, "<tr><td>console</td><td><b>buy_claymore</b></td></tr>");
+		len += formatex(msg[len], SIZE - len, "<tr><tr><td rowspan='2'>bind</td><td><b>+setlaser</b></td><td>bind j +setlaser :using j set claymore on wall.</td></tr>");
+		len += formatex(msg[len], SIZE - len, "<tr><td><b>+dellaser</b></td><td>bind k +dellaser :using k remove claymore.</td></tr>");
 		len += formatex(msg[len], SIZE - len, "</table>");
 		len += formatex(msg[len], SIZE - len, "</body></html>");
 		show_motd(id, msg, "Lasermine Entity help");
@@ -1490,7 +1490,7 @@ public PlayerPreThink(id)
 
 	// [USE] Key.
 	if(pev(id, pev_button ) & IN_USE && !(pev(id, pev_oldbuttons ) & IN_USE ))
-		lm_progress_deploy_main(id);			// deploying.
+		cm_progress_deploy_main(id);			// deploying.
 
 	return FMRES_IGNORED;
 }
@@ -1526,8 +1526,8 @@ public client_disconnected(id)
 
 	// delete task.
 	delete_task(id);
-	// remove all lasermine.
-	lm_remove_all_entity(id, ENT_CLASS_LASER);
+	// remove all claymore.
+	lm_remove_all_entity(id, ENT_CLASS_CLAYMORE);
 
 	return PLUGIN_CONTINUE;
 }
@@ -2017,7 +2017,7 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 		{
 			szName = lm_get_entity_class_name(iHit);
 
-			if (equali(szName, ENT_CLASS_LASER))
+			if (equali(szName, ENT_CLASS_CLAYMORE))
 			{
 				iOwner = pev(iHit, LASERMINE_OWNER);
 				health = floatround(lm_get_user_health(iHit));
@@ -2048,7 +2048,7 @@ public admin_remove_laser(id, level, cid)
 		return PLUGIN_HANDLED;
 
 	delete_task(player); 
-	lm_remove_all_entity(player, ENT_CLASS_LASER);
+	lm_remove_all_entity(player, ENT_CLASS_CLAYMORE);
 
 	new namea[MAX_NAME_LENGTH],namep[MAX_NAME_LENGTH]; 
 	get_user_name(id, namea, charsmax(namea));
@@ -2095,7 +2095,7 @@ public CheckSpectator()
 		if (szTeam[0] == 'U' || szTeam[0] == 'S')
 		{
 			delete_task(id);
-			lm_remove_all_entity(id, ENT_CLASS_LASER);
+			lm_remove_all_entity(id, ENT_CLASS_CLAYMORE);
 			new namep[MAX_NAME_LENGTH];
 			get_user_name(id, namep, charsmax(namep));
 			cp_remove_spec(0, namep);
