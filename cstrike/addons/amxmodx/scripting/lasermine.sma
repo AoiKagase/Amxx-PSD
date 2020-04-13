@@ -330,7 +330,7 @@ public plugin_init()
 	// Multi Language Dictionary.
 	register_dictionary("lasermine.txt");
 
-	register_cvar(AUTHOR, fmt("%s %s %s", CHAT_TAG, PLUGIN, VERSION), FCVAR_SERVER|FCVAR_SPONLY);
+	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
 	return PLUGIN_CONTINUE;
 }
