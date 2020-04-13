@@ -67,7 +67,6 @@ MAX_HAVE      = ^4%s ^1Maksimum lazer sayina sahipsin.
 MAX_PPL       = ^4%s ^1Takiminda cok kisi var...
 DELAY_SEC     = ^4%s ^1Lazerleri ^4%i saniye^1 sonra alabilir ve kurabilirsin.
 STATE_AMMO    = Lazer Cephanesi: %i/%i
-STATE_AMMO    = Lazer Cephanesi: %i/%i
 STATE_INF     = Lazer Cephanesi: Sonsuz.
 PLANT_WALL    = ^4%s ^1Lazeri bir duvarda kurmalisin!
 PLANT_GROUND  = ^4%s ^1Kilici bir zeminde kurmalisin!
