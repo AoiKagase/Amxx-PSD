@@ -41,13 +41,13 @@
 	#define PLUGIN 					"Lasermine for BIOHAZARD"
 
 	#define CHAT_TAG 				"[Biohazard]"
-	#define CVAR_TAG				"bh_ltm"
+	#define CVAR_TAG				"bh_lm"
 	#define LANG_KEY_NOT_BUY_TEAM	"NOT_BUY_TEAM"
 #else
-	#define PLUGIN 					"Laser/Tripmine Entity"
+	#define PLUGIN 					"Laser Entity"
 
 	#define CHAT_TAG 				"[Lasermine]"
-	#define CVAR_TAG				"amx_ltm"
+	#define CVAR_TAG				"amx_lm"
 	#define LANG_KEY_NOT_BUY_TEAM 	"NOT_BUY_TEAM"
 #endif
 
@@ -75,7 +75,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.4"
+#define VERSION 					"3.5"
 
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
@@ -146,9 +146,8 @@
 enum _:HIT_PLAYER
 {
 	I_TARGET				= 0,
-	I_HIT_GROUP,
-	Float:V_POSITION[3],
-	Float:F_HIT_TIME,
+	I_HIT_GROUP				= 2,
+	Float:V_POSITION[3]		= 3,
 };
 
 //
@@ -160,7 +159,6 @@ enum CVAR_SETTING
 	CVAR_ACCESS_LEVEL		,		// Access level for 0 = ADMIN or 1 = ALL.
 	CVAR_NOROUND			,		// Check Started Round.
 	CVAR_CMD_MODE			,    	// 0 = +USE key, 1 = bind, 2 = each.
-	CVAR_MODE				,    	// 0 = Lasermine, 1 = Tripmine.
 	CVAR_MAX_HAVE			,    	// Max having ammo.
 	CVAR_START_HAVE			,    	// Start having ammo.
 	CVAR_FRAG_MONEY         ,    	// Get money per kill.
@@ -196,18 +194,6 @@ enum CVAR_SETTING
 //  CVAR_LASER_THINK        ,   	// Laser line think.
 	CVAR_DIFENCE_SHIELD		,		// Shield hit.
 	CVAR_REALISTIC_DETAIL	,		// Spark Effect.
-	CVAR_CM_WIRE_RANGE		,		// Claymore Wire Range.
-	CVAR_CM_WIRE_WIDTH		,		// Claymore Wire Width.
-	CVAR_CM_CENTER_PITCH	,		// Claymore Wire Area Center Pitch.
-	CVAR_CM_CENTER_YAW		,		// Claymore Wire Area Center Yaw.
-	CVAR_CM_LEFT_PITCH		,		// Claymore Wire Area Left Pitch.
-	CVAR_CM_LEFT_YAW		,		// Claymore Wire Area Left Yaw.
-	CVAR_CM_RIGHT_PITCH		,		// Claymore Wire Area Right Pitch.
-	CVAR_CM_RIGHT_YAW		,		// Claymore Wire Area Right Yaw.
-	CVAR_CM_TRIAL_FREQ		,		// Claymore Wire trial frequency.
-	CVAR_CM_WIRE_COLOR		,
-	CVAR_CM_WIRE_COLOR_T	,
-	CVAR_CM_WIRE_COLOR_CT	,
 };
 
 //====================================================
@@ -248,7 +234,6 @@ public plugin_init()
 	// Common.
 	gCvar[CVAR_ENABLE]	        = register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),				"1"			);	// 0 = off, 1 = on.
 	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_access"),				"0"			);	// 0 = all, 1 = admin
-	gCvar[CVAR_MODE]           	= register_cvar(fmt("%s%s", CVAR_TAG, "_mode"),   				"0"			);	// 0 = lasermine, 1 = tripmine, 2 = claymore wire trap
 	gCvar[CVAR_FRIENDLY_FIRE]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_friendly_fire"),		"0"			);	// Friendly fire. 0 or 1
 	gCvar[CVAR_START_DELAY]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),			"5"			);	// Round start delay time.
 	gCvar[CVAR_CMD_MODE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_cmd_mode"),				"1"			);	// 0 is +USE key, 1 is bind, 2 is each.
@@ -297,20 +282,6 @@ public plugin_init()
 	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 	gCvar[CVAR_DIFENCE_SHIELD]	= register_cvar(fmt("%s%s", CVAR_TAG, "_shield_difence"),		"1"			);	// allow shiled difence.
 	gCvar[CVAR_REALISTIC_DETAIL]= register_cvar(fmt("%s%s", CVAR_TAG, "_realistic_detail"), 	"0"			);	// Spark Effect.
-
-	// Claymore Settings. (Color is Laser color)
-	gCvar[CVAR_CM_WIRE_RANGE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_range"),		"300"		);	// wire range.
-	gCvar[CVAR_CM_WIRE_WIDTH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_width"),		"2"			);	// wire width.
-	gCvar[CVAR_CM_CENTER_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_pitch"),	"220,290"	);	// wire area center pitch.
-	gCvar[CVAR_CM_CENTER_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_yaw"),	"-25,25"	);	// wire area center yaw.
-	gCvar[CVAR_CM_LEFT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_pitch"),	"260,290"	);	// wire area left pitch.
-	gCvar[CVAR_CM_LEFT_YAW]		= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_yaw"),		"30,60"		);	// wire area left yaw.
-	gCvar[CVAR_CM_RIGHT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_pitch"),	"260,290"	);	// wire area right pitch.
-	gCvar[CVAR_CM_RIGHT_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_yaw"),	"-30,-60"	);	// wire area right yaw.
-	gCvar[CVAR_CM_TRIAL_FREQ]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_trial_freq"),	"3"			);	// wire trial frequency.
-	gCvar[CVAR_CM_WIRE_COLOR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
-	gCvar[CVAR_CM_WIRE_COLOR_T] = register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_t"),		"20,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
-	gCvar[CVAR_CM_WIRE_COLOR_CT]= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_ct"),		"0,0,20"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
 
 	// Register Hamsandwich
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
@@ -394,9 +365,9 @@ public plugin_cfg()
 	get_localinfo("amxx_configsdir", file, len);
 
 #if defined BIOHAZARD_SUPPORT
-	format(file, len, "%s/bhltm_cvars.cfg", file);
+	format(file, len, "%s/bhlm_cvars.cfg", file);
 #else
-	format(file, len, "%s/ltm_cvars.cfg", file);
+	format(file, len, "%s/lm_cvars.cfg", file);
 #endif
 	if(file_exists(file)) 
 	{
@@ -712,7 +683,6 @@ set_mine_position(uID, iEnt)
 	new Float:vOrigin[3];
 	new	Float:vNewOrigin[3],Float:vNormal[3],
 		Float:vTraceEnd[3],Float:vEntAngles[3];
-	new bool:mode_claymore = (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE);
 
 	// get user position.
 	pev(uID, pev_origin, vOrigin);
@@ -745,15 +715,6 @@ set_mine_position(uID, iEnt)
 	// set entity position.
 	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
 
-	// Claymore user Angles.
-	if (mode_claymore)
-	{
-		new Float:pAngles[3], Float:vFwd[3], Float:vRight[3], Float:vUp[3];
-		pev(uID, pev_angles, pAngles);
-		xs_anglevectors(pAngles, vFwd, vRight, vUp);
-		xs_vec_add(vNormal, vFwd, vNormal);
-	}
-
 	// Rotate tripmine.
 	vector_to_angle(vNormal, vEntAngles);
 
@@ -761,13 +722,13 @@ set_mine_position(uID, iEnt)
 	set_pev(iEnt, pev_angles, vEntAngles);
 
 	// set laserbeam end point position.
-	set_laserend_postiion(iEnt, vNormal, vNewOrigin, mode_claymore);
+	set_laserend_postiion(iEnt, vNormal, vNewOrigin);
 }
 
 //====================================================
 // Set Laserbeam End Position.
 //====================================================
-set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3], bool:claymore)
+set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3])
 {
 	// Calculate laser end origin.
 	new Float:vBeamEnd[3];
@@ -787,16 +748,8 @@ set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3], bool:claymore
 	}
     // free the trace handle.
 	free_tr2(trace);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vTracedBeamEnd);
 
-	// calucrate claymore wire end point.
-	if (claymore)
-	{
-		set_claymore_endpoint(iEnt, vNewOrigin, claymoreNormal);
-		return;
-	}
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vTracedBeamEnd);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vTracedBeamEnd);
+	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vTracedBeamEnd);
 }
 
 //====================================================
@@ -971,8 +924,6 @@ public LaserThink(iEnt)
 
 	static Float:fCurrTime
 	static TRIPMINE_THINK:step;
-	static loop;
-	loop = get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE ? 3 : 1;
 
 	fCurrTime = get_gametime();
 	step = TRIPMINE_THINK:pev(iEnt, LASERMINE_STEP);
@@ -1000,27 +951,22 @@ public LaserThink(iEnt)
 
 		return HAM_HANDLED;
 	}
-	static Float:vEnd[3][3]; // Claymore 3 point
+	static Float:vEnd	[3];
 	static Float:vOrigin[3];
 
 	// Get this mine position.
 	pev(iEnt, pev_origin, vOrigin);
 	// Get Laser line end potision.
-	pev(iEnt, LASERMINE_BEAMENDPOINT1, vEnd[0]);
-	pev(iEnt, LASERMINE_BEAMENDPOINT2, vEnd[1]);
-	pev(iEnt, LASERMINE_BEAMENDPOINT3, vEnd[2]);
+	pev(iEnt, LASERMINE_BEAMENDPOINT1, vEnd);
 
 	if (step == TRIPMINE_THINK:BEAMUP_THINK)
 	{
 		// drawing laser line.
 		if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
 		{
-			for (new i = 0; i < loop; i++)
-			{
-				draw_laserline(iEnt, vEnd[i]);
-				if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
-					lm_draw_spark_for_wall(vEnd[i]);
-			}
+			draw_laserline(iEnt, vEnd);
+			if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
+				lm_draw_spark_for_wall(vEnd);
 		}
 
 		// next state.
@@ -1048,102 +994,91 @@ public LaserThink(iEnt)
 		pev(iEnt, LASERMINE_COUNT, nextTime);
 
 		aTarget = ArrayCreate(sizeof(hPlayer));
+
 		reStartPos = vOrigin;
 
 
 		// create the trace handle.
 		trace = create_tr2();
 
-		for(new i = 0; i < loop; i++)
+		fFraction	= 0.0;
+		iIgnoreEnt	= iEnt;
+		ArrayClear(aTarget);
+
+		// Trace line
+		while(fFraction < 1.0)
 		{
-			fFraction	= 0.0;
-			iIgnoreEnt	= iEnt;
-			ArrayClear(aTarget);
-
-			// Trace line
-			while(fFraction < 1.0)
+			engfunc(EngFunc_TraceLine, reStartPos, vEnd, DONT_IGNORE_MONSTERS, iIgnoreEnt, trace)
 			{
-				engfunc(EngFunc_TraceLine, reStartPos, vEnd[i], DONT_IGNORE_MONSTERS, iIgnoreEnt, trace)
+				get_tr2(trace, TR_flFraction, fFraction);
+				iTarget		= get_tr2(trace, TR_pHit);
+				hitGroup	= get_tr2(trace, TR_iHitgroup);
+				get_tr2(trace, TR_vecEndPos, hitPoint);				
+			}
+
+			if (fFraction < 1.0)
+			{
+				// is valid hit entity?
+				if (!pev_valid(iTarget)
+				// is user?
+				|| !(pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER))
+				// is dead?
+				|| !lm_is_user_alive(iTarget)
+				// Hit friend and No FF.
+				|| !is_valid_takedamage(iOwner, iTarget)
+				// is godmode?
+				|| lm_is_user_godmode(iTarget)
+				)
 				{
-					get_tr2(trace, TR_flFraction, fFraction);
-					iTarget		= get_tr2(trace, TR_pHit);
-					hitGroup	= get_tr2(trace, TR_iHitgroup);
-					get_tr2(trace, TR_vecEndPos, hitPoint);				
-				}
-
-				if (fFraction < 1.0)
-				{
-					// is valid hit entity?
-					if (!pev_valid(iTarget)
-					// is user?
-					|| !(pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER))
-					// is dead?
-					|| !lm_is_user_alive(iTarget)
-					// Hit friend and No FF.
-					|| !is_valid_takedamage(iOwner, iTarget)
-					// is godmode?
-					|| lm_is_user_godmode(iTarget)
-					)
-					{
-						reStartPos = hitPoint;
-						iIgnoreEnt = iTarget;
-						continue;
-					}
-
-					hPlayer[I_TARGET] 	= iTarget;
-					hPlayer[V_POSITION]	= hitPoint;
-					hPlayer[I_HIT_GROUP]= hitGroup;
-					ArrayPushArray(aTarget, hPlayer);
-
-					if (hitGroup == HIT_SHIELD && get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]))
-						break;
 					reStartPos = hitPoint;
 					iIgnoreEnt = iTarget;
+					continue;
 				}
+
+				hPlayer[I_TARGET] 	= iTarget;
+				hPlayer[V_POSITION]	= hitPoint;
+				hPlayer[I_HIT_GROUP]= hitGroup;
+				ArrayPushArray(aTarget, hPlayer);
+
+				if (hitGroup == HIT_SHIELD && get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]))
+					break;
+				reStartPos = hitPoint;
+				iIgnoreEnt = iTarget;
 			}
+		}
+		// drawing spark.
+		if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]))
+		{
+			// draw_laserline(iEnt, vEnd[i]);
+			if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL]))
+				lm_draw_spark_for_wall(hitPoint);
+		}
 
-			// drawing spark.
-			if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]))
+		static aPlayer[HIT_PLAYER];
+		static Float:pos[3];
+		if (get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
+		{
+			if (get_gametime() >= nextTime)
 			{
-				// draw_laserline(iEnt, vEnd[i]);
-				if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL]))
-					lm_draw_spark_for_wall(hitPoint);
+				for (new n = 0; n < ArraySize(aTarget); n++)
+				{
+					ArrayGetArray(aTarget, n, aPlayer);
+					pos = aPlayer[V_POSITION];
+					// Laser line damage mode. Once or Second.
+					create_laser_damage(iEnt, aPlayer[I_TARGET], aPlayer[I_HIT_GROUP], pos);
+				}
+
+				set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
 			}
-
-			// Mode. Lasermine / Tripmine / Claymore wire trap.
-			switch(get_pcvar_num(gCvar[CVAR_MODE]))
+		}
+		else
+		{
+			for (new n = 0; n < ArraySize(aTarget); n++)
 			{
-				// Lasermine mode.
-				// Laser damage.
-				case MODE_LASERMINE:
-				{
-					if (get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
-					{
-						if (get_gametime() < nextTime)
-							continue;
-						else
-							set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
-					}
-
-					for (new n = 0; n < ArraySize(aTarget); n++)
-					{
-						static aPlayer[HIT_PLAYER];
-						ArrayGetArray(aTarget, n, aPlayer);
-						// Laser line damage mode. Once or Second.
-						create_laser_damage(iEnt, aPlayer[I_TARGET], aPlayer[I_HIT_GROUP], aPlayer[V_POSITION]);
-					}
-				}
-				// Tripmine mode.
-				// Friendly Fire ON or Target is Enemy Team.
-				case MODE_TRIPMINE, MODE_BF4_CLAYMORE:
-				{
-					if (ArraySize(aTarget) > 0)
-					{
-						// State change. to Explosing step.
-						set_pev(iEnt, LASERMINE_STEP, EXPLOSE_THINK);
-						break;
-					}
-				}
+				ArrayGetArray(aTarget, n, hPlayer);
+				pos = aPlayer[V_POSITION];
+				// Laser line damage mode. Once or Second.
+				create_laser_damage(iEnt, aPlayer[I_TARGET], aPlayer[I_HIT_GROUP], pos);
 			}
 		}
 		ArrayDestroy(aTarget);
@@ -1258,25 +1193,6 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 	{
 		// Green.
 		formatex(sRGB, sRGBLen, "0,255,0");
-	}
-
-	// Test. Claymore color is black wire.
-	if (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE)
-	{
-		if (get_pcvar_num(gCvar[CVAR_CM_WIRE_COLOR]) == 0)
-		{
-		switch(teamid)
-		{
-			case CS_TEAM_T:
-				get_pcvar_string(gCvar[CVAR_CM_WIRE_COLOR_T],  sRGB, sRGBLen);
-			case CS_TEAM_CT:
-				get_pcvar_string(gCvar[CVAR_CM_WIRE_COLOR_CT], sRGB, sRGBLen);
-			default:
-				formatex(sRGB, sRGBLen, "20,20,20");
-		}
-
-		}
-		width = get_pcvar_num(gCvar[CVAR_CM_WIRE_WIDTH]);
 	}
 
 	formatex(sRGB, sRGBLen, "%s%s", sRGB, ",");
@@ -1571,7 +1487,6 @@ stock ERROR:check_for_common(id)
 	new cvar_access = get_pcvar_num(gCvar[CVAR_ACCESS_LEVEL]);
 	new user_flags	= get_user_flags(id) & ADMIN_ACCESSLEVEL;
 	new is_alive	= lm_is_user_alive(id);
-	//new cvar_mode	= get_pcvar_num(gCvar[CVAR_MODE]);
 
 	// Plugin Enabled
 	if (!cvar_enable)
@@ -1584,10 +1499,6 @@ stock ERROR:check_for_common(id)
 	// Is this player Alive?
 	if (!is_alive) 
 		return ERROR:NOT_ALIVE;
-
-	// claymore.
-	//if (cvar_mode == MODE_BF4_CLAYMORE)
-	// 	return ERROR:NOT_IMPLEMENT;
 
 	// Can set Delay time?
 	return ERROR:check_for_time(id);
@@ -1698,7 +1609,6 @@ stock ERROR:check_for_max_deploy(id)
 {
 	new int:cvar_maxhave = int:get_pcvar_num(gCvar[CVAR_MAX_HAVE]);
 	new int:cvar_teammax = int:get_pcvar_num(gCvar[CVAR_TEAM_MAX]);
-	new cvar_mode = get_pcvar_num(gCvar[CVAR_MODE]);
 
 	// Max deployed per player.
 	if (lm_get_user_mine_deployed(id) >= cvar_maxhave)
@@ -1707,16 +1617,9 @@ stock ERROR:check_for_max_deploy(id)
 	//// client_print(id,print_chat,"[Lasermine] your team deployed %d",TeamDeployedCount(id))
 	// Max deployed per team.
 	new int:team_count = lm_get_team_deployed_count(id);
-	if (cvar_mode == MODE_BF4_CLAYMORE)
-	{
-		if(team_count >= cvar_teammax || team_count >= int:(MAX_CLAYMORE / 2))
-			return ERROR:MANY_PPL;
-	}
-	else
-	{
-		if(team_count >= cvar_teammax || team_count >= int:(MAX_LASER_ENTITY / 2))
-			return ERROR:MANY_PPL;
-	}
+
+	if(team_count >= cvar_teammax || team_count >= int:(MAX_LASER_ENTITY / 2))
+		return ERROR:MANY_PPL;
 
 	return ERROR:NONE;
 }
@@ -1753,18 +1656,12 @@ stock ERROR:check_for_onwall(id)
 {
 	new Float:vTraceEnd[3];
 	new Float:vOrigin[3];
-	new bool:mode_claymore = (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE);
 
 	// Get potision.
 	pev(id, pev_origin, vOrigin);
 	
 	// Get wall position.
 	velocity_by_aim(id, 128, gDeployPos[id]);
-	if (mode_claymore)
-	{
-		// Claymore is ground position.
-		gDeployPos[id][2] = -128.0;
-	}
 	xs_vec_add(gDeployPos[id], vOrigin, vTraceEnd);
 
     // create the trace handle.
@@ -1781,10 +1678,7 @@ stock ERROR:check_for_onwall(id)
 	if ( fFraction < 1.0 )
 		return ERROR:NONE;
 
-	if (mode_claymore)
-		return ERROR:MUST_GROUND;
-	else
-		return ERROR:MUST_WALL;
+	return ERROR:MUST_WALL;
 }
 
 //====================================================
@@ -1894,114 +1788,6 @@ stock mine_glowing(iEnt)
 		}
 		lm_set_glow_rendering(iEnt, kRenderFxGlowShell, tcolor, kRenderNormal, 5);
 	}
-}
-
-Float:get_claymore_wire_endpoint(CVAR_SETTING:cvar)
-{
-	new i = 0, n = 0, iPos = 0;
-	new Float:values[2];
-	new sCvarValue	[20];
-	new sSplit		[20];
-
-	new sSplitLen		= charsmax(sSplit);
-
-	get_pcvar_string(gCvar[cvar], sCvarValue, charsmax(sCvarValue));
-
-	formatex(sCvarValue, charsmax(sCvarValue), "%s%s", sCvarValue, ",");
-	while((i = split_string(sCvarValue[iPos += i], ",", sSplit, sSplitLen)) != -1 && n < sizeof(values))
-	{
-		values[n++] = str_to_float(sSplit);
-	}
-	return random_float(values[0], values[1]);
-}
-
-//====================================================
-// Claymore Wire Endpoint
-//====================================================
-set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
-{
-	new Float:vAngles	[3];
-	new Float:vForward	[3];
-	new Float:vResult	[3][3];
-	new Float:hitPoint	[3];
-	new Float:vTmp		[3];
-	new Float:pAngles	[3];
-	new Float:vFwd		[3];
-	new Float:vRight	[3];
-	new Float:vUp		[3];
-	new trace = create_tr2();
-	new Float:pitch;
-	new Float:yaw;
-	new Float:range;
-	new n = 0;
-	new freq = get_pcvar_num(gCvar[CVAR_CM_TRIAL_FREQ]);
-	range = get_pcvar_float(gCvar[CVAR_CM_WIRE_RANGE]);
-	pev(iEnt, pev_angles, vAngles);
-
-	// roll zero
-	pAngles[2] = 0.0;
-
-	for (new i = 0; i < 3; i++)
-	{
-		hitPoint	= vOrigin;
-		vTmp		= vOrigin;
-		n = 0;
-		while(n < freq)
-		{
-			while(xs_vec_distance(vOrigin, vTmp) > range || xs_vec_equal(vOrigin, vTmp))
-			{
-				switch(i)
-				{
-					// pitch:down 0, back 90, up 180, forward 270(-90)
-					// yaw  :left 90, right -90 
-					case 0: // center
-					{
-						pitch 	= get_claymore_wire_endpoint(CVAR_CM_CENTER_PITCH);
-						yaw		= get_claymore_wire_endpoint(CVAR_CM_CENTER_YAW);
-					}
-					case 1: // right
-					{
-						pitch 	= get_claymore_wire_endpoint(CVAR_CM_RIGHT_PITCH);
-						yaw		= get_claymore_wire_endpoint(CVAR_CM_RIGHT_YAW);
-					}
-					case 2: // left
-					{
-						pitch 	= get_claymore_wire_endpoint(CVAR_CM_LEFT_PITCH);
-						yaw		= get_claymore_wire_endpoint(CVAR_CM_LEFT_YAW);
-					}
-				}
-
-				pAngles[0] = pitch;
-				pAngles[1] = yaw;
-
-				xs_vec_add(pAngles, vAngles, pAngles);
-				xs_anglevectors(pAngles, vFwd, vRight, vUp);
-			
-				xs_vec_mul_scalar(vFwd, range, vFwd);
-				// xs_vec_add(vOrigin, vFwd, vForward);
-				xs_vec_add(vFwd, vNormal, vForward);
-				xs_vec_add(vOrigin, vForward, vForward);
-
-				// Trace line
-				engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
-				{
-					get_tr2(trace, TR_vecEndPos, vTmp);
-				}
-			}
-			if (xs_vec_distance(vOrigin, vTmp) > xs_vec_distance(vOrigin, hitPoint))
-				hitPoint = vTmp;
-
-			n++;
-		}
-		vResult[i] = hitPoint;
-	}
-
-	// free the trace handle.
-	free_tr2(trace);
-
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vResult[0]);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vResult[1]);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vResult[2]);
 }
 
 //====================================================
