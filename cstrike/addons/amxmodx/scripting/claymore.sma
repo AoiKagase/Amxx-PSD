@@ -50,7 +50,7 @@
 	#define CVAR_TAG				"amx_cm"
 	#define LANG_KEY_NOT_BUY_TEAM 	"NOT_BUY_TEAM"
 #endif
-#define ENT_CLASS_CLAYMORE				"claymore"
+#define ENT_CLASS_CLAYMORE			"claymore"
 
 /*=====================================*/
 /*  Resource Setting AREA					       */
@@ -173,7 +173,6 @@ enum CVAR_SETTING
 	CVAR_DEATH_REMOVE		,		// Dead Player Remove Lasermine.
 	CVAR_CM_ACTIVATE		,		// Waiting for put claymore. (0 = no progress bar.)
 	CVAR_ALLOW_PICKUP		,		// allow pickup.
-	CVAR_REALISTIC_DETAIL	,		// Spark Effect.
 	CVAR_CM_WIRE_RANGE		,		// Claymore Wire Range.
 	CVAR_CM_WIRE_WIDTH		,		// Claymore Wire Width.
 	CVAR_CM_CENTER_PITCH	,		// Claymore Wire Area Center Pitch.
@@ -260,7 +259,6 @@ public plugin_init()
 	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"			);	// Dead Player remove claymore. 0 = off, 1 = on.
 	gCvar[CVAR_CM_ACTIVATE]		= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1"			);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
 	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
-	gCvar[CVAR_REALISTIC_DETAIL]= register_cvar(fmt("%s%s", CVAR_TAG, "_realistic_detail"), 	"1"			);	// Spark Effect.
 
 	// Claymore Settings. (Color is Laser color)
 	gCvar[CVAR_CM_WIRE_VISIBLE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_visible"),		"1"			);	// wire visibility.
