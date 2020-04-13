@@ -55,11 +55,11 @@
 /*=====================================*/
 /*  Resource Setting AREA					       */
 /*=====================================*/
-#define ENT_MODELS					"models/claymore/claymore.mdl"
-#define ENT_SPRITE1 				"sprites/claymore/claymore_wire.spr"
+#define ENT_MODELS					"models/lasermine/claymore.mdl"
+#define ENT_SPRITE1 				"sprites/lasermine/claymore_wire.spr"
 #define ENT_SPRITE2 				"sprites/eexplo.spr"
-#define ENT_SOUND1					"claymore/claymore_deploy.wav"
-#define ENT_SOUND2					"claymore/claymore_wallhit.wav"
+#define ENT_SOUND1					"lasermine/claymore_deploy.wav"
+#define ENT_SOUND2					"lasermine/claymore_wallhit.wav"
 #define ENT_SOUND3					"items/gunpickup2.wav"
 #define ENT_SOUND4					"weapons/ric_metal-1.wav"
 #define ENT_SOUND5					"weapons/ric_metal-2.wav"
@@ -164,13 +164,13 @@ enum CVAR_SETTING
 	CVAR_BUY_MODE           ,   	// Buy mode. 0 = off, 1 = on.
 	CVAR_START_DELAY        ,   	// Round start delay time.
 	// Laser design.
-	CVAR_MINE_HEALTH        ,   	// Lasermine health. (Can break.)
+	CVAR_MINE_HEALTH        ,   	// Claymore health. (Can break.)
 	CVAR_MINE_GLOW          ,   	// Glowing tripmine.
 	CVAR_MINE_GLOW_MODE     ,   	// Glowing color mode.
 	CVAR_MINE_GLOW_CT     	,   	// Glowing color for CT.
 	CVAR_MINE_GLOW_TR    	,   	// Glowing color for T.
 	CVAR_MINE_BROKEN		,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
-	CVAR_DEATH_REMOVE		,		// Dead Player Remove Lasermine.
+	CVAR_DEATH_REMOVE		,		// Dead Player Remove Claymore.
 	CVAR_CM_ACTIVATE		,		// Waiting for put claymore. (0 = no progress bar.)
 	CVAR_ALLOW_PICKUP		,		// allow pickup.
 	CVAR_CM_WIRE_RANGE		,		// Claymore Wire Range.
@@ -213,8 +213,8 @@ public plugin_init()
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
 	// Add your code here...
-	register_concmd("cm_remove", 	"admin_remove_laser",ADMIN_ACCESSLEVEL, " - <num>"); 
-	register_concmd("cm_give", 		"admin_give_laser",  ADMIN_ACCESSLEVEL, " - <num>"); 
+	register_concmd("cm_remove","admin_remove_cm",ADMIN_ACCESSLEVEL, " - <num>"); 
+	register_concmd("cm_give", 	"admin_give_cm",  ADMIN_ACCESSLEVEL, " - <num>"); 
 
 	register_clcmd("+setcm", 	"cm_progress_deploy");
 	register_clcmd("+delcm", 	"cm_progress_remove");
@@ -247,7 +247,7 @@ public plugin_init()
 
 	// Mine design.
 	gCvar[CVAR_MINE_HEALTH]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_health"),			"500"		);	// Tripmine Health. (Can break.)
-	gCvar[CVAR_MINE_GLOW]      	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow"),			"1"			);	// Tripmine glowing. 0 = off, 1 = on.
+	gCvar[CVAR_MINE_GLOW]      	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow"),			"0"			);	// Tripmine glowing. 0 = off, 1 = on.
 	gCvar[CVAR_MINE_GLOW_MODE]  = register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
 	gCvar[CVAR_MINE_GLOW_TR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_t"),	"255,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
 	gCvar[CVAR_MINE_GLOW_CT]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_ct"),	"0,0,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
@@ -263,6 +263,7 @@ public plugin_init()
 	// Claymore Settings. (Color is Laser color)
 	gCvar[CVAR_CM_WIRE_VISIBLE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_visible"),		"1"			);	// wire visibility.
 	gCvar[CVAR_CM_WIRE_RANGE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_range"),		"300"		);	// wire range.
+	gCvar[CVAR_CM_WIRE_BRIGHT]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_brightness"),	"255"		);	// wire brightness.
 	gCvar[CVAR_CM_WIRE_WIDTH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_width"),		"2"			);	// wire width.
 	gCvar[CVAR_CM_CENTER_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_pitch"),"220,290"	);	// wire area center pitch.
 	gCvar[CVAR_CM_CENTER_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_yaw"),	"-25,25"	);	// wire area center yaw.
@@ -499,7 +500,7 @@ public DeathEvent()
 }
 
 //====================================================
-// Put LaserMine Start Progress A
+// Deploy Claymore Start Progress A
 //====================================================
 public cm_progress_deploy_main(id)
 {
@@ -516,14 +517,14 @@ public cm_progress_deploy_main(id)
 	// Set Flag. start progress.
 	lm_set_user_deploy_state(id, int:STATE_DEPLOYING);
 
-	// Start Task. Put Lasermine.
+	// Start Task. deploy mine.
 	set_task(wait, "SpawnMine", (TASK_PLANT + id));
 
 	return PLUGIN_HANDLED;
 }
 
 //====================================================
-// Put LaserMine Start Progress B
+// Deploy Claymore Start Progress B
 //====================================================
 public cm_progress_deploy(id)
 {
@@ -550,7 +551,7 @@ public cm_progress_remove(id)
 	// Set Flag. start progress.
 	lm_set_user_deploy_state(id, int:STATE_DEPLOYING);
 
-	// Start Task. Remove Lasermine.
+	// Start Task. Remove mine.
 	set_task(wait, "RemoveMine", (TASK_RELEASE + id));
 
 	return PLUGIN_HANDLED;
@@ -568,7 +569,7 @@ public cm_progress_stop(id)
 }
 
 //====================================================
-// Task: Spawn Lasermine.
+// Task: Spawn Claymore.
 //====================================================
 public SpawnMine(id)
 {
@@ -589,7 +590,7 @@ public SpawnMine(id)
 }
 
 //====================================================
-// Lasermine Settings.
+// Claymore Settings.
 //====================================================
 stock set_spawn_entity_setting(iEnt, uID, classname[])
 {
@@ -654,7 +655,7 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 }
 
 //====================================================
-// Set Lasermine Position.
+// Set Claymore Position.
 //====================================================
 set_mine_position(uID, iEnt)
 {
@@ -690,7 +691,7 @@ set_mine_position(uID, iEnt)
 	xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
 
 	// set size.
-	engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 });
+	engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -2.0, -4.0 }, Float:{ 4.0, 2.0, 4.0 });
 	// set entity position.
 	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
 
@@ -698,7 +699,7 @@ set_mine_position(uID, iEnt)
 	new Float:pAngles[3], Float:vFwd[3], Float:vRight[3], Float:vUp[3];
 	pev(uID, pev_angles, pAngles);
 	xs_anglevectors(pAngles, vFwd, vRight, vUp);
-	xs_vec_add(vNormal, vFwd, vNormal);
+	xs_vec_sub(vNormal, vFwd, vNormal);
 
 	// Rotate tripmine.
 	vector_to_angle(vNormal, vEntAngles);
@@ -711,7 +712,7 @@ set_mine_position(uID, iEnt)
 }
 
 //====================================================
-// Task: Remove Lasermine.
+// Task: Remove Claymore.
 //====================================================
 public RemoveMine(id)
 {
@@ -741,7 +742,7 @@ public RemoveMine(id)
 	new entityName[MAX_NAME_LENGTH];
 	entityName = lm_get_entity_class_name(target);
 
-	// Check. is Target Entity Lasermine?
+	// Check. is Target Entity Claymore?
 	if(!equal(entityName, ENT_CLASS_CLAYMORE))
 		return 1;
 
@@ -792,7 +793,7 @@ public RemoveMine(id)
 
 
 //====================================================
-// Check: Remove Lasermine.
+// Check: Remove Claymore.
 //====================================================
 bool:check_for_remove(id)
 {
@@ -861,7 +862,7 @@ bool:check_for_remove(id)
 }
 
 //====================================================
-// Lasermine Think Event.
+// Claymore Think Event.
 //====================================================
 public LaserThink(iEnt)
 {
@@ -1147,7 +1148,7 @@ public PlayerKilling(iVictim, iAttacker)
 }
 
 //====================================================
-// Buy Lasermine.
+// Buy Claymore.
 //====================================================
 public cm_buy_claymore(id)
 {	
@@ -1220,7 +1221,7 @@ public cm_say_claymore(id)
 		len += formatex(msg[len], SIZE - len, "<tr><td><b>+dellaser</b></td><td>bind k +dellaser :using k remove claymore.</td></tr>");
 		len += formatex(msg[len], SIZE - len, "</table>");
 		len += formatex(msg[len], SIZE - len, "</body></html>");
-		show_motd(id, msg, "Lasermine Entity help");
+		show_motd(id, msg, "Claymore Entity help");
 		return PLUGIN_HANDLED;
 	} else 
 	if (containi(said, "laser") != -1) 
@@ -1562,7 +1563,7 @@ stock ERROR:check_round_started()
 }
 #endif
 //====================================================
-// Check: Lasermine Deploy.
+// Check: Claymore Deploy.
 //====================================================
 stock bool:check_for_deploy(id)
 {
@@ -1794,9 +1795,9 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 } 
 
 //====================================================
-// Admin: Remove Player Lasermine
+// Admin: Remove Player Claymore
 //====================================================
-public admin_remove_laser(id, level, cid) 
+public admin_remove_cm(id, level, cid) 
 { 
 	if (!cmd_access(id, level, cid, 2)) 
 		return PLUGIN_HANDLED;
@@ -1821,9 +1822,9 @@ public admin_remove_laser(id, level, cid)
 } 
 
 //====================================================
-// Admin: Give Player Lasermine
+// Admin: Give Player Claymore
 //====================================================
-public admin_give_laser(id, level, cid) 
+public admin_give_cm(id, level, cid) 
 { 
 	if (!cmd_access(id, level, cid, 2))
 		return PLUGIN_HANDLED;

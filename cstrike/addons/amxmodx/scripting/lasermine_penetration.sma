@@ -993,6 +993,15 @@ public LaserThink(iEnt)
 
 		pev(iEnt, LASERMINE_COUNT, nextTime);
 
+		if (get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
+		{
+			if (get_gametime() < nextTime)
+			{
+				// Think time.
+				set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
+				return HAM_HANDLED;
+			}
+		}
 		aTarget = ArrayCreate(sizeof(hPlayer));
 
 		reStartPos = vOrigin;
@@ -1042,6 +1051,7 @@ public LaserThink(iEnt)
 
 				if (hitGroup == HIT_SHIELD && get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]))
 					break;
+
 				reStartPos = hitPoint;
 				iIgnoreEnt = iTarget;
 			}
@@ -1054,33 +1064,16 @@ public LaserThink(iEnt)
 				lm_draw_spark_for_wall(hitPoint);
 		}
 
-		static aPlayer[HIT_PLAYER];
-		static Float:pos[3];
-		if (get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
+		for (new n = 0; n < ArraySize(aTarget); n++)
 		{
-			if (get_gametime() >= nextTime)
-			{
-				for (new n = 0; n < ArraySize(aTarget); n++)
-				{
-					ArrayGetArray(aTarget, n, aPlayer);
-					pos = aPlayer[V_POSITION];
-					// Laser line damage mode. Once or Second.
-					create_laser_damage(iEnt, aPlayer[I_TARGET], aPlayer[I_HIT_GROUP], pos);
-				}
+			ArrayGetArray(aTarget, n, hPlayer);
+			// Laser line damage mode. Once or Second.
+			create_laser_damage(iEnt, hPlayer[I_TARGET], hPlayer[I_HIT_GROUP], hPlayer[V_POSITION]);
+		}
 
-				set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
-			}
-		}
-		else
-		{
-			for (new n = 0; n < ArraySize(aTarget); n++)
-			{
-				ArrayGetArray(aTarget, n, hPlayer);
-				pos = aPlayer[V_POSITION];
-				// Laser line damage mode. Once or Second.
-				create_laser_damage(iEnt, aPlayer[I_TARGET], aPlayer[I_HIT_GROUP], pos);
-			}
-		}
+		if (ArraySize(aTarget) > 0)
+			set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
+
 		ArrayDestroy(aTarget);
 
 		// free the trace handle.
@@ -1097,7 +1090,6 @@ public LaserThink(iEnt)
 			set_pev(iEnt, LASERMINE_STEP, EXPLOSE_THINK);
 			set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
 		}
-				
 		// Think time. random_float = laser line blinking.
 		set_pev(iEnt, pev_nextthink, fCurrTime + random_float(0.01, 0.02));
 
