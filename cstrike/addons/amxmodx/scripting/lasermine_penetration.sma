@@ -949,6 +949,9 @@ public LaserThink(iEnt)
 
 	if (step == TRIPMINE_THINK:BEAMUP_THINK)
 	{
+		// solid complete.
+		set_pev(iEnt, pev_solid, SOLID_BBOX);
+
 		// drawing laser line.
 		if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
 		{
