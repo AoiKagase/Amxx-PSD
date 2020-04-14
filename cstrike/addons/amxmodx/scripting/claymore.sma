@@ -596,44 +596,46 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 {
 	// Entity Setting.
 	// set class name.
-	set_pev(iEnt, pev_classname, classname);
+	set_pev(iEnt, pev_classname, 	classname);
 
 	// set models.
 	engfunc(EngFunc_SetModel, iEnt, ENT_MODELS);
 
 	// set solid.
-	set_pev(iEnt, pev_solid, SOLID_NOT);
+	set_pev(iEnt, pev_solid, 		SOLID_NOT);
 
 	// set movetype.
-	set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
+	set_pev(iEnt, pev_movetype, 	MOVETYPE_FLY);
 
 	// set model animation.
-	set_pev(iEnt, pev_frame,	0);
-	set_pev(iEnt, pev_body, 	3);
-	set_pev(iEnt, pev_sequence, TRIPMINE_WORLD);
-	set_pev(iEnt, pev_framerate,0);
+	set_pev(iEnt, pev_frame,		0);
+	set_pev(iEnt, pev_body, 		3);
+	set_pev(iEnt, pev_sequence, 	TRIPMINE_WORLD);
+	set_pev(iEnt, pev_framerate,	0);
+	set_pev(iEnt, pev_rendermode,	kRenderNormal);
+	set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
 
 	// set take damage.
-	set_pev(iEnt, pev_takedamage, DAMAGE_YES);
-	set_pev(iEnt, pev_dmg, 100.0);
+	set_pev(iEnt, pev_takedamage,	DAMAGE_YES);
+	set_pev(iEnt, pev_dmg, 			100.0);
 
 	// set entity health.
 	lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
 
 	// solid complete.
-	set_pev(iEnt, pev_solid, SOLID_BBOX);
+	set_pev(iEnt, pev_solid, 		SOLID_BBOX);
 
 	// set mine position
 	set_mine_position(uID, iEnt);
 
 	// Save results to be used later.
-	set_pev(iEnt, LASERMINE_OWNER, uID );
-	set_pev(iEnt, LASERMINE_TEAM, int:lm_get_user_team(uID));
+	set_pev(iEnt, LASERMINE_OWNER, 	uID );
+	set_pev(iEnt, LASERMINE_TEAM, 	int:lm_get_user_team(uID));
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
 	set_pev(iEnt, LASERMINE_POWERUP, fCurrTime + 2.5 );   
-	set_pev(iEnt, LASERMINE_STEP, POWERUP_THINK);
+	set_pev(iEnt, LASERMINE_STEP, 	POWERUP_THINK);
 
 	// think rate. hmmm....
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );

@@ -648,10 +648,12 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
 
 	// set model animation.
-	set_pev(iEnt, pev_frame,	0);
-	set_pev(iEnt, pev_body, 	3);
-	set_pev(iEnt, pev_sequence, TRIPMINE_WORLD);
-	set_pev(iEnt, pev_framerate,0);
+	set_pev(iEnt, pev_frame,		0);
+	set_pev(iEnt, pev_body, 		3);
+	set_pev(iEnt, pev_sequence, 	TRIPMINE_WORLD);
+	set_pev(iEnt, pev_framerate,	0);
+	set_pev(iEnt, pev_rendermode,	kRenderNormal);
+	set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
 
 	// set take damage.
 	set_pev(iEnt, pev_takedamage, DAMAGE_YES);
