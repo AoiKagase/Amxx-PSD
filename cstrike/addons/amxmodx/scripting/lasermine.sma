@@ -670,6 +670,7 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	new Float:fCurrTime = get_gametime();
 	set_pev(iEnt, LASERMINE_POWERUP, fCurrTime + 2.5 );   
 	set_pev(iEnt, LASERMINE_STEP, POWERUP_THINK);
+	set_pev(iEnt, LASERMINE_COUNT, (get_gametime()));
 
 	// think rate. hmmm....
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
@@ -1040,7 +1041,7 @@ public LaserThink(iEnt)
 		if (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_LASERMINE 
 		&&  get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
 		{
-			if (get_gametime() < nextTime)
+			if (fCurrTime < nextTime)
 			{
 				// Think time.
 				set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
@@ -1064,7 +1065,7 @@ public LaserThink(iEnt)
 			while(fFraction < 1.0)
 			{
 				// Trace line
-				engfunc(EngFunc_TraceLine, vOrigin, vEnd[i], DONT_IGNORE_MONSTERS, iIgnoreEnt, trace)
+				engfunc(EngFunc_TraceLine, reStartPos, vEnd[i], DONT_IGNORE_MONSTERS, iIgnoreEnt, trace)
 				{
 					get_tr2(trace, TR_flFraction, fFraction);
 					iTarget		= get_tr2(trace, TR_pHit);
@@ -1128,15 +1129,16 @@ public LaserThink(iEnt)
 						// Laser line damage mode. Once or Second.
 						create_laser_damage(iEnt, hPlayer[I_TARGET], hPlayer[I_HIT_GROUP], hPlayer[V_POSITION]);
 					}					
-					if (ArraySize(aTarget) > 0)
-						set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
-
 					// Laser line damage mode. Once or Second.
 					if (get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
+					{
+						if (ArraySize(aTarget) > 0)
+							set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
+
 						// if change target. keep target id.
 						if (pev(iEnt, LASERMINE_HITING) != iTarget)
 							set_pev(iEnt, LASERMINE_HITING, iTarget);
-
+					}
 				}
 				// Tripmine mode.
 				// Friendly Fire ON or Target is Enemy Team.
