@@ -5,15 +5,13 @@
 // Supported BIOHAZARD.
 // #define BIOHAZARD_SUPPORT
 
-// Supported More money than 16000.
-// #define UL_MONEY_SUPPORT
-
-/*=====================================*/
-/*  INCLUDE AREA				       */
-/*=====================================*/
+//=====================================
+//  INCLUDE AREA
+//=====================================
 #include <amxmodx>
 #include <amxmisc>
 #include <amxconst>
+#include <cstrike>
 #include <fakemeta>
 #include <hamsandwich>
 #include <vector>
@@ -24,14 +22,9 @@
 	#include <biohazard>
 #endif
 
-#if defined UL_MONEY_SUPPORT
-	#include <money_ul>
-#endif
-
-
-/*=====================================*/
-/*  VERSION CHECK				       */
-/*=====================================*/
+//=====================================
+//  VERSION CHECK
+//=====================================
 #if AMXX_VERSION_NUM < 190
 	#assert "AMX Mod X v1.9.0 or greater library required!"
 	#define MAX_PLAYERS				32
@@ -51,9 +44,9 @@
 	#define LANG_KEY_NOT_BUY_TEAM 	"NOT_BUY_TEAM"
 #endif
 
-/*=====================================*/
-/*  Resource Setting AREA					       */
-/*=====================================*/
+//=====================================
+//  Resource Setting AREA
+//=====================================
 #define ENT_MODELS					"models/v_tripmine.mdl"
 #define ENT_SOUND1					"weapons/mine_deploy.wav"
 #define ENT_SOUND2					"weapons/mine_charge.wav"
@@ -67,9 +60,9 @@
 #define ENT_SPRITE1 				"sprites/laserbeam.spr"
 #define ENT_SPRITE2 				"sprites/eexplo.spr"
 
-/*=====================================*/
-/*  MACRO AREA					       */
-/*=====================================*/
+//=====================================
+//  MACRO AREA
+//=====================================
 //
 // String Data.
 //
@@ -143,6 +136,13 @@
 #define cp_gave(%1,%2,%3)			client_print_color(%1, %1, "%L", %1, LANG_KEY_GIVE_MINE,	CHAT_TAG, %2, %3)
 #define cp_remove_spec(%1,%2)		client_print_color(%1, %1, "%L", %1, LANG_KEY_REMOVE_SPEC,	CHAT_TAG, %2)
 
+enum _:HIT_PLAYER
+{
+	I_TARGET				= 0,
+	I_HIT_GROUP				= 1,
+	Float:V_POSITION[3]		= 2,
+};
+
 //
 // CVAR SETTINGS
 //
@@ -213,9 +213,6 @@ new gMsgStatusText, gMsgBarTime;
 new gBeam, gBoom;
 new gEntMine;
 
-#if !defined UL_MONEY_SUPPORT
-	new gMsgMoney;
-#endif
 new Float:gDeployPos[MAX_PLAYERS][3];
 
 //====================================================
@@ -230,9 +227,14 @@ public plugin_init()
 	register_concmd("lm_give", 		"admin_give_laser",  ADMIN_ACCESSLEVEL, " - <num>"); 
 
 	register_clcmd("+setlaser", 	"lm_progress_deploy");
+	register_clcmd("+setlm", 		"lm_progress_deploy");
 	register_clcmd("+dellaser", 	"lm_progress_remove");
+	register_clcmd("+remlm", 		"lm_progress_remove");
    	register_clcmd("-setlaser", 	"lm_progress_stop");
+   	register_clcmd("-setlm", 		"lm_progress_stop");
    	register_clcmd("-dellaser", 	"lm_progress_stop");
+   	register_clcmd("-remlm", 		"lm_progress_stop");
+
 	register_clcmd("say", 			"lm_say_lasermine");
 	register_clcmd("buy_lasermine", "lm_buy_lasermine");
 
@@ -318,9 +320,6 @@ public plugin_init()
 	// Get Message Id
 	gMsgStatusText 	= get_user_msgid("StatusText");
 	gMsgBarTime		= get_user_msgid("BarTime");
-#if !defined UL_MONEY_SUPPORT
-	gMsgMoney	    = get_user_msgid("Money");
-#endif
 
 	// Register Forward.
 	register_forward(FM_PlayerPostThink,"PlayerPostThink");
@@ -426,7 +425,7 @@ bool:is_valid_takedamage(iAttacker, iTarget)
 	if (get_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE]))
 		return true;
 
-	if (lm_get_user_team(iAttacker) != lm_get_user_team(iTarget))
+	if (cs_get_user_team(iAttacker) != cs_get_user_team(iTarget))
 		return true;
 
 	return false;
@@ -435,12 +434,10 @@ bool:is_valid_takedamage(iAttacker, iTarget)
 bool:is_user_friend(iAttacker, iTarget)
 {
 	if (get_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE]))
-	if (lm_get_user_team(iAttacker) == lm_get_user_team(iTarget))
+	if (cs_get_user_team(iAttacker) == cs_get_user_team(iTarget))
 		return true;
 	return false;
 }
-
-
 
 //====================================================
 // Round Start Initialize
@@ -662,15 +659,12 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	// set entity health.
 	lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
 
-	// solid complete.
-	set_pev(iEnt, pev_solid, SOLID_TRIGGER);
-
 	// set mine position
 	set_mine_position(uID, iEnt);
 
 	// Save results to be used later.
 	set_pev(iEnt, LASERMINE_OWNER, uID );
-	set_pev(iEnt, LASERMINE_TEAM, int:lm_get_user_team(uID));
+	set_pev(iEnt, LASERMINE_TEAM, int:cs_get_user_team(uID));
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
@@ -843,7 +837,7 @@ public RemoveMine(id)
 		case ALLOW_FRIENDLY:
 		{
 			// Check. is friendly team?
-			if(CsTeams:pev(target, LASERMINE_TEAM) != lm_get_user_team(uID))
+			if(CsTeams:pev(target, LASERMINE_TEAM) != cs_get_user_team(uID))
 				return 1;
 		}		
 	}
@@ -933,7 +927,7 @@ bool:check_for_remove(id)
 		case ALLOW_FRIENDLY:
 		{
 			// is team friendly?
-			if(CsTeams:pev(target, LASERMINE_TEAM) != lm_get_user_team(id))
+			if(CsTeams:pev(target, LASERMINE_TEAM) != cs_get_user_team(id))
 				return false;
 		}
 	}
@@ -1005,6 +999,9 @@ public LaserThink(iEnt)
 
 	if (step == TRIPMINE_THINK:BEAMUP_THINK)
 	{
+		// solid complete.
+		set_pev(iEnt, pev_solid, SOLID_BBOX);
+
 		// drawing laser line.
 		if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
 		{
@@ -1027,54 +1024,87 @@ public LaserThink(iEnt)
 	// Laser line activated.
 	if (step == TRIPMINE_THINK:BEAMBREAK_THINK)
 	{
+		static Array:aTarget;
+		static hPlayer[HIT_PLAYER];
+		static Float:reStartPos[3];
 		static iTarget;
 		static hitGroup;
 		static Float:fFraction;
-
+		static iIgnoreEnt;
 		static trace;
 		static Float:hitPoint[3];
+		static Float:nextTime = 0.0;
+
+		pev(iEnt, LASERMINE_COUNT, nextTime);
+
+		if (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_LASERMINE 
+		&&  get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
+		{
+			if (get_gametime() < nextTime)
+			{
+				// Think time.
+				set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
+				return HAM_HANDLED;
+			}
+		}
+
+		aTarget = ArrayCreate(sizeof(hPlayer));
+
+		// create the trace handle.
+		trace = create_tr2();
+
 		for(new i = 0; i < loop; i++)
 		{
-			// create the trace handle.
-			trace = create_tr2();
+			fFraction	= 0.0;
+			iIgnoreEnt	= iEnt;
+			ArrayClear(aTarget);
+			reStartPos = vOrigin;
+
 			// Trace line
-			engfunc(EngFunc_TraceLine, vOrigin, vEnd[i], DONT_IGNORE_MONSTERS, iEnt, trace)
+			while(fFraction < 1.0)
 			{
-				get_tr2(trace, TR_flFraction, fFraction);
-				iTarget		= get_tr2(trace, TR_pHit);
-				hitGroup	= get_tr2(trace, TR_iHitgroup)
-				get_tr2(trace, TR_vecEndPos, hitPoint);				
+				// Trace line
+				engfunc(EngFunc_TraceLine, vOrigin, vEnd[i], DONT_IGNORE_MONSTERS, iIgnoreEnt, trace)
+				{
+					get_tr2(trace, TR_flFraction, fFraction);
+					iTarget		= get_tr2(trace, TR_pHit);
+					hitGroup	= get_tr2(trace, TR_iHitgroup)
+					get_tr2(trace, TR_vecEndPos, hitPoint);				
+				}
+
+				// Something has passed the laser.
+				if (fFraction < 1.0)
+				{
+
+					// is valid hit entity?
+					if (!pev_valid(iTarget)
+					// is user?
+					|| !(pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER))
+					// is dead?
+					|| !lm_is_user_alive(iTarget)
+					// Hit friend and No FF.
+					|| !is_valid_takedamage(iOwner, iTarget)
+					// is godmode?
+					|| lm_is_user_godmode(iTarget)
+					)
+					{
+						reStartPos = hitPoint;
+						iIgnoreEnt = iTarget;
+						continue;
+					}
+					hPlayer[I_TARGET] 	= iTarget;
+					hPlayer[V_POSITION]	= hitPoint;
+					hPlayer[I_HIT_GROUP]= hitGroup;
+					ArrayPushArray(aTarget, hPlayer);
+					if (hitGroup == HIT_SHIELD && get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]))
+						break;
+								
+					reStartPos = hitPoint;
+					iIgnoreEnt = iTarget;
+					// keep target id.
+					set_pev(iEnt, pev_enemy, iTarget);
+				}
 			}
-			// free the trace handle.
-			free_tr2(trace);
-
-			// Something has passed the laser.
-			if (fFraction >= 1.0)
-				continue;
-
-			// is valid hit entity?
-			if (!pev_valid(iTarget))
-				continue;
-
-			// is user?
-			if (!(pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER)))
-				continue;
-
-			// is dead?
-			if (!lm_is_user_alive(iTarget))
-				continue;
-
-			// Hit friend and No FF.
-			if (!is_valid_takedamage(iOwner, iTarget))
-				continue;
-
-			// is godmode?
-			if (lm_is_user_godmode(iTarget))
-				continue;
-
-
-			// keep target id.
-			set_pev(iEnt, pev_enemy, iTarget);
 
 			// drawing spark.
 			if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
@@ -1092,7 +1122,14 @@ public LaserThink(iEnt)
 				// Laser damage.
 				case MODE_LASERMINE:
 				{
-					create_laser_damage(iEnt, iTarget, hitGroup, hitPoint);
+					for (new n = 0; n < ArraySize(aTarget); n++)
+					{
+						ArrayGetArray(aTarget, n, hPlayer);
+						// Laser line damage mode. Once or Second.
+						create_laser_damage(iEnt, hPlayer[I_TARGET], hPlayer[I_HIT_GROUP], hPlayer[V_POSITION]);
+					}					
+					if (ArraySize(aTarget) > 0)
+						set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
 
 					// Laser line damage mode. Once or Second.
 					if (get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
@@ -1107,9 +1144,15 @@ public LaserThink(iEnt)
 				{
 					// State change. to Explosing step.
 					set_pev(iEnt, LASERMINE_STEP, EXPLOSE_THINK);
+					break;
 				}
 			}
 		}
+
+		// free the trace handle.
+		free_tr2(trace);
+		ArrayDestroy(aTarget);
+
 		// Get mine health.
 		static Float:iHealth;
 		iHealth = lm_get_user_health(iEnt);
@@ -1180,7 +1223,7 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 		case 1:
 		{
 			// If the team of the one who put the mine and the one who attacked match.
-			if(CsTeams:pev(victim, LASERMINE_TEAM) != lm_get_user_team(attacker))
+			if(CsTeams:pev(victim, LASERMINE_TEAM) != cs_get_user_team(attacker))
 				return HAM_SUPERCEDE;
 		}
 		default:
@@ -1312,11 +1355,11 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 		if (is_user_friend(iAttacker, iTarget))
 		{
 			// Hit
-			new CsTeams:aTeam = lm_get_user_team(iAttacker);
-			lm_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T));
+			new CsTeams:aTeam = cs_get_user_team(iAttacker);
+			cs_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T));
 			// Damage Effect, Damage, Killing Logic.
 			ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
-			lm_set_user_team(iAttacker, int:aTeam);
+			cs_set_user_team(iAttacker, int:aTeam);
 		}
 		else
 		{
@@ -1349,8 +1392,8 @@ public PlayerKilling(iVictim, iAttacker)
 	if (equali(entityName, ENT_CLASS_LASER))
 	{
 		// Get Target Team.
-		new CsTeams:aTeam = lm_get_user_team(iAttacker);
-		new CsTeams:vTeam = lm_get_user_team(iVictim);
+		new CsTeams:aTeam = cs_get_user_team(iAttacker);
+		new CsTeams:vTeam = cs_get_user_team(iVictim);
 
 		new score  = (vTeam != aTeam) ? 1 : -1;
 		new money  = (vTeam != aTeam) ? get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) : (get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) * -1);
@@ -1358,19 +1401,18 @@ public PlayerKilling(iVictim, iAttacker)
 		// Attacker Frag.
 		// Add Attacker Frag (Friendly fire is minus).
 		new aFrag	= lm_get_user_frags(iAttacker) + score;
-		new aDeath	= lm_get_user_deaths(iAttacker);
+		new aDeath	= cs_get_user_deaths(iAttacker);
 
-		lm_set_user_deaths(iAttacker, aDeath);
+		cs_set_user_deaths(iAttacker, aDeath);
 		ExecuteHamB(Ham_AddPoints, iAttacker, aFrag - lm_get_user_frags(iAttacker), true);
 
 		new tDeath = lm_get_user_deaths(iVictim);
 
-		lm_set_user_deaths(iVictim, tDeath);
+		cs_set_user_deaths(iVictim, tDeath);
 		ExecuteHamB(Ham_AddPoints, iVictim, 0, true);
 
 		// Get Money attacker.
-		lm_set_user_money(iAttacker, lm_get_user_money(iAttacker) + money);
-		lm_flash_money_hud(iAttacker, lm_get_user_money(iAttacker) + money, gMsgMoney);
+		cs_set_user_money(iAttacker, cs_get_user_money(iAttacker) + money);
 		return HAM_HANDLED;
 	}
 	return HAM_IGNORED;
@@ -1389,8 +1431,7 @@ public lm_buy_lasermine(id)
 	}
 
 	new cost = get_pcvar_num(gCvar[CVAR_COST]);
-	lm_set_user_money(id,lm_get_user_money(id) - cost);
-	lm_flash_money_hud(id, lm_get_user_money(id) - cost, gMsgMoney);
+	cs_set_user_money(id, cs_get_user_money(id) - cost);
 
 	lm_set_user_have_mine(id, lm_get_user_have_mine(id) + int:1);
 
@@ -1658,7 +1699,7 @@ stock bool:check_for_team(id)
 		team = CS_TEAM_UNASSIGNED;
 
 	// Cvar setting equal your team? Not.
-	if(team != CS_TEAM_UNASSIGNED && team != lm_get_user_team(id))
+	if(team != CS_TEAM_UNASSIGNED && team != cs_get_user_team(id))
 		return false;
 
 	return true;
@@ -1686,7 +1727,7 @@ stock ERROR:check_for_buy(id)
 			return ERROR:HAVE_MAX;
 
 		// buyzone area?
-		if (cvar_buyzone && !lm_get_user_buyzone(id))
+		if (cvar_buyzone && !cs_get_user_buyzone(id))
 			return ERROR:NOT_BUYZONE;
 
 		// Have money?
