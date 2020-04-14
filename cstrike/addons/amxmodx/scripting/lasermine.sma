@@ -25,8 +25,8 @@
 //=====================================
 //  VERSION CHECK
 //=====================================
-#if AMXX_VERSION_NUM < 190
-	#assert "AMX Mod X v1.9.0 or greater library required!"
+#if AMXX_VERSION_NUM < 200
+	#assert "AMX Mod X v1.10.0 or greater library required!"
 	#define MAX_PLAYERS				32
 #endif
 
