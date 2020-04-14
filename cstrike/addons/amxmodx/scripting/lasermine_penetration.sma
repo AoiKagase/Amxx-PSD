@@ -1211,10 +1211,10 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 		{
 			// Hit
 			new CsTeams:aTeam = cs_get_user_team(iAttacker);
-			cs_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T));
+			cs_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T), _, false);
 			// Damage Effect, Damage, Killing Logic.
 			ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
-			cs_set_user_team(iAttacker, int:aTeam);
+			cs_set_user_team(iAttacker, int:aTeam, _, false);
 		}
 		else
 		{
