@@ -75,7 +75,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.4"
+#define VERSION 					"3.5"
 
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
@@ -661,7 +661,7 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
 
 	// solid complete.
-	set_pev(iEnt, pev_solid, SOLID_BBOX);
+	set_pev(iEnt, pev_solid, SOLID_TRIGGER);
 
 	// set mine position
 	set_mine_position(uID, iEnt);
@@ -822,7 +822,7 @@ public RemoveMine(id)
 	entityName = lm_get_entity_class_name(target);
 
 	// Check. is Target Entity Lasermine?
-	if(!equal(entityName, ENT_CLASS_LASER))
+	if(!equali(entityName, ENT_CLASS_LASER))
 		return 1;
 
 	new ownerID = pev(target, LASERMINE_OWNER);
@@ -911,7 +911,7 @@ bool:check_for_remove(id)
 	entityName = lm_get_entity_class_name(target);
 
 	// is target lasermine?
-	if(!equal(entityName, ENT_CLASS_LASER))
+	if(!equali(entityName, ENT_CLASS_LASER))
 		return false;
 
 
@@ -957,7 +957,7 @@ public LaserThink(iEnt)
 	entityName = lm_get_entity_class_name(iEnt);
 
 	// is this lasermine? no.
-	if (!equal(entityName, ENT_CLASS_LASER))
+	if (!equali(entityName, ENT_CLASS_LASER))
 		return HAM_IGNORED;
 
 	static Float:fCurrTime
@@ -1156,6 +1156,13 @@ public LaserThink(iEnt)
 //====================================================
 public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 {
+	new entityName[MAX_NAME_LENGTH];
+	entityName = lm_get_entity_class_name(victim);
+
+	// is this lasermine? no.
+	if (!equali(entityName, ENT_CLASS_LASER))
+		return HAM_IGNORED;
+
 	// We get the ID of the player who put the mine.
 	new iOwner = pev(victim, LASERMINE_OWNER);
 	switch(get_pcvar_num(gCvar[CVAR_MINE_BROKEN]))
@@ -1318,7 +1325,7 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 	set_pev(iEnt, LASERMINE_HITING, iTarget);		
 	
 	// // is target func_breakable?
-	// if (equal(entityName, ENT_CLASS_BREAKABLE))
+	// if (equali(entityName, ENT_CLASS_BREAKABLE))
 	// {
 	// 	ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]));
 	// 	// damage it.
