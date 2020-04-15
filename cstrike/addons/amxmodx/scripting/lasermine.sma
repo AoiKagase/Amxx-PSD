@@ -911,6 +911,7 @@ bool:check_for_remove(id)
 	if(!equali(entityName, ENT_CLASS_LASER))
 		return false;
 
+	// Damaged?
 	new Float:health;
 	health = lm_get_user_health(target);
 	if (health < get_pcvar_float(gCvar[CVAR_MINE_HEALTH]))
