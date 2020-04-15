@@ -67,7 +67,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.5"
+#define VERSION 					"3.06"
 
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
@@ -212,8 +212,8 @@ new gMsgStatusText, gMsgBarTime;
 new gBeam, gBoom;
 new gEntMine;
 
-new Float:gDeployPos[MAX_PLAYERS][3];
-
+new Float:gDeployPos	[MAX_PLAYERS][3];
+new Stack:gRecycleMine	[MAX_PLAYERS];
 //====================================================
 //  PLUGIN INITIALIZE
 //====================================================
@@ -330,7 +330,19 @@ public plugin_init()
 
 	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
+	for(new i = 0; i < MAX_PLAYERS; i++)
+		gRecycleMine[i] = CreateStack(1);
+
 	return PLUGIN_CONTINUE;
+}
+
+//====================================================
+//  PLUGIN END
+//====================================================
+public plugin_end()
+{
+	for(new i = 0; i < MAX_PLAYERS; i++)
+		ClearStack(gRecycleMine[i]);
 }
 
 //====================================================
@@ -458,6 +470,9 @@ public NewRound(id)
 	{
 		// Delay time reset
 		lm_set_user_delay_count(id, int:floatround(get_gametime()));
+
+		// Init Recycle Health.
+		ClearStack(gRecycleMine[id]);
 
 		// Task Delete.
 		delete_task(id);
@@ -656,7 +671,17 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	set_pev(iEnt, pev_dmg, 100.0);
 
 	// set entity health.
-	lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
+	// if recycle health.
+	if (!IsStackEmpty(gRecycleMine[uID]))
+	{
+		new Float:health;
+		PopStackCell(gRecycleMine[uID], health);
+		lm_set_user_health(iEnt, health);
+	}
+	else
+	{
+		lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
+	}
 
 	// set mine position
 	set_mine_position(uID, iEnt);
@@ -841,6 +866,10 @@ public RemoveMine(id)
 				return 1;
 		}		
 	}
+
+	// Recycle Health.
+	new Float:health = lm_get_user_health(target);
+	PushStackCell(gRecycleMine[uID], health);
 
 	// Remove!
 	lm_remove_entity(target);
@@ -1569,6 +1598,9 @@ public client_putinserver(id)
 	// reset hove mine.
 	lm_set_user_have_mine(id, int:0);
 
+	// Init Recycle Health.
+	ClearStack(gRecycleMine[id]);
+
 	return PLUGIN_CONTINUE;
 }
 
@@ -1588,6 +1620,9 @@ public client_disconnected(id)
 	delete_task(id);
 	// remove all lasermine.
 	lm_remove_all_entity(id, ENT_CLASS_LASER);
+
+	// Init Recycle Health.
+	ClearStack(gRecycleMine[id]);
 
 	return PLUGIN_CONTINUE;
 }
@@ -2195,5 +2230,14 @@ stock lm_play_sound(iEnt, iSoundType)
 		{
 			emit_sound(iEnt, CHAN_VOICE, random_num(0, 1) == 1 ? ENT_SOUND6 : ENT_SOUND7, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
+	}
+}
+
+stock ClearStack(Stack:handle)
+{
+	new Float:health;
+	while (!IsStackEmpty(handle))
+	{
+		PopStackCell(handle, health);
 	}
 }
