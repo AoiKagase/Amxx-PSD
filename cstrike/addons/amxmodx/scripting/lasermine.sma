@@ -911,6 +911,13 @@ bool:check_for_remove(id)
 	if(!equali(entityName, ENT_CLASS_LASER))
 		return false;
 
+	new Float:health;
+	health = lm_get_user_health(target);
+	if (health < get_pcvar_float(gCvar[CVAR_MINE_HEALTH]))
+	{
+		cp_cant_pickup(id);
+		return false;
+	}
 
 	switch(pickup)
 	{
@@ -1178,7 +1185,7 @@ public LaserThink(iEnt)
 	{
 		// Stopping entity to think
 		set_pev(iEnt, pev_nextthink, 0.0);
-		// 
+		// Stopping sound.
 		lm_play_sound(iEnt, SOUND_STOP);
 
 		// Count down. deployed lasermines.
@@ -1345,10 +1352,8 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 	if (get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]) && hitGroup == HIT_SHIELD)
 	{
 		lm_play_sound(iTarget, SOUND_HIT_SHIELD);
-		lm_draw_spark(hitPoint);
 
-        // EMIT_SOUND(pEntity->edict(), CHAN_VOICE, (RANDOM_LONG(0, 1) == 1) ? "weapons/ric_metal-1.wav" : "weapons/ric_metal-2.wav", VOL_NORM, ATTN_NORM);
-        // UTIL_Sparks(tr.vecEndPos);
+		lm_draw_spark(hitPoint);
 		lm_hit_shield(iTarget, dmg);
 	}
 	else
@@ -1757,7 +1762,6 @@ stock ERROR:check_for_max_deploy(id)
 	if (lm_get_user_mine_deployed(id) >= cvar_maxhave)
 		return ERROR:MAXIMUM_DEPLOYED;
 
-	//// client_print(id,print_chat,"[Lasermine] your team deployed %d",TeamDeployedCount(id))
 	// Max deployed per team.
 	new int:team_count = lm_get_team_deployed_count(id);
 	if (cvar_mode == MODE_BF4_CLAYMORE)
