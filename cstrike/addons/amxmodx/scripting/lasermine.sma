@@ -14,7 +14,6 @@
 #include <cstrike>
 #include <fakemeta>
 #include <hamsandwich>
-#include <vector>
 #include <xs>
 #include <lasermine_util>
 
@@ -709,7 +708,7 @@ set_mine_position(uID, iEnt)
     // create the trace handle.
 	new trace = create_tr2();
 	// get wall position to vNewOrigin.
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, DONT_IGNORE_MONSTERS, uID, trace);
+	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, uID, trace);
 	{
 		new Float:fFraction;
 		get_tr2( trace, TR_flFraction, fFraction );
@@ -900,8 +899,8 @@ bool:check_for_remove(id)
 	pev(id, pev_origin, vOrigin);
 	pev(target, pev_origin, tOrigin);
 
-	// Distance Check. far 70.0 (cm?)
-	if(get_distance_f(vOrigin, tOrigin) > 70.0)
+	// Distance Check. far 128.0 (cm?)
+	if(get_distance_f(vOrigin, tOrigin) > 128.0)
 		return false;
 	
 	new entityName[MAX_NAME_LENGTH];
@@ -912,13 +911,13 @@ bool:check_for_remove(id)
 		return false;
 
 	// Damaged?
-	new Float:health;
-	health = lm_get_user_health(target);
-	if (health < get_pcvar_float(gCvar[CVAR_MINE_HEALTH]))
-	{
-		cp_cant_pickup(id);
-		return false;
-	}
+	// new Float:health;
+	// health = lm_get_user_health(target);
+	// if (health < get_pcvar_float(gCvar[CVAR_MINE_HEALTH]))
+	// {
+	// 	cp_cant_pickup(id);
+	// 	return false;
+	// }
 
 	switch(pickup)
 	{
@@ -1828,7 +1827,7 @@ stock ERROR:check_for_onwall(id)
     // create the trace handle.
 	new trace = create_tr2();
 	new Float:fFraction = 0.0;
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, DONT_IGNORE_MONSTERS, id, trace);
+	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
 	{
     	get_tr2( trace, TR_flFraction, fFraction );
     }
