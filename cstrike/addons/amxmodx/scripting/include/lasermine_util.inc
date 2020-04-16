@@ -204,7 +204,7 @@ stock lm_flash_money_hud(id, value, msg)
 //====================================================
 // Draw Laserline
 //====================================================
-stock lm_draw_laser(const iEnt, /* const Float:vOrigin[3],*/ const Float:vEndOrigin[3], const tcolor[3], const width, const bright, const beam)
+stock lm_draw_laser(const iEnt, /* const Float:vOrigin[3],*/ const Float:vEndOrigin[3], const tcolor[3], const width, const bright, const life, const beam)
 {
 	// Draw Laser line message.
 	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
@@ -219,7 +219,7 @@ stock lm_draw_laser(const iEnt, /* const Float:vOrigin[3],*/ const Float:vEndOri
 	write_short(beam);
 	write_byte(0);	// framestart
 	write_byte(0);	// framerate
-	write_byte(0);	// Life
+	write_byte(life);	// Life
 	write_byte(width);	// Width
 	write_byte(0);	// wave/noise
 	write_byte(tcolor[0]); // r

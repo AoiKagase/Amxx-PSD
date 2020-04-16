@@ -1146,8 +1146,7 @@ public LaserThink(iEnt)
 			// drawing spark.
 			if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
 			{
-				// draw_laserline(iEnt, vEnd[i]);
-
+				draw_laserline(iEnt, vEnd[i]);
 				if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
 					lm_draw_spark_for_wall(hitPoint);
 			}
@@ -1168,8 +1167,8 @@ public LaserThink(iEnt)
 					// Laser line damage mode. Once or Second.
 					if (get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
 					{
-						if (ArraySize(aTarget) > 0)
-							set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
+//						if (ArraySize(aTarget) > 0)
+						set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
 
 						// if change target. keep target id.
 						if (pev(iEnt, LASERMINE_HITING) != iTarget)
@@ -1333,7 +1332,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		tcolor[n++] = str_to_num(sColor);
 	}
 
-	lm_draw_laser(iEnt, vEndOrigin, tcolor, width, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), gBeam);
+	lm_draw_laser(iEnt, vEndOrigin, tcolor, width, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), 1, gBeam);
 }
 
 //====================================================
