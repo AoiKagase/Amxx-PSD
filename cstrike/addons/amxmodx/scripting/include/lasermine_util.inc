@@ -175,12 +175,12 @@ stock get_offset_value(id, type)
 //====================================================
 stock set_offset_value(id, type, value)
 {
+#if defined UL_MONEY_SUPPORT
 	if (type == OFFSET_MONEY)
 	{
-#if defined UL_MONEY_SUPPORT
 		return cs_set_user_money_ul(id, value);
-#endif
 	}
+#endif
 	set_pdata_int(id, type, value);	
 	return;
 }
@@ -204,7 +204,20 @@ stock lm_flash_money_hud(id, value, msg)
 //====================================================
 // Draw Laserline
 //====================================================
-stock lm_draw_laser(const iEnt, /* const Float:vOrigin[3],*/ const Float:vEndOrigin[3], const tcolor[3], const width, const bright, const life, const beam)
+stock lm_draw_laser(
+	const iEnt,
+	/* const Float:vOrigin[3],*/ 
+	const Float:vEndOrigin[3], 
+	const beam, 
+	const framestart	= 0, 
+	const framerate		= 0, 
+	const life			= 1, 
+	const width			= 1, 
+	const wave			= 0, 
+	const tcolor		[3],
+	const bright		= 255,
+	const speed			= 255
+)
 {
 	// Draw Laser line message.
 	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
@@ -217,17 +230,17 @@ stock lm_draw_laser(const iEnt, /* const Float:vOrigin[3],*/ const Float:vEndOri
 	engfunc(EngFunc_WriteCoord, vEndOrigin[1]); //Random
 	engfunc(EngFunc_WriteCoord, vEndOrigin[2]); //Random
 	write_short(beam);
-	write_byte(0);	// framestart
-	write_byte(0);	// framerate
-	write_byte(life);	// Life
-	write_byte(width);	// Width
-	write_byte(0);	// wave/noise
-	write_byte(tcolor[0]); // r
-	write_byte(tcolor[1]); // g
-	write_byte(tcolor[2]); // b
-	write_byte(bright); // Brightness.
-	write_byte(255);	// speed
-	message_end();	
+	write_byte(framestart);						// framestart
+	write_byte(framerate);						// framerate
+	write_byte(life);							// Life
+	write_byte(width);							// Width
+	write_byte(wave);							// wave/noise
+	write_byte(tcolor[0]);						// r
+	write_byte(tcolor[1]);						// g
+	write_byte(tcolor[2]);						// b
+	write_byte(bright);							// Brightness.
+	write_byte(speed);							// speed
+	message_end();
 }
 
 //====================================================

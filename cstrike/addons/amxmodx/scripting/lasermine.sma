@@ -342,7 +342,7 @@ public plugin_init()
 public plugin_end()
 {
 	for(new i = 0; i < MAX_PLAYERS; i++)
-		ClearStack(gRecycleMine[i]);
+		DestroyStack(gRecycleMine[i]);
 }
 
 //====================================================
@@ -694,7 +694,7 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	new Float:fCurrTime = get_gametime();
 	set_pev(iEnt, LASERMINE_POWERUP, fCurrTime + 2.5 );   
 	set_pev(iEnt, LASERMINE_STEP, POWERUP_THINK);
-	set_pev(iEnt, LASERMINE_COUNT, (get_gametime()));
+	set_pev(iEnt, LASERMINE_COUNT, fCurrTime);
 
 	// think rate. hmmm....
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
@@ -1167,8 +1167,8 @@ public LaserThink(iEnt)
 					// Laser line damage mode. Once or Second.
 					if (get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
 					{
-//						if (ArraySize(aTarget) > 0)
-						set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
+						if (ArraySize(aTarget) > 0)
+							set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
 
 						// if change target. keep target id.
 						if (pev(iEnt, LASERMINE_HITING) != iTarget)
@@ -1331,8 +1331,22 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		i = split_string(sRGB[iPos += i], ",", sColor, sColorLen);
 		tcolor[n++] = str_to_num(sColor);
 	}
-
-	lm_draw_laser(iEnt, vEndOrigin, tcolor, width, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), 1, gBeam);
+	/*
+	stock lm_draw_laser(
+		const iEnt,
+		const Float:vEndOrigin[3], 
+		const beam, 
+		const framestart	= 0, 
+		const framerate		= 0, 
+		const life			= 1, 
+		const width			= 1, 
+		const wave			= 0, 
+		const tcolor		[3],
+		const bright		= 255,
+		const speed			= 255
+	)
+	*/
+	lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 1, width, 0, tcolor, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), 255);
 }
 
 //====================================================
