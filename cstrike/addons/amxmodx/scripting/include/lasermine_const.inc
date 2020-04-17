@@ -34,7 +34,7 @@
 #define lm_set_user_deaths(%1,%2)	set_offset_value(%1, OFFSET_SET_DEATH, %2)
 #define lm_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
 #define lm_set_user_money(%1,%2)	set_offset_value(%1, OFFSET_MONEY, %2)
-#define lm_set_user_lasthit(%1, %2) set_pdata_int(%1, OFFSET_LAST_HIT_GROUP, %2, EXTRAOFFSET_PL_LINUX)
+#define lm_set_user_lasthit(%1,%2)	set_pdata_int(%1, OFFSET_LAST_HIT_GROUP, %2, EXTRAOFFSET_PL_LINUX)
 
 // Lasermine Data Save Area.
 #define LASERMINE_TEAM				pev_iuser1

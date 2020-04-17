@@ -309,7 +309,8 @@ stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 	new Float:velocity[3];
 	new trace;
 	new iHit;
-
+	new tClassName[MAX_NAME_LENGTH];
+	new iClassName[MAX_NAME_LENGTH];
 	// Calculate falloff
 	new Float:falloff;
 	if (radius > 0.0)
@@ -317,6 +318,7 @@ stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 	else
 		falloff = 1.0;
 	
+	iClassName = lm_get_entity_class_name(iEnt);
 	// Find monsters and players inside a specifiec radius
 	while((rEnt = engfunc(EngFunc_FindEntityInSphere, rEnt, vOrigin, radius)) != 0)
 	{
@@ -324,9 +326,13 @@ stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 		if (!pev_valid(rEnt)) 
 			continue;
 
-		// Entity is not a player or monster, ignore it
-		if (!(pev(rEnt, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER)))
-			continue;
+		tClassName = lm_get_entity_class_name(rEnt);
+		if (!equali(tClassName, iClassName))
+		{
+			// Entity is not a player or monster, ignore it
+			if (!(pev(rEnt, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER)))
+				continue;
+		}
 
 		// is alive?
 		if (!lm_is_user_alive(rEnt))
@@ -374,29 +380,31 @@ stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 			tmpDmg -= distance;
 			if(tmpDmg < 0.0)
 				tmpDmg = 0.0;
-			
-			// Kickback Effect
-			if(kickBack != 0.0)
+			if (!equali(iClassName, tClassName))
 			{
-				xs_vec_sub(vecSpot, vecSee, origin);
-				
-				invlen = 1.0 / get_distance_f(vecSpot, vecSee);
-
-				xs_vec_mul_scalar(origin, invlen, vecPush);
-				pev(rEnt, pev_velocity, velocity);
-				xs_vec_mul_scalar(vecPush, tmpDmg, vecPush);
-				xs_vec_mul_scalar(vecPush, kickBack, vecPush);
-				xs_vec_add(velocity, vecPush, velocity);
-				
-				if(tmpDmg < 60.0)
-					xs_vec_mul_scalar(velocity, 12.0, velocity);
-				else
-					xs_vec_mul_scalar(velocity, 4.0, velocity);
-				
-				if(velocity[0] != 0.0 || velocity[1] != 0.0 || velocity[2] != 0.0)
+				// Kickback Effect
+				if(kickBack != 0.0)
 				{
-					// There's some movement todo :)
-					set_pev(rEnt, pev_velocity, velocity);
+					xs_vec_sub(vecSpot, vecSee, origin);
+					
+					invlen = 1.0 / get_distance_f(vecSpot, vecSee);
+
+					xs_vec_mul_scalar(origin, invlen, vecPush);
+					pev(rEnt, pev_velocity, velocity);
+					xs_vec_mul_scalar(vecPush, tmpDmg, vecPush);
+					xs_vec_mul_scalar(vecPush, kickBack, vecPush);
+					xs_vec_add(velocity, vecPush, velocity);
+					
+					if(tmpDmg < 60.0)
+						xs_vec_mul_scalar(velocity, 12.0, velocity);
+					else
+						xs_vec_mul_scalar(velocity, 4.0, velocity);
+					
+					if(velocity[0] != 0.0 || velocity[1] != 0.0 || velocity[2] != 0.0)
+					{
+						// There's some movement todo :)
+						set_pev(rEnt, pev_velocity, velocity);
+					}
 				}
 			}
 			// Damage Effect, Damage, Killing Logic.

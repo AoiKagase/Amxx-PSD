@@ -242,7 +242,7 @@ public plugin_init()
 	gCvar[CVAR_ENABLE]	        = register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),				"1"			);	// 0 = off, 1 = on.
 	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_access"),				"0"			);	// 0 = all, 1 = admin
 	gCvar[CVAR_MODE]           	= register_cvar(fmt("%s%s", CVAR_TAG, "_mode"),   				"0"			);	// 0 = lasermine, 1 = tripmine, 2 = claymore wire trap
-	gCvar[CVAR_FRIENDLY_FIRE]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_friendly_fire"),		"0"			);	// Friendly fire. 0 or 1
+//	gCvar[CVAR_FRIENDLY_FIRE]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_friendly_fire"),		"0"			);	// Friendly fire. 0 or 1
 	gCvar[CVAR_START_DELAY]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),			"5"			);	// Round start delay time.
 	gCvar[CVAR_CMD_MODE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_cmd_mode"),				"1"			);	// 0 is +USE key, 1 is bind, 2 is each.
 #if defined BIOHAZARD_SUPPORT
@@ -405,6 +405,7 @@ public plugin_cfg()
 		server_cmd("exec %s", file);
 		server_exec();
 	}
+	gCvar[CVAR_FRIENDLY_FIRE]  	= get_cvar_pointer("mp_friendlyfire");											// Friendly fire. 0 or 1
 }
 
 //====================================================
@@ -442,13 +443,13 @@ bool:is_valid_takedamage(iAttacker, iTarget)
 	return false;
 }
 
-bool:is_user_friend(iAttacker, iTarget)
-{
-	if (get_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE]))
-	if (cs_get_user_team(iAttacker) == cs_get_user_team(iTarget))
-		return true;
-	return false;
-}
+// bool:is_user_friend(iAttacker, iTarget)
+// {
+// 	if (get_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE]))
+// 	if (cs_get_user_team(iAttacker) == cs_get_user_team(iTarget))
+// 		return true;
+// 	return false;
+// }
 
 //====================================================
 // Round Start Initialize
@@ -695,6 +696,7 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	set_pev(iEnt, LASERMINE_POWERUP, fCurrTime + 2.5 );   
 	set_pev(iEnt, LASERMINE_STEP, POWERUP_THINK);
 	set_pev(iEnt, LASERMINE_COUNT, fCurrTime);
+	set_pev(iEnt, LASERMINE_BEAMTHINK, fCurrTime);
 
 	// think rate. hmmm....
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
@@ -1071,8 +1073,24 @@ public LaserThink(iEnt)
 		static trace;
 		static Float:hitPoint[3];
 		static Float:nextTime = 0.0;
+		static Float:beamTime = 0.0;
 
 		pev(iEnt, LASERMINE_COUNT, nextTime);
+		pev(iEnt, LASERMINE_BEAMTHINK, beamTime);
+		if (fCurrTime > beamTime)
+		{
+			for(new i = 0; i < loop; i++)
+			{
+				// drawing spark.
+				if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
+				{
+					draw_laserline(iEnt, vEnd[i]);
+					if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
+						lm_draw_spark_for_wall(hitPoint);
+				}
+			}
+			set_pev(iEnt, LASERMINE_BEAMTHINK, fCurrTime + random_float(0.1, 0.2));
+		}
 
 		if (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_LASERMINE 
 		&&  get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
@@ -1080,11 +1098,11 @@ public LaserThink(iEnt)
 			if (fCurrTime < nextTime)
 			{
 				// Think time.
+				// Think time. random_float = laser line blinking.
 				set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
 				return HAM_HANDLED;
 			}
 		}
-
 		aTarget = ArrayCreate(sizeof(hPlayer));
 
 		// create the trace handle.
@@ -1096,6 +1114,7 @@ public LaserThink(iEnt)
 			iIgnoreEnt	= iEnt;
 			ArrayClear(aTarget);
 			reStartPos = vOrigin;
+			set_pev(iEnt, LASERMINE_COUNT, get_gametime());
 
 			// Trace line
 			while(fFraction < 1.0)
@@ -1141,14 +1160,6 @@ public LaserThink(iEnt)
 					// keep target id.
 					set_pev(iEnt, pev_enemy, iTarget);
 				}
-			}
-
-			// drawing spark.
-			if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
-			{
-				draw_laserline(iEnt, vEnd[i]);
-				if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
-					lm_draw_spark_for_wall(hitPoint);
 			}
 
 			// Mode. Lasermine / Tripmine / Claymore wire trap.
@@ -1199,11 +1210,11 @@ public LaserThink(iEnt)
 		{
 			// next step explosion.
 			set_pev(iEnt, LASERMINE_STEP, EXPLOSE_THINK);
-			set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
+			set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
 		}
 				
 		// Think time. random_float = laser line blinking.
-		set_pev(iEnt, pev_nextthink, fCurrTime + random_float(0.01, 0.02));
+		set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
 
 		return HAM_HANDLED;
 	}
@@ -1346,7 +1357,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		const speed			= 255
 	)
 	*/
-	lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 1, width, 0, tcolor, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), 255);
+	lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 2, width, 0, tcolor, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), 255);
 }
 
 //====================================================
@@ -1354,8 +1365,8 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 //====================================================
 create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 {
-	// Damage mode.	
-	new dmgmode 	= get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]);
+	// Damage.
+	new Float:dmg 	= get_pcvar_float(gCvar[CVAR_LASER_DMG]);
 
 	new iAttacker = pev(iEnt,LASERMINE_OWNER);
 	if (get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]) && hitGroup == HIT_SHIELD)
@@ -1370,20 +1381,20 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 		lm_play_sound(iTarget, SOUND_HIT);
 		lm_set_user_lasthit(iTarget, hitGroup);
 
-		if (is_user_friend(iAttacker, iTarget))
-		{
-			// Hit
-			new CsTeams:aTeam = cs_get_user_team(iAttacker);
-			cs_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T), _, false);
-			// Damage Effect, Damage, Killing Logic.
-			ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
-			cs_set_user_team(iAttacker, int:aTeam, _, false);
-		}
-		else
-		{
-			// Damage Effect, Damage, Killing Logic.
-			ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
-		}
+		// if (is_user_friend(iAttacker, iTarget))
+		// {
+		// 	// Hit
+		// 	new CsTeams:aTeam = cs_get_user_team(iAttacker);
+		// 	cs_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T), _, false);
+		// 	// Damage Effect, Damage, Killing Logic.
+		// 	ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
+		// 	cs_set_user_team(iAttacker, int:aTeam, _, false);
+		// }
+		// else
+		// {
+		// Damage Effect, Damage, Killing Logic.
+		ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
+		// }
 	}
 	set_pev(iEnt, LASERMINE_HITING, iTarget);		
 	
