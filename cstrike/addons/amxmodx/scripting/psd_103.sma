@@ -7,7 +7,7 @@
 #include <sqlx>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.01"
+#define VERSION					"1.03"
 #define AUTHOR					"Aoi.Kagase"
 
 /*=====================================*/
@@ -195,7 +195,7 @@ init_database()
 	sql = "";
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_MAP]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`		  INT UNSIGNED    NOT NULL DEFAULT 1,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 			  DATETIME        NOT NULL,");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 			  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `map_name`     	  VARCHAR(%d)     NOT NULL DEFAULT  '',", 	MAX_NAME_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `total_round`     	  INT UNSIGNED    NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `total_time`     	  BIGINT UNSIGNED NOT NULL DEFAULT 0,");
@@ -214,7 +214,7 @@ init_database()
 	sql = "";
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_ROUND]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`		 INT UNSIGNED    NOT NULL DEFAULT 1,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 			 DATETIME    	 NOT NULL,");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 			 DATETIME    	 NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `round`     	 	 INT UNSIGNED    NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `round_time`     	 INT UNSIGNED 	 NOT NULL DEFAULT 0,"); // roundtime 0 is danger!!
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `win_team`   	 	 TINYINT    	 NOT NULL DEFAULT 0,");
@@ -272,7 +272,7 @@ init_database()
 	sql = "";
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER_STATS]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`	INT UNSIGNED    NOT NULL DEFAULT 1,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    DEFAULT  '0000-00-00 00:00:00',");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `auth_id`    	VARCHAR(%d)     NOT NULL,", 	MAX_AUTHID_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_rank`		BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_score`	BIGINT NOT NULL DEFAULT 0,");
@@ -300,7 +300,7 @@ init_database()
 	sql = "";
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER_OBJECTIVE]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`	INT UNSIGNED    NOT NULL DEFAULT 1,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    DEFAULT  '0000-00-00 00:00:00',");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `auth_id`    	VARCHAR(%d)     NOT NULL,", 	MAX_AUTHID_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `t_defusions`  BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `b_defused`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
@@ -315,7 +315,7 @@ init_database()
 	sql = "";
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER_ROUND]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`	INT UNSIGNED    NOT NULL DEFAULT 1,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    DEFAULT  '0000-00-00 00:00:00',");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `round`   	  	INT UNSIGNED    DEFAULT  0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `auth_id`    	VARCHAR(%d)     NOT NULL,", 	MAX_AUTHID_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `team`   	  	TINYINT    		NOT NULL DEFAULT 0,");
@@ -344,7 +344,7 @@ init_database()
 	sql = "";
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER_WEAPON]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`	INT UNSIGNED    NOT NULL DEFAULT 1,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    DEFAULT  '0000-00-00 00:00:00',");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `auth_id`    	VARCHAR(%d)     NOT NULL,", 	MAX_AUTHID_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `wpn_name`  	VARCHAR(%d)     DEFAULT  '',", 	MAX_NAME_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_kills`    BIGINT UNSIGNED NOT NULL DEFAULT 0,");
@@ -372,7 +372,7 @@ init_database()
 	sql = "";
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER_RWEAPON]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`	INT UNSIGNED    NOT NULL DEFAULT 1,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    DEFAULT  '0000-00-00 00:00:00',");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `date` 	  	DATETIME	    NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `round`   	  	INT UNSIGNED    DEFAULT  0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `auth_id`    	VARCHAR(%d)     NOT NULL,", 	MAX_AUTHID_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `wpn_name`  	VARCHAR(%d)     DEFAULT  '',", 	MAX_NAME_LENGTH);
