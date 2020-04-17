@@ -1356,39 +1356,6 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 {
 	// Damage mode.	
 	new dmgmode 	= get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]);
-	new Float:dmg 	= get_pcvar_float(gCvar[CVAR_LASER_DMG]);
-
-	switch (dmgmode)
-	{
-		// Once hit.
-		case DMGMODE_ONCE:
-		{
-			// Already Hit target.
-			if (pev(iEnt, LASERMINE_HITING) == iTarget)
-				return;
-		}
-		// Seconds hit.
-		case DMGMODE_SECONDS:
-		{
-			static Float:laserdps = 0.0;
-			laserdps = get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS]);
-			// Alread hit target.
-			if (pev(iEnt, LASERMINE_HITING) == iTarget)
-			{
-				static Float:ntime = 0.0; ntime = get_gametime();
-				static Float:htime = 0.0; pev(iEnt, LASERMINE_COUNT, htime);
-
-				if (ntime < htime)
-				{
-					// Through Next time.
-					return;
-				}
-
-			}
-			// Keep now time.
-			set_pev(iEnt, LASERMINE_COUNT, (get_gametime() + laserdps))
-		}
-	}
 
 	new iAttacker = pev(iEnt,LASERMINE_OWNER);
 	if (get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]) && hitGroup == HIT_SHIELD)
@@ -1401,6 +1368,8 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 	else
 	{
 		lm_play_sound(iTarget, SOUND_HIT);
+		lm_set_user_lasthit(iTarget, hitGroup);
+
 		if (is_user_friend(iAttacker, iTarget))
 		{
 			// Hit

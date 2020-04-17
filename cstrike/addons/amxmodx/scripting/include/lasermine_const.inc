@@ -23,6 +23,9 @@
 #endif
 #define OFFSET_GET_DEATH			444
 #define OFFSET_SET_DEATH			711
+#define OFFSET_LAST_HIT_GROUP		75
+#define EXTRAOFFSET_PL_LINUX		5
+
 #define PLAYER_IN_BUYZONE			(1<<0)
 // CS Status Data.
 #define lm_get_user_team(%1)		CsTeams:get_offset_value(%1, OFFSET_TEAM)
@@ -31,6 +34,7 @@
 #define lm_set_user_deaths(%1,%2)	set_offset_value(%1, OFFSET_SET_DEATH, %2)
 #define lm_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
 #define lm_set_user_money(%1,%2)	set_offset_value(%1, OFFSET_MONEY, %2)
+#define lm_set_user_lasthit(%1, %2) set_pdata_int(%1, OFFSET_LAST_HIT_GROUP, %2, EXTRAOFFSET_PL_LINUX)
 
 // Lasermine Data Save Area.
 #define LASERMINE_TEAM				pev_iuser1
