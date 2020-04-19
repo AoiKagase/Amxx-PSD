@@ -19,6 +19,7 @@
 #include <vector>
 #include <xs>
 #include <lasermine_util>
+#include <beams>
 
 #if defined BIOHAZARD_SUPPORT
 	#include <biohazard>
@@ -117,6 +118,7 @@
 #define TASK_RELEASE				16900
 
 #define MAX_CLAYMORE				40
+#define CLAYMORE_WIRE_STARTPOINT	pev_vuser4
 
 // Client Print Command Macro.
 #define cp_debug(%1)				client_print_color(%1, %1, "^4[Laesrmine Debug] ^1Can't Create Entity")
@@ -197,14 +199,20 @@ new gCvar[CVAR_SETTING];
 new int:gNowTime
 new gMsgStatusText, gMsgBarTime;
 
-new gBeam, gBoom;
+new gBoom;
 new gEntMine;
 
 #if !defined UL_MONEY_SUPPORT
 	new gMsgMoney;
 #endif
 new Float:gDeployPos[MAX_PLAYERS][3];
+new CLAYMORE_WIRE[]	= {
+	pev_euser1,
+	pev_euser2,
+	pev_euser3,
+}
 
+new Float:gModelMargin[3] = {0.0, -0.0, 4.0};
 //====================================================
 //  PLUGIN INITIALIZE
 //====================================================
@@ -265,16 +273,16 @@ public plugin_init()
 	gCvar[CVAR_CM_WIRE_RANGE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_range"),		"300"		);	// wire range.
 	gCvar[CVAR_CM_WIRE_BRIGHT]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_brightness"),	"255"		);	// wire brightness.
 	gCvar[CVAR_CM_WIRE_WIDTH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_width"),		"2"			);	// wire width.
-	gCvar[CVAR_CM_CENTER_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_pitch"),"220,290"	);	// wire area center pitch.
-	gCvar[CVAR_CM_CENTER_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_yaw"),	"-25,25"	);	// wire area center yaw.
-	gCvar[CVAR_CM_LEFT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_pitch"),	"260,290"	);	// wire area left pitch.
-	gCvar[CVAR_CM_LEFT_YAW]		= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_yaw"),	"30,60"		);	// wire area left yaw.
-	gCvar[CVAR_CM_RIGHT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_pitch"),	"260,290"	);	// wire area right pitch.
-	gCvar[CVAR_CM_RIGHT_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_yaw"),	"-30,-60"	);	// wire area right yaw.
+	gCvar[CVAR_CM_CENTER_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_pitch"),"10,-65"		);	// wire area center pitch.
+	gCvar[CVAR_CM_CENTER_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_yaw"),	"45,135"	);	// wire area center yaw.
+	gCvar[CVAR_CM_LEFT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_pitch"),	"10,-45"	);	// wire area left pitch.
+	gCvar[CVAR_CM_LEFT_YAW]		= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_yaw"),	"100,165"	);	// wire area left yaw.
+	gCvar[CVAR_CM_RIGHT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_pitch"),	"10,-45"	);	// wire area right pitch.
+	gCvar[CVAR_CM_RIGHT_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_yaw"),	"15,80"		);	// wire area right yaw.
 	gCvar[CVAR_CM_TRIAL_FREQ]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_trial_freq"),	"3"			);	// wire trial frequency.
 	gCvar[CVAR_CM_WIRE_COLOR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
-	gCvar[CVAR_CM_WIRE_COLOR_T] = register_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_t"),		"20,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
-	gCvar[CVAR_CM_WIRE_COLOR_CT]= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_ct"),	"0,0,20"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_CM_WIRE_COLOR_T] = register_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_t"),		"255,255,255"	);	// Team-Color for Terrorist. default:red (R,G,B)
+	gCvar[CVAR_CM_WIRE_COLOR_CT]= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_ct"),	"255,255,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
 
 	// Register Hamsandwich
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
@@ -297,7 +305,7 @@ public plugin_init()
 	// Register Forward.
 	register_forward(FM_PlayerPostThink,"PlayerPostThink");
 	register_forward(FM_PlayerPreThink, "PlayerPreThink");
-	// register_forward(FM_TraceLine,		"MinesShowInfo", 1);
+	register_forward(FM_TraceLine,		"MinesShowInfo", 1);
 
 	// Multi Language Dictionary.
 	register_dictionary("claymore.txt");
@@ -320,7 +328,7 @@ public plugin_precache()
 	precache_sound(ENT_SOUND6);
 	precache_sound(ENT_SOUND7);
 	precache_model(ENT_MODELS);
-	gBeam = precache_model(ENT_SPRITE1);
+	precache_model(ENT_SPRITE1);
 	gBoom = precache_model(ENT_SPRITE2);
 	
 	return PLUGIN_CONTINUE;
@@ -427,7 +435,7 @@ public NewRound(id)
 		delete_task(id);
 
 		// Removing already put claymore.
-		lm_remove_all_entity(id, ENT_CLASS_CLAYMORE);
+		lm_remove_all_entity_with_wire(id, ENT_CLASS_CLAYMORE);
 
 		// Round start set ammo.
 		set_start_ammo(id);
@@ -494,7 +502,7 @@ public DeathEvent()
 
 	// Dead Player remove claymore.
 	if (get_pcvar_num(gCvar[CVAR_DEATH_REMOVE]))
-		lm_remove_all_entity(vID, ENT_CLASS_CLAYMORE);
+		lm_remove_all_entity_with_wire(vID, ENT_CLASS_CLAYMORE);
 
 	return PLUGIN_CONTINUE;
 }
@@ -673,7 +681,7 @@ set_mine_position(uID, iEnt)
     // create the trace handle.
 	new trace = create_tr2();
 	// get wall position to vNewOrigin.
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, DONT_IGNORE_MONSTERS, uID, trace);
+	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, uID, trace);
 	{
 		new Float:fFraction;
 		get_tr2(trace, TR_flFraction, fFraction);
@@ -689,28 +697,31 @@ set_mine_position(uID, iEnt)
     // free the trace handle.
 	free_tr2(trace);
 
-	xs_vec_mul_scalar(vNormal, 8.0, vNormal);
+	xs_vec_mul_scalar(vNormal, 6.0, vNormal);
 	xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
 
 	// set size.
-	engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -2.0, -4.0 }, Float:{ 4.0, 2.0, 4.0 });
+	engfunc(EngFunc_SetSize, iEnt, Float:{ -7.2, -4.0, -7.0 }, Float:{ 7.2, 1.0, 7.0 });
 	// set entity position.
 	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
-
 	// Claymore user Angles.
-	new Float:pAngles[3], Float:vFwd[3], Float:vRight[3], Float:vUp[3];
+	new Float:pAngles[3];
 	pev(uID, pev_angles, pAngles);
-	xs_anglevectors(pAngles, vFwd, vRight, vUp);
-	xs_vec_sub(vNormal, vFwd, vNormal);
+	pAngles[0]   = -90.0;
+	//pAngles[1]  += -90.0;
 
 	// Rotate tripmine.
 	vector_to_angle(vNormal, vEntAngles);
+	xs_vec_add(vEntAngles, pAngles, vEntAngles); 
 
 	// set angle.
 	set_pev(iEnt, pev_angles, vEntAngles);
+	xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
+
+	set_pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vNewOrigin);
 
 	// set laserbeam end point position.
-	set_claymore_endpoint(iEnt, vNewOrigin, vNormal);
+	set_claymore_endpoint(iEnt, vNewOrigin);
 }
 
 //====================================================
@@ -770,7 +781,7 @@ public RemoveMine(id)
 	}
 
 	// Remove!
-	lm_remove_entity(target);
+	lm_remove_claymore_with_wire(target);
 
 	// Collect for this removed claymore.
 	lm_set_user_have_mine(uID, lm_get_user_have_mine(uID) + int:1);
@@ -916,9 +927,10 @@ public LaserThink(iEnt)
 	}
 	static Float:vEnd[3][3]; // Claymore 3 point
 	static Float:vOrigin[3];
-
+	static wire;
 	// Get this mine position.
-	pev(iEnt, pev_origin, vOrigin);
+	pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vOrigin);
+
 	// Get Laser line end potision.
 	pev(iEnt, LASERMINE_BEAMENDPOINT1, vEnd[0]);
 	pev(iEnt, LASERMINE_BEAMENDPOINT2, vEnd[1]);
@@ -931,7 +943,8 @@ public LaserThink(iEnt)
 		{
 			for (new i = 0; i < loop; i++)
 			{
-				draw_laserline(iEnt, vEnd[i]);
+				wire = draw_laserline(iEnt, vEnd[i]);
+				set_pev(iEnt, CLAYMORE_WIRE[i], wire);
 				lm_draw_spark_for_wall(vEnd[i]);
 			}
 		}
@@ -1033,7 +1046,7 @@ public LaserThink(iEnt)
 		lm_create_explosion_damage(iEnt, iOwner, get_pcvar_float(gCvar[CVAR_EXPLODE_DMG]), get_pcvar_float(gCvar[CVAR_EXPLODE_RADIUS]));
 
 		// remove this.
-		lm_remove_entity(iEnt);
+		lm_remove_claymore_with_wire(iEnt);
 		return HAM_HANDLED;
 	}
 
@@ -1075,13 +1088,13 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 //====================================================
 draw_laserline(iEnt, const Float:vEndOrigin[3])
 {
-	new tcolor	[3];
+	new Float:tcolor[3];
 	new sRGB	[13];
 	new sColor	[4];
-	new sRGBLen 	= charsmax(sRGB);
-	new sColorLen	= charsmax(sColor);
-	new CsTeams:teamid = CsTeams:pev(iEnt, LASERMINE_TEAM);
-	new width 		= get_pcvar_num(gCvar[CVAR_CM_WIRE_WIDTH]);
+	new sRGBLen 		= charsmax(sRGB);
+	new sColorLen		= charsmax(sColor);
+	new CsTeams:teamid	= CsTeams:pev(iEnt, LASERMINE_TEAM);
+	new Float:width 	= get_pcvar_float(gCvar[CVAR_CM_WIRE_WIDTH]);
 	new i = 0, n = 0, iPos = 0;
 
 	// Test. Claymore color is black wire.
@@ -1103,10 +1116,86 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 	while(n < sizeof(tcolor))
 	{
 		i = split_string(sRGB[iPos += i], ",", sColor, sColorLen);
-		tcolor[n++] = str_to_num(sColor);
+		tcolor[n++] = float(str_to_num(sColor));
 	}
 
-	lm_draw_laser(iEnt, vEndOrigin, tcolor, width, get_pcvar_num(gCvar[CVAR_CM_WIRE_BRIGHT]), gBeam);
+	/*
+	stock lm_draw_laser(
+		const iEnt,
+		const Float:vEndOrigin[3], 
+		const beam, 
+		const framestart	= 0, 
+		const framerate		= 0, 
+		const life			= 1, 
+		const width			= 1, 
+		const wave			= 0, 
+		const tcolor		[3],
+		const bright		= 255,
+		const speed			= 255
+	)
+	*/
+	static Float:vStartOrigin[3];
+	pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vStartOrigin);
+	// lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 0, width, 0, tcolor, get_pcvar_num(gCvar[CVAR_CM_WIRE_BRIGHT]), 0);
+	return lm_draw_wire(vStartOrigin, vEndOrigin, 0.0, width, 0, tcolor, get_pcvar_float(gCvar[CVAR_CM_WIRE_BRIGHT]), 0.0);
+}
+
+stock lm_draw_wire(
+		const Float:vStartOrigin[3],
+		const Float:vEndOrigin[3], 
+		const Float:framestart	= 0.0, 
+		const Float:width		= 1.0, 
+		const wave				= 0, 
+		const Float:tcolor[3],
+		const Float:bright		= 255.0,
+		const Float:speed		= 255.0
+	)
+{
+	new beams = Beam_Create(ENT_SPRITE1, width);
+	Beam_PointsInit(beams, vStartOrigin, vEndOrigin);
+	Beam_SetFlags(beams, BEAM_FSOLID);
+	Beam_SetFrame(beams, framestart);
+	Beam_SetNoise(beams, wave);
+	Beam_SetColor(beams, tcolor);
+	Beam_SetBrightness(beams, bright);
+	Beam_SetScrollRate(beams, speed);
+	set_pev(beams, pev_renderamt, 255.0);
+	return beams;
+}
+
+//====================================================
+// Remove all Entity.
+//====================================================
+stock lm_remove_all_entity_with_wire(id, className[])
+{
+	new iEnt = -1;
+
+	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
+	{
+		if (!pev_valid(iEnt))
+			continue;
+
+		if (is_user_connected(id))
+		{
+			if (pev(iEnt, LASERMINE_OWNER) != id)
+				continue;
+		}
+		lm_play_sound(iEnt, SOUND_STOP);
+		lm_remove_claymore_with_wire(iEnt);
+	}
+	// reset deploy count.
+	lm_set_user_mine_deployed(id, int:0);
+}
+
+stock lm_remove_claymore_with_wire(iEnt)
+{
+	new wire;
+	for (new i = 0; i < 3; i++)
+	{
+		wire = pev(iEnt, CLAYMORE_WIRE[i]);
+		lm_remove_entity(wire);
+	}
+	lm_remove_entity(iEnt);
 }
 
 //====================================================
@@ -1312,7 +1401,7 @@ public client_disconnected(id)
 	// delete task.
 	delete_task(id);
 	// remove all claymore.
-	lm_remove_all_entity(id, ENT_CLASS_CLAYMORE);
+	lm_remove_all_entity_with_wire(id, ENT_CLASS_CLAYMORE);
 
 	return PLUGIN_CONTINUE;
 }
@@ -1536,7 +1625,7 @@ stock ERROR:check_for_onwall(id)
     // create the trace handle.
 	new trace = create_tr2();
 	new Float:fFraction = 0.0;
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, DONT_IGNORE_MONSTERS, id, trace);
+	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
 	{
     	get_tr2( trace, TR_flFraction, fFraction );
     }
@@ -1681,20 +1770,20 @@ Float:get_claymore_wire_endpoint(CVAR_SETTING:cvar)
 //====================================================
 // Claymore Wire Endpoint
 //====================================================
-set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
+stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 {
 	new Float:vAngles	[3];
 	new Float:vForward	[3];
 	new Float:vResult	[3][3];
-	new Float:hitPoint	[3];
-	new Float:vTmp		[3];
+	static Float:hitPoint	[3];
+	static Float:vTmp		[3];
 	new Float:pAngles	[3];
 	new Float:vFwd		[3];
 	new Float:vRight	[3];
 	new Float:vUp		[3];
 	new trace = create_tr2();
-	new Float:pitch;
-	new Float:yaw;
+	static Float:pitch;
+	static Float:yaw;
 	new Float:range;
 	new n = 0;
 	new freq = get_pcvar_num(gCvar[CVAR_CM_TRIAL_FREQ]);
@@ -1735,15 +1824,15 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 				}
 
 				pAngles[0] = pitch;
-				pAngles[1] = yaw;
+				pAngles[1] = -90 + yaw;
 
 				xs_vec_add(pAngles, vAngles, pAngles);
 				xs_anglevectors(pAngles, vFwd, vRight, vUp);
 			
 				xs_vec_mul_scalar(vFwd, range, vFwd);
-				// xs_vec_add(vOrigin, vFwd, vForward);
-				xs_vec_add(vFwd, vNormal, vForward);
-				xs_vec_add(vOrigin, vForward, vForward);
+				xs_vec_add(vOrigin, vFwd, vForward);
+				// xs_vec_add(vFwd, vNormal, vForward);
+				// xs_vec_add(vOrigin, vForward, vForward);
 
 				// Trace line
 				engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
@@ -1813,7 +1902,7 @@ public admin_remove_cm(id, level, cid)
 		return PLUGIN_HANDLED;
 
 	delete_task(player); 
-	lm_remove_all_entity(player, ENT_CLASS_CLAYMORE);
+	lm_remove_all_entity_with_wire(player, ENT_CLASS_CLAYMORE);
 
 	new namea[MAX_NAME_LENGTH],namep[MAX_NAME_LENGTH]; 
 	get_user_name(id, namea, charsmax(namea));
@@ -1860,7 +1949,7 @@ public CheckSpectator()
 		if (szTeam[0] == 'U' || szTeam[0] == 'S')
 		{
 			delete_task(id);
-			lm_remove_all_entity(id, ENT_CLASS_CLAYMORE);
+			lm_remove_all_entity_with_wire(id, ENT_CLASS_CLAYMORE);
 			new namep[MAX_NAME_LENGTH];
 			get_user_name(id, namep, charsmax(namep));
 			cp_remove_spec(0, namep);

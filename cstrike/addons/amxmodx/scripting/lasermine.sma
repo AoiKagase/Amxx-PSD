@@ -67,7 +67,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.06"
+#define VERSION 					"3.07"
 
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
