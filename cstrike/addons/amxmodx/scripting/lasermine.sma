@@ -67,7 +67,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.07"
+#define VERSION 					"3.08"
 
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
@@ -1537,6 +1537,9 @@ public lm_say_lasermine(id)
 //====================================================
 public PlayerPostThink(id) 
 {
+	if ((get_user_weapon(id) == CSW_C4 && pev(id, pev_button ) & IN_ATTACK))
+		return FMRES_IGNORED;
+
 	switch (lm_get_user_deploy_state(id))
 	{
 		case STATE_IDLE:
