@@ -336,6 +336,11 @@ public plugin_init()
 	return PLUGIN_CONTINUE;
 }
 
+public plugin_natives()
+{
+	register_library("lasermine_native");
+}
+
 //====================================================
 //  PLUGIN END
 //====================================================
@@ -507,6 +512,7 @@ public KeepMaxSpeed(id)
 
 //====================================================
 // Round Start Set Ammo.
+// Native:_native_set_start_ammo(iPlugin, iParam);
 //====================================================
 set_start_ammo(id)
 {
