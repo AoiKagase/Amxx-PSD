@@ -35,9 +35,9 @@
 #define lm_set_user_lasthit(%1,%2)	set_pdata_int(%1, OFFSET_LAST_HIT_GROUP, %2, EXTRAOFFSET_PL_LINUX)
 
 // Lasermine Data Save Area.
-#define LASERMINE_TEAM				pev_iuser1
-#define LASERMINE_OWNER				pev_iuser2
-#define LASERMINE_STEP				pev_iuser3
+#define MINES_TEAM				pev_iuser1
+#define MINES_OWNER				pev_iuser2
+#define MINES_STEP				pev_iuser3
 #define LASERMINE_HITING			pev_iuser4
 #define LASERMINE_COUNT				pev_fuser1
 #define LASERMINE_POWERUP			pev_fuser2
@@ -121,26 +121,20 @@ enum _:ERROR
 
 enum _:COMMON_MINES_DATA
 {
-	ROUND_START_DELAY	,
-	BIND_MODE			,
 	AMMO_HAVE_START		,
 	AMMO_HAVE_MAX		,
 	DEPLOY_MAX			,
 	DEPLOY_TEAM_MAX		,
-	BUY_MODE			,
 	BUY_PRICE			,
 	BUY_ZONE			,
 	FRAG_MONEY			,
 	MINE_HEALTH			,
 	MINE_GLOW			,
 	MINE_GLOW_MODE		,
-	MINE_BROKEN			,
 	EXPLODE_RADIUS		,
 	EXPLODE_DAMAGE		,
-	DEATH_REMOVE		,
 	ACTIVATE_TIME		,
 	ALLOW_PICKUP		,
-	BUY_CBT				[4],
 	MINE_GLOW_COLOR_TR	[12],
 	MINE_GLOW_COLOR_CT	[12],
 	CLASS_NAME			[MAX_NAME_LENGTH],

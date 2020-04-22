@@ -122,7 +122,6 @@
 #define cp_maximum_deployed(%1)		client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_DEPLOY,	CHAT_TAG)
 #define cp_have_max(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_HAVE,		CHAT_TAG)
 #define cp_many_ppl(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_PPL,		CHAT_TAG)
-#define cp_delay_time(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_DELAY_SEC,	CHAT_TAG, int:get_pcvar_num(gCvar[CVAR_START_DELAY]) - gNowTime)
 #define cp_must_wall(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_PLANT_WALL,	CHAT_TAG)
 #define cp_must_ground(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_PLANT_GROUND,	CHAT_TAG)
 #define cp_sorry(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_SORRY_IMPL,	CHAT_TAG)
@@ -197,17 +196,25 @@ enum CVAR_SETTING
 	CVAR_CM_WIRE_COLOR_CT	,
 };
 
+enum _:FORWARDER
+{
+	FWD_SET_ENTITY_SPAWN,
+	FWD_PUTIN_SERVER,
+	FWD_REMOVE_MINE,
+	FWD_CHECK_DEPLOY,
+	FWD_CHECK_REMOVE,
+	FWD_CHECK_FOR_BUY,
+	FWD_DISCONNECTED,
+};
 //====================================================
 //  GLOBAL VARIABLES
 //====================================================
 new gCvar[CVAR_SETTING];
 
-new int:gNowTime
-new gMsgStatusText, gMsgBarTime;
+new gMsgBarTime;
 
-new gBeam, gBoom;
 new gEntMine;
-
+new gForwarder			[FORWARDER];
 new Array:gCMinesData;
 new Array:gPlayerData	[MAX_PLAYERS];
 new gCPlayerData		[MAX_PLAYERS][COMMON_PLAYER_DATA];
@@ -258,7 +265,7 @@ stock int:lm_stock_get_user_delay_count		(id, minesid)
 }
 stock int:lm_stock_get_user_have_mine		(id, minesid)
 {
-	return lm_get_player_data(id, minesid, PL_COUNT_HAVE_MINE);
+	return int:lm_get_player_data(id, minesid, PL_COUNT_HAVE_MINE);
 }
 stock int:lm_stock_get_user_mine_deployed	(id, minesid)
 {
@@ -316,16 +323,44 @@ stock int:lm_get_team_deployed_count		(id, minesid)
 
 	return count;
 }
+stock lm_reset_have_mines(id)
+{
+	for(new i = 0; i < ArraySize(gCMinesData); i++)
+	{
+		// reset deploy count.
+		lm_stock_set_user_mine_deployed(id, i, int:0);
+		// reset hove mine.
+		lm_stock_set_user_have_mine(id, i, int:0);
+	}
+}
+stock lm_remove_all_mines(id)
+{
+	static result;
+	result = false;
+	for(new i = 0; i < ArraySize(gCMinesData); i++)
+	{
+		// Dead Player remove lasermine.
+		if (lm_get_mines_data(i, DEATH_REMOVE))
+		{
+			result |= lm_remove_all_entity_main(id, i);
+		}
+	}
+	return result;
+}
 
 stock lm_remove_all_entity_main(id, minesid)
 {
 	static mines[COMMON_MINES_DATA];
 	ArrayGetArray(gCMinesData, minesid, mines, sizeof(mines));
+	static result;
+	result = false;
+	if (lm_stock_get_user_mine_deployed(id, minesid) > int:0)
+		result = true;
 
 	lm_remove_all_entity(id, mines[CLASS_NAME]);
-
 	// reset deploy count.
 	lm_stock_set_user_mine_deployed(id, minesid, int:0);
+	return result;
 }
 //====================================================
 //  PLUGIN INITIALIZE
@@ -339,12 +374,8 @@ public plugin_init()
 	gCvar[CVAR_ENABLE]	        = register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),				"1"			);	// 0 = off, 1 = on.
 	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_access"),				"0"			);	// 0 = all, 1 = admin
 	gCvar[CVAR_MODE]           	= register_cvar(fmt("%s%s", CVAR_TAG, "_mode"),   				"0"			);	// 0 = lasermine, 1 = tripmine, 2 = claymore wire trap
-//	gCvar[CVAR_FRIENDLY_FIRE]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_friendly_fire"),		"0"			);	// Friendly fire. 0 or 1
 	gCvar[CVAR_START_DELAY]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),			"5"			);	// Round start delay time.
-	gCvar[CVAR_CMD_MODE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_cmd_mode"),				"1"			);	// 0 is +USE key, 1 is bind, 2 is each.
-#if defined BIOHAZARD_SUPPORT
-	gCvar[CVAR_NOROUND]			= register_cvar(fmt("%s%s", CVAR_TAG, "_check_started_round"),	"1"			);	// Check Started Round.
-#endif
+
 	// Ammo.
 	gCvar[CVAR_START_HAVE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_amount"),				"1"			);	// Round start have ammo count.
 	gCvar[CVAR_MAX_HAVE]       	= register_cvar(fmt("%s%s", CVAR_TAG, "_max_amount"),   		"2"			);	// Max having ammo.
@@ -387,20 +418,7 @@ public plugin_init()
 	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 	gCvar[CVAR_DIFENCE_SHIELD]	= register_cvar(fmt("%s%s", CVAR_TAG, "_shield_difence"),		"1"			);	// allow shiled difence.
 	gCvar[CVAR_REALISTIC_DETAIL]= register_cvar(fmt("%s%s", CVAR_TAG, "_realistic_detail"), 	"0"			);	// Spark Effect.
-
-	// Claymore Settings. (Color is Laser color)
-	gCvar[CVAR_CM_WIRE_RANGE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_range"),		"300"		);	// wire range.
-	gCvar[CVAR_CM_WIRE_WIDTH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_width"),		"2"			);	// wire width.
-	gCvar[CVAR_CM_CENTER_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_pitch"),	"220,290"	);	// wire area center pitch.
-	gCvar[CVAR_CM_CENTER_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_center_yaw"),	"-25,25"	);	// wire area center yaw.
-	gCvar[CVAR_CM_LEFT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_pitch"),	"260,290"	);	// wire area left pitch.
-	gCvar[CVAR_CM_LEFT_YAW]		= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_left_yaw"),		"30,60"		);	// wire area left yaw.
-	gCvar[CVAR_CM_RIGHT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_pitch"),	"260,290"	);	// wire area right pitch.
-	gCvar[CVAR_CM_RIGHT_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_right_yaw"),	"-30,-60"	);	// wire area right yaw.
-	gCvar[CVAR_CM_TRIAL_FREQ]	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_trial_freq"),	"3"			);	// wire trial frequency.
-	gCvar[CVAR_CM_WIRE_COLOR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
-	gCvar[CVAR_CM_WIRE_COLOR_T] = register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_t"),		"20,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
-	gCvar[CVAR_CM_WIRE_COLOR_CT]= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_ct"),		"0,0,20"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_FRIENDLY_FIRE]  	= get_cvar_pointer("mp_friendlyfire");											// Friendly fire. 0 or 1
 
 	// Register Hamsandwich
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
@@ -414,7 +432,6 @@ public plugin_init()
 	register_event("TeamInfo", "CheckSpectator","a");
 
 	// Get Message Id
-	gMsgStatusText 	= get_user_msgid("StatusText");
 	gMsgBarTime		= get_user_msgid("BarTime");
 
 	// Register Forward.
@@ -447,24 +464,6 @@ public plugin_end()
 
 }
 
-
-//====================================================
-//  PLUGIN REQUIRE MODULE
-//====================================================
-/* 
-	1.8.3
-	symbol "plugin_modules" is marked as deprecated: 
-	Module dependency is now automatically handled by the compiler. 
-	This forward is no longer called.
-*/
-/*
-public plugin_modules() 
-{
-	require_module("fakemeta");
-	require_module("hamsandwich");
-}
-*/
-
 //====================================================
 //  PLUGIN CONFIG
 //====================================================
@@ -487,7 +486,6 @@ public plugin_cfg()
 		server_cmd("exec %s", file);
 		server_exec();
 	}
-	gCvar[CVAR_FRIENDLY_FIRE]  	= get_cvar_pointer("mp_friendlyfire");											// Friendly fire. 0 or 1
 }
 
 //====================================================
@@ -525,14 +523,6 @@ bool:is_valid_takedamage(iAttacker, iTarget)
 	return false;
 }
 
-// bool:is_user_friend(iAttacker, iTarget)
-// {
-// 	if (get_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE]))
-// 	if (cs_get_user_team(iAttacker) == cs_get_user_team(iTarget))
-// 		return true;
-// 	return false;
-// }
-
 //====================================================
 // Round Start Initialize
 //====================================================
@@ -551,7 +541,6 @@ public NewRound(id, minesid)
 	// alive?
 	if (lm_is_user_alive(id) && pev(id, pev_flags) & (FL_CLIENT)) 
 	{
-		new classname = lm_get_mines_data(minesid, CLASS_NAME);
 		// Delay time reset
 		lm_stock_set_user_delay_count(id, minesid, int:floatround(get_gametime()));
 
@@ -559,7 +548,7 @@ public NewRound(id, minesid)
 		delete_task(id);
 
 		// Removing already put lasermine.
-		lm_remove_all_entity_main(id, classname);
+		lm_remove_all_entity_main(id, minesid);
 
 		// Round start set ammo.
 		set_start_ammo(id, minesid);
@@ -622,14 +611,7 @@ public DeathEvent()
 	if (is_user_connected(vID)) 
 		delete_task(vID);
 
-	for(new i = 0; i < ArraySize(gCMinesData); i++)
-	{
-		// Dead Player remove lasermine.
-		if (lm_get_mines_data(i, DEATH_REMOVE))
-		{
-			lm_remove_all_entity_main(vID, i);
-		}
-	}
+	lm_remove_all_mines(vID);
 
 	return PLUGIN_CONTINUE;
 }
@@ -640,10 +622,13 @@ public DeathEvent()
 public lm_progress_deploy_main(id, minesid)
 {
 	// Deploying Check.
-	if (!check_for_deploy(id, minesid))
+	new iReturn;
+	ExecuteForward(gForwarder[FWD_CHECK_DEPLOY]);
+
+	if (!iReturn)
 		return PLUGIN_HANDLED;
 
-	new Float:wait = get_pcvar_float(gCvar[CVAR_LASER_ACTIVATE]);
+	new Float:wait = Float:lm_get_mines_data(minesid, ACTIVATE_TIME);
 	if (wait > 0)
 	{
 		lm_show_progress(id, int:floatround(wait), gMsgBarTime);
@@ -655,7 +640,7 @@ public lm_progress_deploy_main(id, minesid)
 	new sMineId[4];
 	num_to_str(minesid, sMineId, charsmax(sMineId));
 	// Start Task. Put Lasermine.
-	set_task(wait, "SpawnMine", (TASK_PLANT + id), minesid, charsmax(sMineId));
+	set_task(wait, "SpawnMine", (TASK_PLANT + id), sMineId, charsmax(sMineId));
 
 	return PLUGIN_HANDLED;
 }
@@ -678,10 +663,13 @@ public lm_progress_deploy(id, minesid)
 public lm_progress_remove(id, minesid)
 {
 	// Removing Check.
-	if (!check_for_remove(id))
+	new iReturn;
+	ExecuteForward(gForwarder[FWD_CHECK_REMOVE]);
+
+	if (!iReturn)
 		return PLUGIN_HANDLED;
 
-	new Float:wait = get_pcvar_float(gCvar[CVAR_LASER_ACTIVATE]);
+	new Float:wait = Float:lm_get_mines_data(minesid, ACTIVATE_TIME);
 	if (wait > 0)
 		lm_show_progress(id, int:floatround(wait), gMsgBarTime);
 
@@ -691,7 +679,7 @@ public lm_progress_remove(id, minesid)
 	new sMineId[4];
 	num_to_str(minesid, sMineId, charsmax(sMineId));
 	// Start Task. Remove Lasermine.
-	set_task(wait, "RemoveMine", (TASK_RELEASE + id), minesid, charsmax(sMineId));
+	set_task(wait, "RemoveMine", (TASK_RELEASE + id), sMineId, charsmax(sMineId));
 
 	return PLUGIN_HANDLED;
 }
@@ -724,184 +712,9 @@ public SpawnMine(params[], id)
 	}
 
 	new iReturn;
-	ExecuteForward(gFwdSetSpawnEntitySetting, iReturn, iEnt, uID);
+	ExecuteForward(gForwarder[FWD_SET_ENTITY_SPAWN], iReturn, iEnt, uID);
 
 	return iReturn;
-}
-
-//====================================================
-// Lasermine Settings.
-//====================================================
-/*
-stock set_spawn_entity_setting(iEnt, uID)
-{
-	new classname = lm_get_mines_data(minesid, )
-	// Entity Setting.
-	// set class name.
-	set_pev(iEnt, pev_classname, classname);
-
-	// set models.
-	engfunc(EngFunc_SetModel, iEnt, ENT_MODELS);
-
-	// set solid.
-	set_pev(iEnt, pev_solid, SOLID_NOT);
-
-	// set movetype.
-	set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
-
-	// set model animation.
-	set_pev(iEnt, pev_frame,		0);
-	set_pev(iEnt, pev_body, 		3);
-	set_pev(iEnt, pev_sequence, 	TRIPMINE_WORLD);
-	set_pev(iEnt, pev_framerate,	0);
-	set_pev(iEnt, pev_rendermode,	kRenderNormal);
-	set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
-
-	// set take damage.
-	set_pev(iEnt, pev_takedamage, DAMAGE_YES);
-	set_pev(iEnt, pev_dmg, 100.0);
-
-	// set entity health.
-	// if recycle health.
-	if (!IsStackEmpty(gRecycleMine[uID]))
-	{
-		new Float:health;
-		PopStackCell(gRecycleMine[uID], health);
-		lm_set_user_health(iEnt, health);
-	}
-	else
-	{
-		lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
-	}
-
-	// set mine position
-	set_mine_position(uID, iEnt);
-
-	// Save results to be used later.
-	set_pev(iEnt, LASERMINE_OWNER, uID );
-	set_pev(iEnt, LASERMINE_TEAM, int:cs_get_user_team(uID));
-
-	// Reset powoer on delay time.
-	new Float:fCurrTime = get_gametime();
-	set_pev(iEnt, LASERMINE_POWERUP, fCurrTime + 2.5 );   
-	set_pev(iEnt, LASERMINE_STEP, POWERUP_THINK);
-	set_pev(iEnt, LASERMINE_COUNT, fCurrTime);
-	set_pev(iEnt, LASERMINE_BEAMTHINK, fCurrTime);
-
-	// think rate. hmmm....
-	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
-
-	// Power up sound.
-	lm_play_sound(iEnt, SOUND_POWERUP);
-
-	// Cound up. deployed.
-	lm_set_user_mine_deployed(uID, lm_get_user_mine_deployed(uID) + int:1);
-	// Cound down. have ammo.
-	lm_set_user_have_mine(uID, lm_get_user_have_mine(uID) - int:1);
-
-	// Refresh show ammo.
-	show_ammo(uID);
-
-	// Set Flag. end progress.
-	lm_set_user_deploy_state(uID, int:STATE_DEPLOYED);
-
-}
-*/
-
-//====================================================
-// Set Lasermine Position.
-//====================================================
-set_mine_position(uID, iEnt)
-{
-	// Vector settings.
-	new Float:vOrigin[3];
-	new	Float:vNewOrigin[3],Float:vNormal[3],
-		Float:vTraceEnd[3],Float:vEntAngles[3];
-	new bool:mode_claymore = (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE);
-
-	// get user position.
-	pev(uID, pev_origin, vOrigin);
-	xs_vec_add( gDeployPos[uID], vOrigin, vTraceEnd );
-
-    // create the trace handle.
-	new trace = create_tr2();
-	// get wall position to vNewOrigin.
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, uID, trace);
-	{
-		new Float:fFraction;
-		get_tr2( trace, TR_flFraction, fFraction );
-			
-		// -- We hit something!
-		if ( fFraction < 1.0 )
-		{
-			// -- Save results to be used later.
-			get_tr2( trace, TR_vecEndPos, vTraceEnd );
-			get_tr2( trace, TR_vecPlaneNormal, vNormal );
-		}
-	}
-    // free the trace handle.
-	free_tr2(trace);
-
-	xs_vec_mul_scalar( vNormal, 8.0, vNormal );
-	xs_vec_add( vTraceEnd, vNormal, vNewOrigin );
-
-	// set size.
-	engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
-	// set entity position.
-	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
-
-	// Claymore user Angles.
-	if (mode_claymore)
-	{
-		new Float:pAngles[3], Float:vFwd[3], Float:vRight[3], Float:vUp[3];
-		pev(uID, pev_angles, pAngles);
-		xs_anglevectors(pAngles, vFwd, vRight, vUp);
-		xs_vec_add(vNormal, vFwd, vNormal);
-	}
-
-	// Rotate tripmine.
-	vector_to_angle(vNormal, vEntAngles);
-
-	// set angle.
-	set_pev(iEnt, pev_angles, vEntAngles);
-
-	// set laserbeam end point position.
-	set_laserend_postiion(iEnt, vNormal, vNewOrigin, mode_claymore);
-}
-
-//====================================================
-// Set Laserbeam End Position.
-//====================================================
-set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3], bool:claymore)
-{
-	// Calculate laser end origin.
-	new Float:vBeamEnd[3];
-	new Float:vTracedBeamEnd[3];
-	new Float:range = get_pcvar_float(gCvar[CVAR_LASER_RANGE]);
-	new Float:claymoreNormal[3];
-	claymoreNormal = vNormal;
-	xs_vec_mul_scalar(vNormal, range, vNormal );
-	xs_vec_add( vNewOrigin, vNormal, vBeamEnd );
-
-    // create the trace handle.
-	new trace = create_tr2();
-	// (const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr);
-	engfunc(EngFunc_TraceLine, vNewOrigin, vBeamEnd, IGNORE_MONSTERS, -1, trace);
-	{
-		get_tr2(trace, TR_vecEndPos, vTracedBeamEnd);
-	}
-    // free the trace handle.
-	free_tr2(trace);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vTracedBeamEnd);
-
-	// calucrate claymore wire end point.
-	if (claymore)
-	{
-		set_claymore_endpoint(iEnt, vNewOrigin, claymoreNormal);
-		return;
-	}
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vTracedBeamEnd);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vTracedBeamEnd);
 }
 
 //====================================================
@@ -934,14 +747,15 @@ public RemoveMine(params[], id)
 	
 	new entityName[MAX_NAME_LENGTH];
 	entityName = lm_get_entity_class_name(target);
-
+	new iClassName[MAX_NAME_LENGTH];
+	iClassName[0] = lm_get_mines_data(str_to_num(params), CLASS_NAME);
 	// Check. is Target Entity Lasermine?
-	if(!equali(entityName, ENT_CLASS_LASER))
+	if(!equali(entityName, iClassName))
 		return 1;
 
 	new ownerID = pev(target, LASERMINE_OWNER);
 
-	new PICKUP_MODE:pickup 	= PICKUP_MODE:get_pcvar_num(gCvar[CVAR_ALLOW_PICKUP]);
+	new PICKUP_MODE:pickup 	= PICKUP_MODE:lm_get_mines_data(str_to_num(params), PICKUP_MODE);
 	switch(pickup)
 	{
 		case DISALLOW_PICKUP:
@@ -959,380 +773,28 @@ public RemoveMine(params[], id)
 				return 1;
 		}		
 	}
-
-	// Recycle Health.
-	new Float:health = lm_get_user_health(target);
-	PushStackCell(gRecycleMine[uID], health);
+	new minesid = str_to_num(params);
+	ExecuteForward(gForwarder[FWD_REMOVE_MINE], uID, target);
 
 	// Remove!
 	lm_remove_entity(target);
 
 	// Collect for this removed lasermine.
-	lm_set_user_have_mine(uID, lm_get_user_have_mine(uID) + int:1);
+	lm_stock_set_user_have_mine(uID, minesid, lm_stock_get_user_have_mine(uID, minesid) + int:1);
 
 	if (pev_valid(ownerID))
 	{
 		// Return to before deploy count.
-		lm_set_user_mine_deployed(ownerID, lm_get_user_mine_deployed(ownerID) - int:1);
+		lm_stock_set_user_mine_deployed(ownerID, minesid, lm_stock_get_user_mine_deployed(ownerID, minesid) - int:1);
 	}
 
 	// Play sound.
-	lm_play_sound(uID, SOUND_PICKUP);
+	emit_sound(uID, CHAN_ITEM, ENT_SOUND4, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
 	// Set Flag. end progress.
 	lm_set_user_deploy_state(uID, int:STATE_DEPLOYED);
 
-	// Refresh show ammo.
-	show_ammo(uID)
-
 	return 1;
-}
-
-
-//====================================================
-// Check: Remove Lasermine.
-//====================================================
-bool:check_for_remove(id)
-{
-	new int:cvar_ammo		= int:get_pcvar_num(gCvar[CVAR_MAX_HAVE]);
-	new ERROR:error 		= check_for_common(id);
-	new PICKUP_MODE:pickup 	= PICKUP_MODE:get_pcvar_num(gCvar[CVAR_ALLOW_PICKUP]);
-	// common check.
-	if (error)
-		return false;
-
-	// have max ammo? (use buy system.)
-	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
-	if (lm_get_user_have_mine(id) + int:1 > cvar_ammo) 
-		return false;
-
-	new target;
-	new body;
-	new Float:vOrigin[3];
-	new Float:tOrigin[3];
-
-	get_user_aiming(id, target, body);
-
-	// is valid target entity?
-	if(!pev_valid(target))
-		return false;
-
-	// get potision. player and target.
-	pev(id, pev_origin, vOrigin);
-	pev(target, pev_origin, tOrigin);
-
-	// Distance Check. far 128.0 (cm?)
-	if(get_distance_f(vOrigin, tOrigin) > 128.0)
-		return false;
-	
-	new entityName[MAX_NAME_LENGTH];
-	entityName = lm_get_entity_class_name(target);
-
-	// is target lasermine?
-	if(!equali(entityName, ENT_CLASS_LASER))
-		return false;
-
-	// Damaged?
-	// new Float:health;
-	// health = lm_get_user_health(target);
-	// if (health < get_pcvar_float(gCvar[CVAR_MINE_HEALTH]))
-	// {
-	// 	cp_cant_pickup(id);
-	// 	return false;
-	// }
-
-	switch(pickup)
-	{
-		case DISALLOW_PICKUP:
-		{
-			cp_cant_pickup(id);
-			return false;
-		}
-		case ONLY_ME:
-		{
-			// is owner you?
-			if(pev(target, LASERMINE_OWNER) != id)
-				return false;
-		}
-		case ALLOW_FRIENDLY:
-		{
-			// is team friendly?
-			if(CsTeams:pev(target, LASERMINE_TEAM) != cs_get_user_team(id))
-				return false;
-		}
-	}
-
-	// Allow Enemy.
-	return true;
-}
-
-//====================================================
-// Lasermine Think Event.
-//====================================================
-public LaserThink(iEnt)
-{
-	// Check plugin enabled.
-	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
-		return HAM_IGNORED;
-
-	// is valid this entity?
-	if (!pev_valid(iEnt))
-		return HAM_IGNORED;
-
-	new entityName[MAX_NAME_LENGTH];
-	entityName = lm_get_entity_class_name(iEnt);
-
-	// is this lasermine? no.
-	if (!equali(entityName, ENT_CLASS_LASER))
-		return HAM_IGNORED;
-
-	static Float:fCurrTime
-	static TRIPMINE_THINK:step;
-	static loop;
-	loop = get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE ? 3 : 1;
-
-	fCurrTime = get_gametime();
-	step = TRIPMINE_THINK:pev(iEnt, LASERMINE_STEP);
-
-	// lasermine state.
-	// Power up.
-	if (step == TRIPMINE_THINK:POWERUP_THINK)
-	{
-		new Float:fPowerupTime;
-		pev(iEnt, LASERMINE_POWERUP, fPowerupTime);
-		// over power up time.
-		
-		if (fCurrTime > fPowerupTime)
-		{
-			// next state.
-			set_pev(iEnt, LASERMINE_STEP, BEAMUP_THINK);
-			// activate sound.
-			lm_play_sound(iEnt, SOUND_ACTIVATE);
-		}
-
-		mine_glowing(iEnt);
-
-		// Think time.
-		set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
-
-		return HAM_HANDLED;
-	}
-	static Float:vEnd[3][3]; // Claymore 3 point
-	static Float:vOrigin[3];
-
-	// Get this mine position.
-	pev(iEnt, pev_origin, vOrigin);
-	// Get Laser line end potision.
-	pev(iEnt, LASERMINE_BEAMENDPOINT1, vEnd[0]);
-	pev(iEnt, LASERMINE_BEAMENDPOINT2, vEnd[1]);
-	pev(iEnt, LASERMINE_BEAMENDPOINT3, vEnd[2]);
-
-	if (step == TRIPMINE_THINK:BEAMUP_THINK)
-	{
-		// solid complete.
-		set_pev(iEnt, pev_solid, SOLID_BBOX);
-
-		// drawing laser line.
-		if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
-		{
-			for (new i = 0; i < loop; i++)
-			{
-				draw_laserline(iEnt, vEnd[i]);
-				if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
-					lm_draw_spark_for_wall(vEnd[i]);
-			}
-		}
-
-		// next state.
-		set_pev(iEnt, LASERMINE_STEP, BEAMBREAK_THINK);
-		// Think time.
-		set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
-	}
-	// Get owner id.
-	new iOwner = pev(iEnt, LASERMINE_OWNER);
-
-	// Laser line activated.
-	if (step == TRIPMINE_THINK:BEAMBREAK_THINK)
-	{
-		static Array:aTarget;
-		static hPlayer[HIT_PLAYER];
-		static Float:reStartPos[3];
-		static iTarget;
-		static hitGroup;
-		static Float:fFraction;
-		static iIgnoreEnt;
-		static trace;
-		static Float:hitPoint[3];
-		static Float:nextTime = 0.0;
-		static Float:beamTime = 0.0;
-
-		pev(iEnt, LASERMINE_COUNT, nextTime);
-		pev(iEnt, LASERMINE_BEAMTHINK, beamTime);
-		if (fCurrTime > beamTime)
-		{
-			for(new i = 0; i < loop; i++)
-			{
-				// drawing spark.
-				if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
-				{
-					draw_laserline(iEnt, vEnd[i]);
-					if(get_pcvar_num(gCvar[CVAR_REALISTIC_DETAIL])) 
-						lm_draw_spark_for_wall(hitPoint);
-				}
-			}
-			set_pev(iEnt, LASERMINE_BEAMTHINK, fCurrTime + random_float(0.1, 0.2));
-		}
-
-		if (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_LASERMINE 
-		&&  get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
-		{
-			if (fCurrTime < nextTime)
-			{
-				// Think time.
-				// Think time. random_float = laser line blinking.
-				set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
-				return HAM_HANDLED;
-			}
-		}
-		aTarget = ArrayCreate(sizeof(hPlayer));
-
-		// create the trace handle.
-		trace = create_tr2();
-
-		for(new i = 0; i < loop; i++)
-		{
-			fFraction	= 0.0;
-			iIgnoreEnt	= iEnt;
-			ArrayClear(aTarget);
-			reStartPos = vOrigin;
-			set_pev(iEnt, LASERMINE_COUNT, get_gametime());
-
-			// Trace line
-			while(fFraction < 1.0)
-			{
-				// Trace line
-				engfunc(EngFunc_TraceLine, reStartPos, vEnd[i], DONT_IGNORE_MONSTERS, iIgnoreEnt, trace)
-				{
-					get_tr2(trace, TR_flFraction, fFraction);
-					iTarget		= get_tr2(trace, TR_pHit);
-					hitGroup	= get_tr2(trace, TR_iHitgroup)
-					get_tr2(trace, TR_vecEndPos, hitPoint);				
-				}
-
-				// Something has passed the laser.
-				if (fFraction < 1.0)
-				{
-
-					// is valid hit entity?
-					if (!pev_valid(iTarget)
-					// is user?
-					|| !(pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER))
-					// is dead?
-					|| !lm_is_user_alive(iTarget)
-					// Hit friend and No FF.
-					|| !is_valid_takedamage(iOwner, iTarget)
-					// is godmode?
-					|| lm_is_user_godmode(iTarget)
-					)
-					{
-						reStartPos = hitPoint;
-						iIgnoreEnt = iTarget;
-						continue;
-					}
-					hPlayer[I_TARGET] 	= iTarget;
-					hPlayer[V_POSITION]	= hitPoint;
-					hPlayer[I_HIT_GROUP]= hitGroup;
-					ArrayPushArray(aTarget, hPlayer);
-					if (hitGroup == HIT_SHIELD && get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]))
-						break;
-								
-					reStartPos = hitPoint;
-					iIgnoreEnt = iTarget;
-					// keep target id.
-					set_pev(iEnt, pev_enemy, iTarget);
-				}
-			}
-
-			// Mode. Lasermine / Tripmine / Claymore wire trap.
-			switch(get_pcvar_num(gCvar[CVAR_MODE]))
-			{
-				// Lasermine mode.
-				// Laser damage.
-				case MODE_LASERMINE:
-				{
-					for (new n = 0; n < ArraySize(aTarget); n++)
-					{
-						ArrayGetArray(aTarget, n, hPlayer);
-						// Laser line damage mode. Once or Second.
-						create_laser_damage(iEnt, hPlayer[I_TARGET], hPlayer[I_HIT_GROUP], hPlayer[V_POSITION]);
-					}					
-					// Laser line damage mode. Once or Second.
-					if (get_pcvar_num(gCvar[CVAR_LASER_DMG_MODE]) != 0)
-					{
-						if (ArraySize(aTarget) > 0)
-							set_pev(iEnt, LASERMINE_COUNT, (nextTime + get_pcvar_float(gCvar[CVAR_LASER_DMG_DPS])));
-
-						// if change target. keep target id.
-						if (pev(iEnt, LASERMINE_HITING) != iTarget)
-							set_pev(iEnt, LASERMINE_HITING, iTarget);
-					}
-				}
-				// Tripmine mode.
-				// Friendly Fire ON or Target is Enemy Team.
-				case MODE_TRIPMINE, MODE_BF4_CLAYMORE:
-				{
-					// State change. to Explosing step.
-					set_pev(iEnt, LASERMINE_STEP, EXPLOSE_THINK);
-					break;
-				}
-			}
-		}
-
-		// free the trace handle.
-		free_tr2(trace);
-		ArrayDestroy(aTarget);
-
-		// Get mine health.
-		static Float:iHealth;
-		iHealth = lm_get_user_health(iEnt);
-
-		// break?
-		if (iHealth <= 0 || (pev(iEnt, pev_flags) & FL_KILLME))
-		{
-			// next step explosion.
-			set_pev(iEnt, LASERMINE_STEP, EXPLOSE_THINK);
-			set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
-		}
-				
-		// Think time. random_float = laser line blinking.
-		set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
-
-		return HAM_HANDLED;
-	}
-
-	// EXPLODE
-	if (TRIPMINE_THINK:step == TRIPMINE_THINK:EXPLOSE_THINK)
-	{
-		// Stopping entity to think
-		set_pev(iEnt, pev_nextthink, 0.0);
-		// Stopping sound.
-		lm_play_sound(iEnt, SOUND_STOP);
-
-		// Count down. deployed lasermines.
-		lm_set_user_mine_deployed(iOwner, lm_get_user_mine_deployed(iOwner) - int:1);
-
-		// effect explosion.
-		lm_create_explosion(iEnt, gBoom);
-	
-		// damage.
-		lm_create_explosion_damage(iEnt, iOwner, get_pcvar_float(gCvar[CVAR_EXPLODE_DMG]), get_pcvar_float(gCvar[CVAR_EXPLODE_RADIUS]));
-
-		// remove this.
-		lm_remove_entity(iEnt);
-		return HAM_HANDLED;
-	}
-
-	return HAM_SUPERCEDE;
 }
 
 //====================================================
@@ -1342,10 +804,17 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 {
 	new entityName[MAX_NAME_LENGTH];
 	entityName = lm_get_entity_class_name(victim);
-
-	// is this lasermine? no.
-	if (!equali(entityName, ENT_CLASS_LASER))
-		return HAM_IGNORED;
+	static b;
+	b = false;
+	new iClassName[MAX_NAME_LENGTH];
+	for (new i = 0; i < ArraySize(gCMinesData); i++)
+	{
+		iClassName[0] = lm_get_mines_data(i, CLASS_NAME);
+		// is this lasermine? no.
+		if (equali(entityName, iClassName))
+			b = true;
+	}
+	if (!b) return HAM_IGNORED;
 
 	// We get the ID of the player who put the mine.
 	new iOwner = pev(victim, LASERMINE_OWNER);
@@ -1373,143 +842,29 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 
 
 //====================================================
-// Drawing Laser line.
-//====================================================
-draw_laserline(iEnt, const Float:vEndOrigin[3])
-{
-	new tcolor	[3];
-	new sRGB	[13];
-	new sColor	[4];
-	new sRGBLen 	= charsmax(sRGB);
-	new sColorLen	= charsmax(sColor);
-	new CsTeams:teamid = CsTeams:pev(iEnt, LASERMINE_TEAM);
-	new width 		= get_pcvar_num(gCvar[CVAR_LASER_WIDTH]);
-	new i = 0, n = 0, iPos = 0;
-	// Color mode. 0 = team color.
-	if(get_pcvar_num(gCvar[CVAR_LASER_COLOR]) == 0)
-	{
-		switch(teamid)
-		{
-			case CS_TEAM_T:
-				get_pcvar_string(gCvar[CVAR_LASER_COLOR_TR], sRGB, sRGBLen);
-			case CS_TEAM_CT:
-				get_pcvar_string(gCvar[CVAR_LASER_COLOR_CT], sRGB, sRGBLen);
-			default:
-#if !defined BIOHAZARD_SUPPORT
-				formatex(sRGB, sRGBLen, "0,255,0");
-#else
-				formatex(sRGB, sRGBLen, "255,0,0");
-#endif
-		}
-
-	}else
-	{
-		// Green.
-		formatex(sRGB, sRGBLen, "0,255,0");
-	}
-
-	// Test. Claymore color is black wire.
-	if (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE)
-	{
-		if (get_pcvar_num(gCvar[CVAR_CM_WIRE_COLOR]) == 0)
-		{
-		switch(teamid)
-		{
-			case CS_TEAM_T:
-				get_pcvar_string(gCvar[CVAR_CM_WIRE_COLOR_T],  sRGB, sRGBLen);
-			case CS_TEAM_CT:
-				get_pcvar_string(gCvar[CVAR_CM_WIRE_COLOR_CT], sRGB, sRGBLen);
-			default:
-				formatex(sRGB, sRGBLen, "20,20,20");
-		}
-
-		}
-		width = get_pcvar_num(gCvar[CVAR_CM_WIRE_WIDTH]);
-	}
-
-	formatex(sRGB, sRGBLen, "%s%s", sRGB, ",");
-	while(n < sizeof(tcolor))
-	{
-		i = split_string(sRGB[iPos += i], ",", sColor, sColorLen);
-		tcolor[n++] = str_to_num(sColor);
-	}
-	/*
-	stock lm_draw_laser(
-		const iEnt,
-		const Float:vEndOrigin[3], 
-		const beam, 
-		const framestart	= 0, 
-		const framerate		= 0, 
-		const life			= 1, 
-		const width			= 1, 
-		const wave			= 0, 
-		const tcolor		[3],
-		const bright		= 255,
-		const speed			= 255
-	)
-	*/
-	lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 2, width, 0, tcolor, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), 255);
-}
-
-//====================================================
-// Laser damage
-//====================================================
-create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
-{
-	// Damage.
-	new Float:dmg 	= get_pcvar_float(gCvar[CVAR_LASER_DMG]);
-
-	new iAttacker = pev(iEnt,LASERMINE_OWNER);
-	if (get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]) && hitGroup == HIT_SHIELD)
-	{
-		lm_play_sound(iTarget, SOUND_HIT_SHIELD);
-
-		lm_draw_spark(hitPoint);
-		lm_hit_shield(iTarget, dmg);
-	}
-	else
-	{
-		lm_play_sound(iTarget, SOUND_HIT);
-		lm_set_user_lasthit(iTarget, hitGroup);
-
-		// if (is_user_friend(iAttacker, iTarget))
-		// {
-		// 	// Hit
-		// 	new CsTeams:aTeam = cs_get_user_team(iAttacker);
-		// 	cs_set_user_team(iAttacker, int:((aTeam == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T), _, false);
-		// 	// Damage Effect, Damage, Killing Logic.
-		// 	ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
-		// 	cs_set_user_team(iAttacker, int:aTeam, _, false);
-		// }
-		// else
-		// {
-		// Damage Effect, Damage, Killing Logic.
-		ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
-		// }
-	}
-	set_pev(iEnt, LASERMINE_HITING, iTarget);		
-	
-	// // is target func_breakable?
-	// if (equali(entityName, ENT_CLASS_BREAKABLE))
-	// {
-	// 	ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]));
-	// 	// damage it.
-	// 	//set_user_health(iTarget, Float:(fm_get_user_health(iTarget) - get_pcvar_float(gCvar[CVAR_LASER_DMG])));
-	// }
-	return;
-}
-
-//====================================================
 // Player killing (Set Money, Score)
 //====================================================
 public PlayerKilling(iVictim, iAttacker)
 {
 	static entityName[MAX_NAME_LENGTH];
 	entityName = lm_get_entity_class_name(iAttacker);
+
+	static b;
+	b = false;
+	new iClassName[MAX_NAME_LENGTH];
+	for (new i = 0; i < ArraySize(gCMinesData); i++)
+	{
+		iClassName[0] = lm_get_mines_data(i, CLASS_NAME);
+		// is this lasermine? no.
+		if (equali(entityName, iClassName))
+			b = true;
+	}
+	if (!b) return HAM_IGNORED;
+
+
 	//
 	// Refresh Score info.
 	//
-	if (equali(entityName, ENT_CLASS_LASER))
 	{
 		// Get Target Team.
 		new CsTeams:aTeam = cs_get_user_team(iAttacker);
@@ -1535,49 +890,30 @@ public PlayerKilling(iVictim, iAttacker)
 		cs_set_user_money(iAttacker, cs_get_user_money(iAttacker) + money);
 		return HAM_HANDLED;
 	}
-	return HAM_IGNORED;
 }
 
 //====================================================
 // Buy Lasermine.
 //====================================================
-public lm_buy_lasermine(id)
+public lm_buy_mine(id, minesid)
 {	
-	new ERROR:error = check_for_buy(id);
-	if( error )
-	{
-		show_error_message(id, error);
-		return PLUGIN_CONTINUE;
-	}
+	new iReturn;
+	ExecuteForward(gForwarder[FWD_CHECK_FOR_BUY], iReturn, id);
 
-	new cost = get_pcvar_num(gCvar[CVAR_COST]);
+	if(!iReturn)
+		return PLUGIN_CONTINUE;
+
+	new cost = lm_get_mines_data(minesid, BUY_PRICE);
 	cs_set_user_money(id, cs_get_user_money(id) - cost);
 
-	lm_set_user_have_mine(id, lm_get_user_have_mine(id) + int:1);
+	lm_stock_set_user_have_mine(id, minesid, lm_stock_get_user_have_mine(id, minesid) + int:1);
 
 	cp_bought(id);
 
-	lm_play_sound(id, SOUND_PICKUP);
-
-	show_ammo(id);
+	emit_sound(id, CHAN_ITEM, ENT_SOUND4, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 
 	return PLUGIN_HANDLED;
 }
-
-//====================================================
-// Show ammo.
-//====================================================
-show_ammo(id)
-{ 
-	new ammo[51];
-	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
-		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_AMMO, lm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
-	else
-		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_INF);
-
-	if (pev_valid(id))
-		lm_show_status_text(id, ammo, gMsgStatusText);
-} 
 
 //====================================================
 // Chat command.
@@ -1590,12 +926,7 @@ public lm_say_lasermine(id)
 	new said[32];
 	read_argv(1, said, charsmax(said));
 	
-	if (equali(said,"/buy lasermine") || equali(said,"/lm"))
-	{
-		lm_buy_lasermine(id);
-//		return PLUGIN_HANDLED;
-	} else 
-	if (equali(said, "lasermine") || equali(said, "/lasermine"))
+	if (equali(said, "mines") || equali(said, "/mines"))
 	{
 		const SIZE = 1024;
 		new msg[SIZE + 1], len = 0;
@@ -1613,11 +944,6 @@ public lm_say_lasermine(id)
 		len += formatex(msg[len], SIZE - len, "</body></html>");
 		show_motd(id, msg, "Lasermine Entity help");
 		return PLUGIN_HANDLED;
-	} else 
-	if (containi(said, "laser") != -1) 
-	{
-		cp_refer(id);
-		return PLUGIN_CONTINUE;
 	}
 	return PLUGIN_CONTINUE;
 }
@@ -1628,7 +954,7 @@ public lm_say_lasermine(id)
 //====================================================
 public PlayerPostThink(id) 
 {
-	if ((get_user_weapon(id) == CSW_C4 && pev(id, pev_button ) & IN_ATTACK))
+	if ((pev(id, pev_weapons) & (1 << CSW_C4)) && (pev(id, pev_oldbuttons) & IN_ATTACK))
 		return FMRES_IGNORED;
 
 	switch (lm_get_user_deploy_state(id))
@@ -1654,24 +980,6 @@ public PlayerPostThink(id)
 }
 
 //====================================================
-// Player pre think event.
-//====================================================
-public PlayerPreThink(id)
-{
-	if (!lm_is_user_alive(id)			// isDead?
-		|| is_user_bot(id) 				// is bot?
-		|| lm_get_user_deploy_state(id) != STATE_IDLE	 // deploying?
-		|| get_pcvar_num(gCvar[CVAR_CMD_MODE]) == 1) // +setlaser use?
-		return FMRES_IGNORED;
-
-	// [USE] Key.
-	if(pev(id, pev_button ) & IN_USE && !(pev(id, pev_oldbuttons ) & IN_USE ))
-		lm_progress_deploy_main(id);			// deploying.
-
-	return FMRES_IGNORED;
-}
-
-//====================================================
 // Player connected.
 //====================================================
 public client_putinserver(id)
@@ -1680,14 +988,10 @@ public client_putinserver(id)
 	if(!get_pcvar_num(gCvar[CVAR_ENABLE]))
 		return PLUGIN_CONTINUE;
 
-	// reset deploy count.
-	lm_set_user_mine_deployed(id, int:0);
-	// reset hove mine.
-	lm_set_user_have_mine(id, int:0);
+	lm_reset_have_mines(id);
 
-	// Init Recycle Health.
-	ClearStack(gRecycleMine[id]);
-
+	new iReturn;
+	ExecuteForward(gForwarder[FWD_PUTIN_SERVER], iReturn, id);
 	return PLUGIN_CONTINUE;
 }
 
@@ -1702,29 +1006,16 @@ public client_disconnected(id)
 	// check plugin enabled.
 	if(!get_pcvar_num(gCvar[CVAR_ENABLE]))
 		return PLUGIN_CONTINUE;
+	
+	new iReturn;
+	ExecuteForward(gForwarder[FWD_DISCONNECTED], iReturn, id);
 
 	// delete task.
 	delete_task(id);
 	// remove all lasermine.
-	lm_remove_all_entity_main(id, ENT_CLASS_LASER);
-
-	// Init Recycle Health.
-	ClearStack(gRecycleMine[id]);
-
+	lm_remove_all_mines(id);
 	return PLUGIN_CONTINUE;
 }
-
-
-//====================================================
-// Infected player Deploy stop. (BIOHAZARD)
-//====================================================
-#if defined BIOHAZARD_SUPPORT
-public event_infect2(id)
-{
-	delete_task(id);
-	return PLUGIN_CONTINUE;
-}
-#endif
 
 //====================================================
 // Delete Task.
@@ -1741,11 +1032,10 @@ delete_task(id)
 	return;
 }
 
-
 //====================================================
 // Check: common.
 //====================================================
-stock ERROR:check_for_common(id)
+stock ERROR:check_for_common(id, minesid)
 {
 	new cvar_enable = get_pcvar_num(gCvar[CVAR_ENABLE]);
 	new cvar_access = get_pcvar_num(gCvar[CVAR_ACCESS_LEVEL]);
@@ -1770,235 +1060,7 @@ stock ERROR:check_for_common(id)
 	// 	return ERROR:NOT_IMPLEMENT;
 
 	// Can set Delay time?
-	return ERROR:check_for_time(id);
-}
-
-//====================================================
-// Check: Can use this time.
-//====================================================
-stock ERROR:check_for_time(id)
-{
-	new int:cvar_delay = int:get_pcvar_num(gCvar[CVAR_START_DELAY]);
-
-	// gametime - playertime = delay count.
-	gNowTime = int:floatround(get_gametime()) - lm_get_user_delay_count(id);
-
-	// check.
-	if(gNowTime >= cvar_delay)
-		return ERROR:NONE;
-
-	return ERROR:DELAY_TIME;
-}
-
-//====================================================
-// Check: Can use this Team.
-//====================================================
-stock bool:check_for_team(id)
-{
-	new arg[4];
-	new CsTeams:team;
-
-	// Get Cvar
-	get_pcvar_string(gCvar[CVAR_CBT], arg, charsmax(arg));
-
-	// Terrorist
-#if defined BIOHAZARD_SUPPORT
-	if(equali(arg, "Z")  || equali(arg, "Zombie"))
-#else
-	if(equali(arg, "TR") || equali(arg, "T"))
-#endif
-		team = CS_TEAM_T;
-	else
-	// Counter-Terrorist
-#if defined BIOHAZARD_SUPPORT
-	if(equali(arg, "H") || equali(arg, "Human"))
-#else
-	if(equali(arg, "CT"))
-#endif
-		team = CS_TEAM_CT;
-	else
-	// All team.
-#if defined BIOHAZARD_SUPPORT
-	if(equali(arg, "ZH") || equali(arg, "HZ") || equali(arg, "ALL"))
-#else
-	if(equali(arg, "ALL"))
-#endif
-		team = CS_TEAM_UNASSIGNED;
-	else
-		team = CS_TEAM_UNASSIGNED;
-
-	// Cvar setting equal your team? Not.
-	if(team != CS_TEAM_UNASSIGNED && team != cs_get_user_team(id))
-		return false;
-
-	return true;
-}
-
-//====================================================
-// Check: Can buy.
-//====================================================
-stock ERROR:check_for_buy(id)
-{
-	new int:cvar_buymode= int:get_pcvar_num(gCvar[CVAR_BUY_MODE]);
-	new int:cvar_maxhave= int:get_pcvar_num(gCvar[CVAR_MAX_HAVE]);
-	new cvar_cost		= 	  get_pcvar_num(gCvar[CVAR_COST]);
-	new cvar_buyzone	=	  get_pcvar_num(gCvar[CVAR_BUY_ZONE]);
-
-	// Buy mode ON?
-	if (cvar_buymode)
-	{
-		// Can this team buying?
-		if (!check_for_team(id))
-			return ERROR:CANT_BUY_TEAM;
-
-		// Have Max?
-		if (lm_get_user_have_mine(id) >= cvar_maxhave)
-			return ERROR:HAVE_MAX;
-
-		// buyzone area?
-		if (cvar_buyzone && !cs_get_user_buyzone(id))
-			return ERROR:NOT_BUYZONE;
-
-		// Have money?
-		if (lm_get_user_money(id) < cvar_cost)
-			return ERROR:NO_MONEY;
-
-
-	} else {
-		return ERROR:CANT_BUY;
-	}
-
-	return ERROR:NONE;
-}
-
-//====================================================
-// Check: Max Deploy.
-//====================================================
-stock ERROR:check_for_max_deploy(id)
-{
-	new int:cvar_maxhave = int:get_pcvar_num(gCvar[CVAR_MAX_HAVE]);
-	new int:cvar_teammax = int:get_pcvar_num(gCvar[CVAR_TEAM_MAX]);
-	new cvar_mode = get_pcvar_num(gCvar[CVAR_MODE]);
-
-	// Max deployed per player.
-	if (lm_get_user_mine_deployed(id) >= cvar_maxhave)
-		return ERROR:MAXIMUM_DEPLOYED;
-
-	// Max deployed per team.
-	new int:team_count = lm_get_team_deployed_count(id);
-	if (cvar_mode == MODE_BF4_CLAYMORE)
-	{
-		if(team_count >= cvar_teammax || team_count >= int:(MAX_CLAYMORE / 2))
-			return ERROR:MANY_PPL;
-	}
-	else
-	{
-		if(team_count >= cvar_teammax || team_count >= int:(MAX_LASER_ENTITY / 2))
-			return ERROR:MANY_PPL;
-	}
-
-	return ERROR:NONE;
-}
-
-//====================================================
-// Show Chat area Messages
-//====================================================
-stock show_error_message(id, ERROR:err_num)
-{
-	switch(ERROR:err_num)
-	{
-		case NOT_ACTIVE:		cp_not_active(id);
-		case NOT_ACCESS:		cp_not_access(id);
-		case DONT_HAVE:			cp_dont_have(id);
-		case CANT_BUY_TEAM:		cp_cant_buy_team(id);
-		case CANT_BUY:			cp_cant_buy(id);
-		case HAVE_MAX:			cp_have_max(id);
-		case NO_MONEY:			cp_no_money(id);
-		case MAXIMUM_DEPLOYED:	cp_maximum_deployed(id);
-		case MANY_PPL:			cp_many_ppl(id);
-		case DELAY_TIME:		cp_delay_time(id);
-		case MUST_WALL:			cp_must_wall(id);
-		case MUST_GROUND:		cp_must_ground(id);
-		case NOT_IMPLEMENT:		cp_sorry(id);
-		case NOT_BUYZONE:		cp_buyzone(id);
-		case NO_ROUND:			cp_noround(id);
-	}
-}
-
-//====================================================
-// Check: On the wall.
-//====================================================
-stock ERROR:check_for_onwall(id)
-{
-	new Float:vTraceEnd[3];
-	new Float:vOrigin[3];
-	new bool:mode_claymore = (get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE);
-
-	// Get potision.
-	pev(id, pev_origin, vOrigin);
-	
-	// Get wall position.
-	velocity_by_aim(id, 128, gDeployPos[id]);
-	if (mode_claymore)
-	{
-		// Claymore is ground position.
-		gDeployPos[id][2] = -128.0;
-	}
-	xs_vec_add(gDeployPos[id], vOrigin, vTraceEnd);
-
-    // create the trace handle.
-	new trace = create_tr2();
-	new Float:fFraction = 0.0;
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
-	{
-    	get_tr2( trace, TR_flFraction, fFraction );
-    }
-    // free the trace handle.
-	free_tr2(trace);
-
-	// We hit something!
-	if ( fFraction < 1.0 )
-		return ERROR:NONE;
-
-	if (mode_claymore)
-		return ERROR:MUST_GROUND;
-	else
-		return ERROR:MUST_WALL;
-}
-
-//====================================================
-// Check: Lasermine Deploy.
-//====================================================
-stock bool:check_for_deploy(id, minesid)
-{
-	// Check common.
-	new ERROR:error = check_for_common(id);
-	if (error)
-	{
-		show_error_message(id, error);
-		return false;
-	}
-
-	// Have mine? (use buy system)
-	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
-	if (lm_get_user_have_mine(id) <= int:0) 
-	{
-		show_error_message(id, ERROR:DONT_HAVE);
-		return false;
-	}
-
-	// Max deployed?
-	error = check_for_max_deploy(id);
-	if (error) 
-	{
-		show_error_message(id, error);
-		return false;
-	}
-
-	new iReturn;
-	ExecuteForward(gFwdDeployCheck, iReturn, id);
-
-	return iReturn;
+	return ERROR:check_for_time(id, minesid);
 }
 
 //====================================================
@@ -2047,256 +1109,20 @@ stock mine_glowing(iEnt)
 	}
 }
 
-Float:get_claymore_wire_endpoint(CVAR_SETTING:cvar)
-{
-	new i = 0, n = 0, iPos = 0;
-	new Float:values[2];
-	new sCvarValue	[20];
-	new sSplit		[20];
-
-	new sSplitLen		= charsmax(sSplit);
-
-	get_pcvar_string(gCvar[cvar], sCvarValue, charsmax(sCvarValue));
-
-	formatex(sCvarValue, charsmax(sCvarValue), "%s%s", sCvarValue, ",");
-	while((i = split_string(sCvarValue[iPos += i], ",", sSplit, sSplitLen)) != -1 && n < sizeof(values))
-	{
-		values[n++] = str_to_float(sSplit);
-	}
-	return random_float(values[0], values[1]);
-}
-
-//====================================================
-// Claymore Wire Endpoint
-//====================================================
-set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
-{
-	new Float:vAngles	[3];
-	new Float:vForward	[3];
-	new Float:vResult	[3][3];
-	new Float:hitPoint	[3];
-	new Float:vTmp		[3];
-	new Float:pAngles	[3];
-	new Float:vFwd		[3];
-	new Float:vRight	[3];
-	new Float:vUp		[3];
-	new trace = create_tr2();
-	new Float:pitch;
-	new Float:yaw;
-	new Float:range;
-	new n = 0;
-	new freq = get_pcvar_num(gCvar[CVAR_CM_TRIAL_FREQ]);
-	range = get_pcvar_float(gCvar[CVAR_CM_WIRE_RANGE]);
-	pev(iEnt, pev_angles, vAngles);
-
-	// roll zero
-	pAngles[2] = 0.0;
-
-	for (new i = 0; i < 3; i++)
-	{
-		hitPoint	= vOrigin;
-		vTmp		= vOrigin;
-		n = 0;
-		while(n < freq)
-		{
-			while(xs_vec_distance(vOrigin, vTmp) > range || xs_vec_equal(vOrigin, vTmp))
-			{
-				switch(i)
-				{
-					// pitch:down 0, back 90, up 180, forward 270(-90)
-					// yaw  :left 90, right -90 
-					case 0: // center
-					{
-						pitch 	= get_claymore_wire_endpoint(CVAR_CM_CENTER_PITCH);
-						yaw		= get_claymore_wire_endpoint(CVAR_CM_CENTER_YAW);
-					}
-					case 1: // right
-					{
-						pitch 	= get_claymore_wire_endpoint(CVAR_CM_RIGHT_PITCH);
-						yaw		= get_claymore_wire_endpoint(CVAR_CM_RIGHT_YAW);
-					}
-					case 2: // left
-					{
-						pitch 	= get_claymore_wire_endpoint(CVAR_CM_LEFT_PITCH);
-						yaw		= get_claymore_wire_endpoint(CVAR_CM_LEFT_YAW);
-					}
-				}
-
-				pAngles[0] = pitch;
-				pAngles[1] = yaw;
-
-				xs_vec_add(pAngles, vAngles, pAngles);
-				xs_anglevectors(pAngles, vFwd, vRight, vUp);
-			
-				xs_vec_mul_scalar(vFwd, range, vFwd);
-				// xs_vec_add(vOrigin, vFwd, vForward);
-				xs_vec_add(vFwd, vNormal, vForward);
-				xs_vec_add(vOrigin, vForward, vForward);
-
-				// Trace line
-				engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
-				{
-					get_tr2(trace, TR_vecEndPos, vTmp);
-				}
-			}
-			if (xs_vec_distance(vOrigin, vTmp) > xs_vec_distance(vOrigin, hitPoint))
-				hitPoint = vTmp;
-
-			n++;
-		}
-		vResult[i] = hitPoint;
-	}
-
-	// free the trace handle.
-	free_tr2(trace);
-
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vResult[0]);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT2, vResult[1]);
-	set_pev(iEnt, LASERMINE_BEAMENDPOINT3, vResult[2]);
-}
-
-//====================================================
-// ShowInfo Hud Message
-//====================================================
-public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
-{ 
-	static iHit, szName[MAX_NAME_LENGTH], iOwner, health;
-	static hudMsg[64];
-
-	iHit = get_tr2(iTrace, TR_pHit);
-	if (pev_valid(iHit))
-	{
-		if (lm_is_user_alive(iHit))
-		{
-			szName = lm_get_entity_class_name(iHit);
-
-			if (equali(szName, ENT_CLASS_LASER))
-			{
-				iOwner = pev(iHit, LASERMINE_OWNER);
-				health = floatround(lm_get_user_health(iHit));
-				get_user_name(iOwner, szName, charsmax(szName));
-				formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG_KEY_MINE_HUD, szName, health, get_pcvar_num(gCvar[CVAR_MINE_HEALTH]));
-				//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
-				set_hudmessage(50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
-				show_hudmessage(id, hudMsg);
-			}
-		}
-    }
-} 
-
-//====================================================
-// Admin: Remove Player Lasermine
-//====================================================
-public admin_remove_laser(id, level, cid) 
-{ 
-	if (!cmd_access(id, level, cid, 2)) 
-		return PLUGIN_HANDLED;
-
-	new arg[32];
-	read_argv(1, arg, 31);
-	
-	new player = cmd_target(id, arg, CMDTARGET_ALLOW_SELF);
-
-	if (!player)
-		return PLUGIN_HANDLED;
-
-	delete_task(player); 
-	lm_remove_all_entity_main(player, ENT_CLASS_LASER);
-
-	new namea[MAX_NAME_LENGTH],namep[MAX_NAME_LENGTH]; 
-	get_user_name(id, namea, charsmax(namea));
-	get_user_name(player, namep, charsmax(namep));
-	cp_all_remove(0, namea, namep);
-
-	return PLUGIN_HANDLED; 
-} 
-
-//====================================================
-// Admin: Give Player Lasermine
-//====================================================
-public admin_give_laser(id, level, cid) 
-{ 
-	if (!cmd_access(id, level, cid, 2))
-		return PLUGIN_HANDLED;
-
-	new arg[32];
-	read_argv(1, arg, 31);
-	
-	new player = cmd_target(id, arg, CMDTARGET_ALLOW_SELF);
-	
-	if (!player)
-		return PLUGIN_HANDLED;
-
-	delete_task(player);
-	set_start_ammo(player);
-
-	new namea[MAX_NAME_LENGTH], namep[MAX_NAME_LENGTH]; 
-	get_user_name(id, namea, charsmax(namea)); 
-	get_user_name(player, namep, charsmax(namep)); 
-	cp_gave(0, namea, namep);
-	return PLUGIN_HANDLED; 
-} 
-
 public CheckSpectator() 
 {
 	new id, szTeam[2];
 	id = read_data(1);
 	read_data(2, szTeam, charsmax(szTeam));
 
-	if(lm_get_user_mine_deployed(id) > int:0) 
+	if (szTeam[0] == 'U' || szTeam[0] == 'S')
 	{
-		if (szTeam[0] == 'U' || szTeam[0] == 'S')
+		delete_task(id);
+		if (lm_remove_all_mines(id))
 		{
-			delete_task(id);
-			lm_remove_all_entity_main(id, ENT_CLASS_LASER);
 			new namep[MAX_NAME_LENGTH];
 			get_user_name(id, namep, charsmax(namep));
 			cp_remove_spec(0, namep);
-		} 
+		}
      } 
-}
-
-//====================================================
-// Play sound.
-//====================================================
-stock lm_play_sound(iEnt, iSoundType)
-{
-	switch (iSoundType)
-	{
-		case SOUND_POWERUP:
-		{
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND1, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, 0, PITCH_NORM);
-		}
-		case SOUND_ACTIVATE:
-		{
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, 1, 75);
-		}
-		case SOUND_STOP:
-		{
-			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, SND_STOP, PITCH_NORM);
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, SND_STOP, 75);
-		}
-		case SOUND_PICKUP:
-		{
-			emit_sound(iEnt, CHAN_ITEM, ENT_SOUND4, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-		}
-		case SOUND_HIT:
-		{
-			emit_sound(iEnt, CHAN_WEAPON, ENT_SOUND5, 1.0, ATTN_NORM, 0, PITCH_NORM);
-		}
-		case SOUND_HIT_SHIELD:
-		{
-			emit_sound(iEnt, CHAN_VOICE, random_num(0, 1) == 1 ? ENT_SOUND6 : ENT_SOUND7, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-		}
-	}
-}
-
-stock ClearStack(Stack:handle)
-{
-	new Float:health;
-	while (!IsStackEmpty(handle))
-	{
-		PopStackCell(handle, health);
-	}
 }

@@ -399,7 +399,7 @@ stock lm_remove_all_entity(id, className[])
 			if (pev(iEnt, LASERMINE_OWNER) != id)
 				continue;
 		}
-		lm_play_sound(iEnt, SOUND_STOP);
+		// lm_play_sound(iEnt, SOUND_STOP);
 		lm_remove_entity(iEnt);
 	}
 }
