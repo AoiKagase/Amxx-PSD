@@ -1,9 +1,10 @@
-
+// #pragma semicolon 1
 //=============================================
 //	Plugin Writed by Visual Studio Code.
 //=============================================
 // Supported BIOHAZARD.
 // #define BIOHAZARD_SUPPORT
+#define ZP_SUPPORT
 
 //=====================================
 //  INCLUDE AREA
@@ -21,12 +22,18 @@
 	#include <biohazard>
 #endif
 
+#if defined ZP_SUPPORT
+	#include <zp50_items>
+	#include <zp50_gamemodes>
+	#include <zp50_colorchat>
+	#include <zp50_ammopacks>
+#endif
+
 //=====================================
 //  VERSION CHECK
 //=====================================
 #if AMXX_VERSION_NUM < 200
 	#assert "AMX Mod X v1.10.0 or greater library required!"
-	#define MAX_PLAYERS				32
 #endif
 
 #if defined BIOHAZARD_SUPPORT
@@ -36,13 +43,19 @@
 	#define CVAR_TAG				"bh_ltm"
 	#define LANG_KEY_NOT_BUY_TEAM	"NOT_BUY_TEAM"
 #else
-	#define PLUGIN 					"Laser/Tripmine Entity"
+#if defined ZP_SUPPORT
+	#define PLUGIN 					"[ZP]Laser/Tripmine Entity"
 
+	#define CHAT_TAG 				"[ZP][LM]"
+	#define CVAR_TAG				"zp_ltm"
+	#define LANG_KEY_NOT_BUY_TEAM 	"NOT_BUY_TEAMB"
+#else
+	#define PLUGIN 					"Laser/Tripmine Entity"
 	#define CHAT_TAG 				"[Lasermine]"
 	#define CVAR_TAG				"amx_ltm"
 	#define LANG_KEY_NOT_BUY_TEAM 	"NOT_BUY_TEAM"
 #endif
-
+#endif
 //=====================================
 //  Resource Setting AREA
 //=====================================
@@ -201,19 +214,37 @@ enum CVAR_SETTING
 	CVAR_CM_WIRE_COLOR_CT	,
 };
 
+#if defined ZP_SUPPORT
+enum _:GAMEMODE_TAG
+{
+	GMODE_ARMAGEDDON,
+	GMODE_ZTAG,
+	GMODE_ASSASIN,
+}
+#endif
 //====================================================
 //  GLOBAL VARIABLES
 //====================================================
 new gCvar[CVAR_SETTING];
 
-new int:gNowTime
-new gMsgStatusText, gMsgBarTime;
-
+new int:gNowTime;
+new gMsgBarTime;
 new gBeam, gBoom;
 new gEntMine;
 
 new Float:gDeployPos	[MAX_PLAYERS][3];
 new Stack:gRecycleMine	[MAX_PLAYERS];
+
+#if defined ZP_SUPPORT
+	new ITEM_NAME[][]	= {"LaserMines", "TripMines", "Claymores"};
+	new gZpGameMode[GAMEMODE_TAG];
+	new gZpWeaponId;
+#else
+	#if !defined BIOHAZARD_SUPPORT
+		new gMsgStatusText;
+	#endif
+#endif
+
 //====================================================
 //  PLUGIN INITIALIZE
 //====================================================
@@ -235,8 +266,9 @@ public plugin_init()
    	register_clcmd("-remlm", 		"lm_progress_stop");
 
 	register_clcmd("say", 			"lm_say_lasermine");
+#if !defined ZP_SUPPORT	
 	register_clcmd("buy_lasermine", "lm_buy_lasermine");
-
+#endif
 	// CVar settings.
 	// Common.
 	gCvar[CVAR_ENABLE]	        = register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),				"1"			);	// 0 = off, 1 = on.
@@ -304,6 +336,7 @@ public plugin_init()
 	gCvar[CVAR_CM_WIRE_COLOR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
 	gCvar[CVAR_CM_WIRE_COLOR_T] = register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_t"),		"20,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
 	gCvar[CVAR_CM_WIRE_COLOR_CT]= register_cvar(fmt("%s%s", CVAR_TAG, "_cm_wire_color_ct"),		"0,0,20"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_FRIENDLY_FIRE]  	= get_cvar_pointer("mp_friendlyfire");											// Friendly fire. 0 or 1
 
 	// Register Hamsandwich
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
@@ -311,13 +344,18 @@ public plugin_init()
 	RegisterHam(Ham_Killed, 		"player", "PlayerKilling", 	0);
 	RegisterHam(Ham_Think,			ENT_CLASS_BREAKABLE, "LaserThink");
 	RegisterHam(Ham_TakeDamage,		ENT_CLASS_BREAKABLE, "MinesTakeDamage");
+	RegisterHam(Ham_TakeDamage,     ENT_CLASS_BREAKABLE, "MinesBreaked", 1);
 
 	// Register Event
 	register_event("DeathMsg", "DeathEvent",	"a");
 	register_event("TeamInfo", "CheckSpectator","a");
 
 	// Get Message Id
-	gMsgStatusText 	= get_user_msgid("StatusText");
+#if !defined ZP_SUPPORT
+	#if !defined BIOHAZARD_SUPPORT
+		gMsgStatusText 	= get_user_msgid("StatusText");
+	#endif
+#endif
 	gMsgBarTime		= get_user_msgid("BarTime");
 
 	// Register Forward.
@@ -333,14 +371,88 @@ public plugin_init()
 	for(new i = 0; i < MAX_PLAYERS; i++)
 		gRecycleMine[i] = CreateStack(1);
 
+	#if defined ZP_SUPPORT
+		new wmode 						= get_pcvar_num(gCvar[CVAR_MODE]);
+		new cost						= get_pcvar_num(gCvar[CVAR_COST]);
+		gZpWeaponId						= zp_items_register(ITEM_NAME[wmode], cost);
+		gZpGameMode[GMODE_ARMAGEDDON]	= zp_gamemodes_get_id("Armageddon Mode");
+		gZpGameMode[GMODE_ZTAG] 		= zp_gamemodes_get_id("Zombie Tag Mode");
+		gZpGameMode[GMODE_ASSASIN]		= zp_gamemodes_get_id("Assassin Mode");
+	#endif
+
 	return PLUGIN_CONTINUE;
 }
-
+#if defined ZP_SUPPORT
 public plugin_natives()
 {
-	register_library("lasermine_native");
+	register_native("zp_give_lm", "LaserMine_Native");
 }
 
+public LaserMine_Native(iPlugin, iParams)
+{
+	new id = get_param(1);
+	if (!lm_is_user_alive(id))
+		return;
+
+	lm_set_user_have_mine(id, int:get_param(2));
+}
+
+public zp_fw_core_infect_post(id, attacker)
+{
+	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
+		return PLUGIN_CONTINUE;
+
+	// Is Connected?
+	if (is_user_connected(id)) 
+		delete_task(id);
+
+	// Dead Player remove lasermine.
+	lm_remove_all_entity(id, ENT_CLASS_LASER);
+
+	return PLUGIN_HANDLED
+}
+
+public zp_fw_items_select_pre(id, itemid, ignorecost)
+{
+	if (itemid != gZpWeaponId)
+		return ZP_ITEM_AVAILABLE;
+
+	if (zp_core_is_zombie(id))
+		return ZP_ITEM_DONT_SHOW;
+
+	new gamemode = zp_gamemodes_get_current();
+
+	if (gamemode == -2
+	||	gamemode == gZpGameMode[GMODE_ARMAGEDDON]
+	||	gamemode == gZpGameMode[GMODE_ZTAG]
+	||	gamemode == gZpGameMode[GMODE_ASSASIN]
+	)
+	{
+		zp_colored_print(id, "This is not available right now...");
+		return ZP_ITEM_NOT_AVAILABLE;
+	}
+
+	zp_items_menu_text_add(fmt("[%d/%d]", lm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE])));
+
+	if (lm_get_user_have_mine(id) >= int:get_pcvar_num(gCvar[CVAR_MAX_HAVE]))
+	{
+		zp_colored_print(id, "You reached the limit..");
+		return ZP_ITEM_NOT_AVAILABLE;
+	}
+
+	return ZP_ITEM_AVAILABLE;
+}
+
+public zp_fw_items_select_post(id, itemid, ignorecost)
+{
+	if(itemid == gZpWeaponId)
+	{
+		lm_set_user_have_mine(id, lm_get_user_have_mine(id) + int:1)
+		cp_bought(id)
+		lm_play_sound(id, SOUND_PICKUP)
+	}
+}
+#endif
 //====================================================
 //  PLUGIN END
 //====================================================
@@ -403,14 +515,17 @@ public plugin_cfg()
 #if defined BIOHAZARD_SUPPORT
 	format(file, len, "%s/bhltm_cvars.cfg", file);
 #else
+#if defined ZP_SUPPORT
+	format(file, len, "%s/zp_ltm_cvars.cfg", file);
+#else
 	format(file, len, "%s/ltm_cvars.cfg", file);
+#endif
 #endif
 	if(file_exists(file)) 
 	{
 		server_cmd("exec %s", file);
 		server_exec();
 	}
-	gCvar[CVAR_FRIENDLY_FIRE]  	= get_cvar_pointer("mp_friendlyfire");											// Friendly fire. 0 or 1
 }
 
 //====================================================
@@ -632,7 +747,7 @@ public lm_progress_stop(id)
 public SpawnMine(id)
 {
 	// Task Number to uID.
-	new uID = id - TASK_PLANT
+	new uID = id - TASK_PLANT;
 	// Create Entity.
 	new iEnt = engfunc(EngFunc_CreateNamedEntity, gEntMine);
 	// is Valid?
@@ -898,7 +1013,7 @@ public RemoveMine(id)
 	lm_set_user_deploy_state(uID, int:STATE_DEPLOYED);
 
 	// Refresh show ammo.
-	show_ammo(uID)
+	show_ammo(uID);
 
 	return 1;
 }
@@ -1001,7 +1116,7 @@ public LaserThink(iEnt)
 	if (!equali(entityName, ENT_CLASS_LASER))
 		return HAM_IGNORED;
 
-	static Float:fCurrTime
+	static Float:fCurrTime;
 	static TRIPMINE_THINK:step;
 	static loop;
 	loop = get_pcvar_num(gCvar[CVAR_MODE]) == MODE_BF4_CLAYMORE ? 3 : 1;
@@ -1126,11 +1241,11 @@ public LaserThink(iEnt)
 			while(fFraction < 1.0)
 			{
 				// Trace line
-				engfunc(EngFunc_TraceLine, reStartPos, vEnd[i], DONT_IGNORE_MONSTERS, iIgnoreEnt, trace)
+				engfunc(EngFunc_TraceLine, reStartPos, vEnd[i], DONT_IGNORE_MONSTERS, iIgnoreEnt, trace);
 				{
 					get_tr2(trace, TR_flFraction, fFraction);
 					iTarget		= get_tr2(trace, TR_pHit);
-					hitGroup	= get_tr2(trace, TR_iHitgroup)
+					hitGroup	= get_tr2(trace, TR_iHitgroup);
 					get_tr2(trace, TR_vecEndPos, hitPoint);				
 				}
 
@@ -1264,6 +1379,7 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 
 	// We get the ID of the player who put the mine.
 	new iOwner = pev(victim, LASERMINE_OWNER);
+
 	switch(get_pcvar_num(gCvar[CVAR_MINE_BROKEN]))
 	{
 		// 0 = mines.
@@ -1278,6 +1394,17 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 		{
 			// If the team of the one who put the mine and the one who attacked match.
 			if(CsTeams:pev(victim, LASERMINE_TEAM) != cs_get_user_team(attacker))
+				return HAM_SUPERCEDE;
+		}
+		// 2 = Enemy.
+		case 2:
+		{
+			return HAM_IGNORED;
+		}
+		// 3 = Enemy Only.
+		case 3:
+		{
+			if(iOwner == attacker || CsTeams:pev(victim, LASERMINE_TEAM) == cs_get_user_team(attacker))
 				return HAM_SUPERCEDE;
 		}
 		default:
@@ -1431,28 +1558,32 @@ public PlayerKilling(iVictim, iAttacker)
 		new CsTeams:vTeam = cs_get_user_team(iVictim);
 
 		new score  = (vTeam != aTeam) ? 1 : -1;
-		new money  = (vTeam != aTeam) ? get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) : (get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) * -1);
 
 		// Attacker Frag.
 		// Add Attacker Frag (Friendly fire is minus).
 		new aFrag	= lm_get_user_frags(iAttacker) + score;
 		new aDeath	= cs_get_user_deaths(iAttacker);
 
-		cs_set_user_deaths(iAttacker, aDeath);
+		lm_set_user_deaths(iAttacker, aDeath);
 		ExecuteHamB(Ham_AddPoints, iAttacker, aFrag - lm_get_user_frags(iAttacker), true);
 
 		new tDeath = lm_get_user_deaths(iVictim);
 
-		cs_set_user_deaths(iVictim, tDeath);
+		lm_set_user_deaths(iVictim, tDeath);
 		ExecuteHamB(Ham_AddPoints, iVictim, 0, true);
 
-		// Get Money attacker.
-		cs_set_user_money(iAttacker, cs_get_user_money(iAttacker) + money);
+		#if !defined ZP_SUPPORT
+			#if !defined BIOHAZARD_SUPPORT
+				// Get Money attacker.
+				new money  = (vTeam != aTeam) ? get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) : (get_pcvar_num(gCvar[CVAR_FRAG_MONEY]) * -1);
+				cs_set_user_money(iAttacker, cs_get_user_money(iAttacker) + money);
+			#endif
+		#endif
 		return HAM_HANDLED;
 	}
 	return HAM_IGNORED;
 }
-
+#if !defined ZP_SUPPORT
 //====================================================
 // Buy Lasermine.
 //====================================================
@@ -1478,12 +1609,18 @@ public lm_buy_lasermine(id)
 
 	return PLUGIN_HANDLED;
 }
-
+#endif
 //====================================================
 // Show ammo.
 //====================================================
 show_ammo(id)
 { 
+#if defined ZP_SUPPORT
+	client_print(id, print_center, "[%i/%i]", lm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
+#else
+#if defined BIOHAZARD_SUPPORT
+	client_print(id, print_center, "[%i/%i]", lm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
+#else
 	new ammo[51];
 	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
 		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_AMMO, lm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
@@ -1492,6 +1629,8 @@ show_ammo(id)
 
 	if (pev_valid(id))
 		lm_show_status_text(id, ammo, gMsgStatusText);
+#endif
+#endif
 } 
 
 //====================================================
@@ -1507,8 +1646,12 @@ public lm_say_lasermine(id)
 	
 	if (equali(said,"/buy lasermine") || equali(said,"/lm"))
 	{
+#if defined ZP_SUPPORT
+		zp_items_force_buy(id, gZpWeaponId);
+#else
 		lm_buy_lasermine(id);
-//		return PLUGIN_HANDLED;
+#endif
+#if !defined ZP_SUPPORT
 	} else 
 	if (equali(said, "lasermine") || equali(said, "/lasermine"))
 	{
@@ -1533,6 +1676,7 @@ public lm_say_lasermine(id)
 	{
 		cp_refer(id);
 		return PLUGIN_CONTINUE;
+#endif
 	}
 	return PLUGIN_CONTINUE;
 }
@@ -1543,14 +1687,14 @@ public lm_say_lasermine(id)
 //====================================================
 public PlayerPostThink(id) 
 {
-	if ((get_user_weapon(id) == CSW_C4 && pev(id, pev_button ) & IN_ATTACK))
+	if ((pev(id, pev_weapons) & (1 << CSW_C4)) && (pev(id, pev_oldbuttons) & IN_ATTACK))
 		return FMRES_IGNORED;
 
 	switch (lm_get_user_deploy_state(id))
 	{
 		case STATE_IDLE:
 		{
-			new bool:now_speed = (lm_get_user_max_speed(id) <= 1.0)
+			new bool:now_speed = (lm_get_user_max_speed(id) <= 1.0);
 			if (now_speed)
 				ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
 		}
@@ -2077,7 +2221,7 @@ set_claymore_endpoint(iEnt, Float:vOrigin[3], Float:vNormal[3])
 				xs_vec_add(vOrigin, vForward, vForward);
 
 				// Trace line
-				engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
+				engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace);
 				{
 					get_tr2(trace, TR_vecEndPos, vTmp);
 				}
@@ -2126,6 +2270,28 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 		}
     }
 } 
+
+public MinesBreaked(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
+{
+	new entityName[MAX_NAME_LENGTH];
+	entityName = lm_get_entity_class_name(victim);
+
+    // is this lasermine? no.
+	if (!equali(entityName, ENT_CLASS_LASER))
+		return HAM_IGNORED;
+
+#if defined ZP_SUPPORT
+	if (lm_get_user_health(victim) <= 0)
+	{
+		new szName[MAX_NAME_LENGTH];
+		new addpoint = get_pcvar_num(gCvar[CVAR_FRAG_MONEY]);
+		get_user_name(attacker, szName, charsmax(szName));
+		zp_ammopacks_set(attacker, zp_ammopacks_get(attacker) + addpoint);
+		zp_colored_print(0, "^4%s ^1earned^4 %i points ^1for destorying a lasermine !", szName, addpoint);
+	}
+#endif
+    return HAM_IGNORED;
+}
 
 //====================================================
 // Admin: Remove Player Lasermine
