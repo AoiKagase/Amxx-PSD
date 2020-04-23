@@ -456,11 +456,9 @@ stock lm_remove_all_entity(id, className[])
 		if (!pev_valid(iEnt))
 			continue;
 
-		if (is_user_connected(id))
-		{
-			if (pev(iEnt, LASERMINE_OWNER) != id)
-				continue;
-		}
+		if (pev(iEnt, LASERMINE_OWNER) != id)
+			continue;
+
 		lm_play_sound(iEnt, SOUND_STOP);
 		lm_remove_entity(iEnt);
 	}
