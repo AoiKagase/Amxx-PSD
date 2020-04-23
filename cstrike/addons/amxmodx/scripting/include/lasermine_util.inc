@@ -456,11 +456,11 @@ stock lm_remove_all_entity(id, className[])
 		if (!pev_valid(iEnt))
 			continue;
 
-		if (pev(iEnt, LASERMINE_OWNER) != id)
-			continue;
-
-		lm_play_sound(iEnt, SOUND_STOP);
-		lm_remove_entity(iEnt);
+		if (pev(iEnt, LASERMINE_OWNER) == id)
+		{
+			lm_play_sound(iEnt, SOUND_STOP);
+			lm_remove_entity(iEnt);
+		}
 	}
 	// reset deploy count.
 	lm_set_user_mine_deployed(id, int:0);
