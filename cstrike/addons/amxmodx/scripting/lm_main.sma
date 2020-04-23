@@ -192,10 +192,10 @@ enum _:FORWARDER
 {
 	FWD_SET_ENTITY_SPAWN,
 	FWD_PUTIN_SERVER,
-	FWD_REMOVE_MINE,
+	FWD_PICKUP_MINE,
 	FWD_CHECK_DEPLOY,
-	FWD_CHECK_REMOVE,
-	FWD_CHECK_FOR_BUY,
+	FWD_CHECK_PICKUP,
+	FWD_CHECK_BUY,
 	FWD_DISCONNECTED,
 	FWD_MINES_THINK,
 	FWD_PLUGINS_END,
@@ -438,8 +438,8 @@ public plugin_init()
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
 	RegisterHam(Ham_Item_PreFrame,	"player", "KeepMaxSpeed", 	1);
 	RegisterHam(Ham_Killed, 		"player", "PlayerKilling", 	0);
-	RegisterHam(Ham_Think,			ENT_CLASS_BREAKABLE, "MinesThink");
-	RegisterHam(Ham_TakeDamage,		ENT_CLASS_BREAKABLE, "MinesTakeDamage");
+	// RegisterHam(Ham_Think,			ENT_CLASS_BREAKABLE, "MinesThink");
+	// RegisterHam(Ham_TakeDamage,		ENT_CLASS_BREAKABLE, "MinesTakeDamage");
 
 	// Register Event
 	register_event("DeathMsg", "DeathEvent",	"a");
@@ -453,6 +453,15 @@ public plugin_init()
 	register_forward(FM_PlayerPreThink, "PlayerPreThink");
 	register_forward(FM_TraceLine,		"MinesShowInfo", 1);
 
+	gForwarder[FWD_SET_ENTITY_SPAWN] = CreateMultiForward("lm_entity_spawn_settings", ET_IGNORE, FP_CELL, FP_CELL);
+	gForwarder[FWD_PUTIN_SERVER]	 = CreateMultiForward("lm_client_putinserver"	, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_PICKUP_MINE]		 = CreateMultiForward("PickupMines"				, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_CHECK_DEPLOY]	 = CreateMultiForward("CheckForDeploy"			, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_CHECK_PICKUP]	 = CreateMultiForward("CheckForPickup"			, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_CHECK_BUY]	 	 = CreateMultiForward("CheckForBuy"				, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_DISCONNECTED] 	 = CreateMultiForward("lm_client_disconnected"	, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_MINES_THINK]		 = CreateMultiForward("MinesThink"				, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_PLUGINS_END] 	 = CreateMultiForward("lm_plugin_end"			, ET_IGNORE);
 	// Multi Language Dictionary.
 	register_dictionary("lasermine.txt");
 
@@ -501,7 +510,7 @@ public _native_deploy_progress(iPlugin, iParams)
 // lm_progress_pickup(id, minesId);
 public _native_pickup_progress(iPlugin, iParams)
 {
-	lm_progress_remove(get_param(1), get_param(2));
+	lm_progress_pickup(get_param(1), get_param(2));
 }
 // lm_progress_stop(id);
 public _native_stop_progress(iPlugin, iParams)
@@ -739,11 +748,11 @@ public lm_progress_deploy(id, minesId)
 //====================================================
 // Removing target put lasermine.
 //====================================================
-public lm_progress_remove(id, minesId)
+public lm_progress_pickup(id, minesId)
 {
 	// Removing Check.
 	new iReturn;
-	ExecuteForward(gForwarder[FWD_CHECK_REMOVE]);
+	ExecuteForward(gForwarder[FWD_CHECK_PICKUP]);
 
 	if (!iReturn)
 		return PLUGIN_HANDLED;
@@ -795,7 +804,9 @@ public SpawnMine(params[], id)
 
 	if (iReturn)
 	{
-		RegisterHamFromEntity(Ham_Think, iEnt, "MinesThink");
+		RegisterHamFromEntity(Ham_Think, 		iEnt, "MinesThink");
+		RegisterHamFromEntity(Ham_TakeDamage, 	iEnt, "MinesTakeDamage", 0);
+		RegisterHamFromEntity(Ham_TakeDamage, 	iEnt, "MinesBreaked", 	 1);
 	}
 
 	return iReturn;
@@ -858,7 +869,7 @@ public RemoveMine(params[], id)
 		}		
 	}
 	new minesId = str_to_num(params);
-	ExecuteForward(gForwarder[FWD_REMOVE_MINE], uID, target);
+	ExecuteForward(gForwarder[FWD_PICKUP_MINE], uID, target);
 
 	// Remove!
 	lm_remove_entity(target);

@@ -16,6 +16,7 @@
 #include <fakemeta>
 #include <hamsandwich>
 #include <xs>
+#include <mines_natives>
 
 #if defined BIOHAZARD_SUPPORT
 	#include <biohazard>
