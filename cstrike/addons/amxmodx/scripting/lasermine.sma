@@ -4,7 +4,7 @@
 //=============================================
 // Supported BIOHAZARD.
 // #define BIOHAZARD_SUPPORT
-#define ZP_SUPPORT
+// #define ZP_SUPPORT
 
 //=====================================
 //  INCLUDE AREA
