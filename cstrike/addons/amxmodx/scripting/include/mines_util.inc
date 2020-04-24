@@ -11,9 +11,9 @@
 #define _mines_util_included
 
 #include <mines_const>
-stock bool:lm_is_user_godmode	(id) { return (pev(id, pev_takedamage) == DAMAGE_NO); }
-stock bool:lm_is_user_alive		(id) { return (pev(id,pev_deadflag) == DEAD_NO);}
-stock lm_get_entity_class_name	(id)
+stock bool:mines_is_user_godmode	(id) { return (pev(id, pev_takedamage) == DAMAGE_NO); }
+stock bool:mines_is_user_alive		(id) { return (pev(id,pev_deadflag) == DEAD_NO);}
+stock mines_get_entity_class_name	(id)
 {
 	new entityName[MAX_NAME_LENGTH];
 	pev(id, pev_classname, entityName, charsmax(entityName));
@@ -22,7 +22,7 @@ stock lm_get_entity_class_name	(id)
 //====================================================
 // Glow Rendering
 //====================================================
-stock lm_set_glow_rendering(iEnt, fx = kRenderFxNone, Float:renderColor[3], render = kRenderNormal, amount = 16)
+stock mines_set_glow_rendering(iEnt, fx = kRenderFxNone, Float:renderColor[3], render = kRenderNormal, amount = 16)
 {
 	set_pev(iEnt, pev_renderfx, fx);
 	set_pev(iEnt, pev_rendercolor, renderColor);
@@ -35,7 +35,7 @@ stock lm_set_glow_rendering(iEnt, fx = kRenderFxNone, Float:renderColor[3], rend
 //====================================================
 // Show Progress Bar.
 //====================================================
-stock lm_show_progress(id, int:time, msg)
+stock mines_show_progress(id, int:time, msg)
 {
 	if (pev_valid(id))
 	{
@@ -48,7 +48,7 @@ stock lm_show_progress(id, int:time, msg)
 //====================================================
 // Hide Progress Bar.
 //====================================================
-stock lm_hide_progress(id, msg)
+stock mines_hide_progress(id, msg)
 {
 	if (pev_valid(id))
 	{
@@ -61,7 +61,7 @@ stock lm_hide_progress(id, msg)
 //====================================================
 // Draw Spark
 //====================================================
-stock lm_draw_spark(Float:origin[3])
+stock mines_draw_spark(Float:origin[3])
 {
 	message_begin(MSG_ALL, SVC_TEMPENTITY);
 	write_byte(TE_SPARKS);
@@ -71,7 +71,7 @@ stock lm_draw_spark(Float:origin[3])
 	message_end();
 }
 
-stock lm_draw_spark_for_wall(const Float:vEndOrigin[3])
+stock mines_draw_spark_for_wall(const Float:vEndOrigin[3])
 {
    	// Sparks
 	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vEndOrigin, 0);
@@ -126,7 +126,7 @@ stock set_offset_value(id, type, value)
 //====================================================
 // Flashing Money Hud
 //====================================================
-stock lm_flash_money_hud(id, value, msg)
+stock mines_flash_money_hud(id, value, msg)
 {
 	if (pev_valid(id))
 	{
@@ -142,7 +142,7 @@ stock lm_flash_money_hud(id, value, msg)
 //====================================================
 // Draw Laserline
 //====================================================
-stock lm_draw_laser(
+stock mines_draw_laser(
 	const iEnt,
 	/* const Float:vOrigin[3],*/ 
 	const Float:vEndOrigin[3], 
@@ -184,10 +184,10 @@ stock lm_draw_laser(
 //====================================================
 // Effect Explosion.
 //====================================================
-stock lm_create_explosion(iEnt, boom)
+stock mines_create_explosion(iEnt, boom)
 {
 	// Stop laser line.
-	lm_stop_laserline(iEnt);
+	mines_stop_laserline(iEnt);
 
 	// Get position.
 	new Float:vOrigin[3];
@@ -209,7 +209,7 @@ stock lm_create_explosion(iEnt, boom)
 //====================================================
 // Stop Laser line.
 //====================================================
-stock lm_stop_laserline(iEnt)
+stock mines_stop_laserline(iEnt)
 {
 	// Laser line stop.
 	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
@@ -221,7 +221,7 @@ stock lm_stop_laserline(iEnt)
 //====================================================
 // Explosion Damage.
 //====================================================
-stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
+stock mines_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 {
 	// Get given parameters
 	
@@ -256,7 +256,7 @@ stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 	else
 		falloff = 1.0;
 	
-	iClassName = lm_get_entity_class_name(iEnt);
+	iClassName = mines_get_entity_class_name(iEnt);
 	// Find monsters and players inside a specifiec radius
 	while((rEnt = engfunc(EngFunc_FindEntityInSphere, rEnt, vOrigin, radius)) != 0)
 	{
@@ -264,7 +264,7 @@ stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 		if (!pev_valid(rEnt)) 
 			continue;
 
-		tClassName = lm_get_entity_class_name(rEnt);
+		tClassName = mines_get_entity_class_name(rEnt);
 		if (!equali(tClassName, iClassName))
 		{
 			// Entity is not a player or monster, ignore it
@@ -273,7 +273,7 @@ stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 		}
 
 		// is alive?
-		if (!lm_is_user_alive(rEnt))
+		if (!mines_is_user_alive(rEnt))
 			continue;
 		
 		// friendly fire
@@ -355,7 +355,7 @@ stock lm_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 //====================================================
 // show status text 
 //====================================================
-stock lm_show_status_text(id, szText[], msg)
+stock mines_show_status_text(id, szText[], msg)
 {
 	engfunc(EngFunc_MessageBegin, MSG_ONE, msg, {0, 0, 0}, id);
 	write_byte(0);
@@ -366,7 +366,7 @@ stock lm_show_status_text(id, szText[], msg)
 //====================================================
 // Hit Shield Effect 
 //====================================================
-stock lm_hit_shield(id, Float:dmg)
+stock mines_hit_shield(id, Float:dmg)
 {
 	static Float:punchangle[3];
 	punchangle[0] = (dmg * random_float(-0.15, 0.15));
@@ -385,7 +385,7 @@ stock lm_hit_shield(id, Float:dmg)
 //====================================================
 // Remove all Entity.
 //====================================================
-stock lm_remove_all_entity(id, className[])
+stock mines_remove_all_entity(id, className[])
 {
 	new iEnt = -1;
 
@@ -399,14 +399,14 @@ stock lm_remove_all_entity(id, className[])
 			if (pev(iEnt, MINES_OWNER) != id)
 				continue;
 		}
-		// lm_play_sound(iEnt, SOUND_STOP);
-		lm_remove_entity(iEnt);
+		// mines_play_sound(iEnt, SOUND_STOP);
+		mines_remove_entity(iEnt);
 	}
 }
 
-stock lm_remove_entity(iEnt)
+stock mines_remove_entity(iEnt)
 {
-	lm_stop_laserline(iEnt);
+	mines_stop_laserline(iEnt);
 	engfunc(EngFunc_RemoveEntity, iEnt);
 }
 

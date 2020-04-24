@@ -123,6 +123,7 @@
 #define TASK_RELEASE				15900
 
 #define MAX_CLAYMORE				40
+#define ENT_CLASS_LASER				"lasermine"
 
 // Client Print Command Macro.
 #define cp_debug(%1)				client_print_color(%1, %1, "^4[Laesrmine Debug] ^1Can't Create Entity")
@@ -171,6 +172,7 @@ enum CVAR_SETTING
 	CVAR_COST               ,    	// Buy cost.
 	CVAR_BUY_ZONE           ,    	// Stay in buy zone can buy.
 	CVAR_LASER_DMG          ,    	// Laser hit Damage.
+	CVAR_MAX_DEPLOY			,		// user max deploy.
 	CVAR_TEAM_MAX           ,    	// Max deployed in team.
 	CVAR_EXPLODE_RADIUS     ,   	// Explosion Radius.
 	CVAR_EXPLODE_DMG        ,   	// Explosion Damage.
@@ -230,7 +232,7 @@ new gCvar[CVAR_SETTING];
 new int:gNowTime;
 new gMsgBarTime;
 new gBeam, gBoom;
-new gEntMine;
+new gMinesId;
 
 new Float:gDeployPos	[MAX_PLAYERS][3];
 new Stack:gRecycleMine	[MAX_PLAYERS];
@@ -284,6 +286,7 @@ public plugin_init()
 	gCvar[CVAR_START_HAVE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_amount"),				"1"			);	// Round start have ammo count.
 	gCvar[CVAR_MAX_HAVE]       	= register_cvar(fmt("%s%s", CVAR_TAG, "_max_amount"),   		"2"			);	// Max having ammo.
 	gCvar[CVAR_TEAM_MAX]		= register_cvar(fmt("%s%s", CVAR_TAG, "_team_max"),				"10"		);	// Max deployed in team.
+	gCvar[CVAR_MAX_DEPLOY]		= register_cvar(fmt("%s%s", CVAR_TAG, "_max_deploy"),			"10"		);	// Max deployed in user.
 
 	// Buy system.
 	gCvar[CVAR_BUY_MODE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_buy_mode"),				"1"			);	// 0 = off, 1 = on.
@@ -342,13 +345,31 @@ public plugin_init()
 	RegisterHam(Ham_Spawn, 			"player", "NewRound", 		1);
 	RegisterHam(Ham_Item_PreFrame,	"player", "KeepMaxSpeed", 	1);
 	RegisterHam(Ham_Killed, 		"player", "PlayerKilling", 	0);
-	RegisterHam(Ham_Think,			ENT_CLASS_BREAKABLE, "LaserThink");
+
 	RegisterHam(Ham_TakeDamage,		ENT_CLASS_BREAKABLE, "MinesTakeDamage");
 	RegisterHam(Ham_TakeDamage,     ENT_CLASS_BREAKABLE, "MinesBreaked", 1);
 
 	// Register Event
 	register_event("DeathMsg", "DeathEvent",	"a");
 	register_event("TeamInfo", "CheckSpectator","a");
+
+	new minesData[COMMON_MINES_DATA];
+	minesData[AMMO_HAVE_START]		=	get_pcvar_num(gCvar[CVAR_START_HAVE]);
+	minesData[AMMO_HAVE_MAX]		=	get_pcvar_num(gCvar[CVAR_MAX_HAVE]);
+	minesData[DEPLOY_MAX]			= 	get_pcvar_num(gCvar[CVAR_MAX_DEPLOY]);
+	minesData[DEPLOY_TEAM_MAX]		= 	get_pcvar_num(gCvar[CVAR_TEAM_MAX]);
+	minesData[BUY_PRICE]			= 	get_pcvar_num(gCvar[CVAR_COST]);
+	minesData[BUY_ZONE]				=	get_pcvar_num(gCvar[CVAR_BUY_ZONE]);
+	minesData[FRAG_MONEY]			= 	get_pcvar_num(gCvar[CVAR_FRAG_MONEY]);
+	minesData[MINE_HEALTH]			= 	get_pcvar_float(gCvar[CVAR_MINE_HEALTH]);
+	minesData[MINE_BROKEN]			= 	get_pcvar_num(gCvar[CVAR_MINE_BROKEN]);
+	minesData[ACTIVATE_TIME]		= 	get_pcvar_float(gCvar[CVAR_LASER_ACTIVATE]);
+	minesData[ALLOW_PICKUP]			=	get_pcvar_num(gCvar[CVAR_ALLOW_PICKUP]);
+	minesData[DEATH_REMOVE]			=	get_pcvar_num(gCvar[CVAR_DEATH_REMOVE]);
+	minesData[EXPLODE_RADIUS]		=	get_pcvar_float(gCvar[CVAR_EXPLODE_RADIUS]);
+	minesData[EXPLODE_DAMAGE]		=	get_pcvar_float(gCvar[CVAR_EXPLODE_DMG]);
+
+	gMinesId = register_mines("lasermine", minesData);
 
 	// Get Message Id
 #if !defined ZP_SUPPORT
@@ -456,7 +477,7 @@ public zp_fw_items_select_post(id, itemid, ignorecost)
 //====================================================
 //  PLUGIN END
 //====================================================
-public plugin_end()
+public lm_plugin_end()
 {
 	for(new i = 0; i < MAX_PLAYERS; i++)
 		DestroyStack(gRecycleMine[i]);
@@ -484,41 +505,21 @@ public plugin_precache()
 }
 
 //====================================================
-//  PLUGIN REQUIRE MODULE
-//====================================================
-/* 
-	1.8.3
-	symbol "plugin_modules" is marked as deprecated: 
-	Module dependency is now automatically handled by the compiler. 
-	This forward is no longer called.
-*/
-/*
-public plugin_modules() 
-{
-	require_module("fakemeta");
-	require_module("hamsandwich");
-}
-*/
-
-//====================================================
 //  PLUGIN CONFIG
 //====================================================
 public plugin_cfg()
 {
-	// registered func_breakable
-	gEntMine = engfunc(EngFunc_AllocString, ENT_CLASS_BREAKABLE);
-
 	new file[64];
 	new len = charsmax(file);
 	get_localinfo("amxx_configsdir", file, len);
 
 #if defined BIOHAZARD_SUPPORT
-	format(file, len, "%s/bhltm_cvars.cfg", file);
+	format(file, len, "%s/mines/bhltm_cvars.cfg", file);
 #else
 #if defined ZP_SUPPORT
-	format(file, len, "%s/zp_ltm_cvars.cfg", file);
+	format(file, len, "%s/mines/zp_ltm_cvars.cfg", file);
 #else
-	format(file, len, "%s/ltm_cvars.cfg", file);
+	format(file, len, "%s/mines/ltm_cvars.cfg", file);
 #endif
 #endif
 	if(file_exists(file)) 
@@ -526,27 +527,6 @@ public plugin_cfg()
 		server_cmd("exec %s", file);
 		server_exec();
 	}
-}
-
-//====================================================
-//  Bot Register Ham.
-//====================================================
-new g_bots_registered = false;
-public client_authorized( id )
-{
-    if( !g_bots_registered && is_user_bot( id ) )
-    {
-        set_task( 0.1, "register_bots", id );
-    }
-}
-
-public register_bots( id )
-{
-    if( !g_bots_registered && is_user_connected( id ) )
-    {
-        RegisterHamFromEntity( Ham_Killed, id, "PlayerKilling");
-        g_bots_registered = true;
-    }
 }
 
 //====================================================
@@ -563,148 +543,12 @@ bool:is_valid_takedamage(iAttacker, iTarget)
 	return false;
 }
 
-// bool:is_user_friend(iAttacker, iTarget)
-// {
-// 	if (get_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE]))
-// 	if (cs_get_user_team(iAttacker) == cs_get_user_team(iTarget))
-// 		return true;
-// 	return false;
-// }
-
-//====================================================
-// Round Start Initialize
-//====================================================
-public NewRound(id)
-{
-	// Check Plugin Enabled
-	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
-		return PLUGIN_CONTINUE;
-
-	if (!is_user_connected(id))
-		return PLUGIN_CONTINUE;
-	
-	if (is_user_bot(id))
-		return PLUGIN_CONTINUE;
-
-	// alive?
-	if (lm_is_user_alive(id) && pev(id, pev_flags) & (FL_CLIENT)) 
-	{
-		// Delay time reset
-		lm_set_user_delay_count(id, int:floatround(get_gametime()));
-
-		// Init Recycle Health.
-		ClearStack(gRecycleMine[id]);
-
-		// Task Delete.
-		delete_task(id);
-
-		// Removing already put lasermine.
-		lm_remove_all_entity(id, ENT_CLASS_LASER);
-
-		// Round start set ammo.
-		set_start_ammo(id);
-
-		// Refresh show ammo.
-		show_ammo(id);
-	}
-	return PLUGIN_CONTINUE;
-}
-
-//====================================================
-// Keep Max Speed.
-//====================================================
-public KeepMaxSpeed(id)
-{
-	if (lm_is_user_alive(id))
-	{
-		new Float:now_speed = lm_get_user_max_speed(id);
-		if (now_speed > 1.0 && now_speed < 300.0)
-			lm_save_user_max_speed(id, lm_get_user_max_speed(id));
-	}
-
-	return PLUGIN_CONTINUE;
-}
-
-//====================================================
-// Round Start Set Ammo.
-// Native:_native_set_start_ammo(iPlugin, iParam);
-//====================================================
-set_start_ammo(id)
-{
-	// Get CVAR setting.
-	new int:stammo = int:get_pcvar_num(gCvar[CVAR_START_HAVE]);
-
-	// Zero check.
-	if(stammo <= int:0) 
-		return;
-
-	// Getting have ammo.
-	new int:haveammo = lm_get_user_have_mine(id);
-
-	// Set largest.
-	lm_set_user_have_mine(id, (haveammo <= stammo ? stammo : haveammo));
-
-	return;
-}
-
-//====================================================
-// Death Event / Delete Task.
-//====================================================
-public DeathEvent()
-{
-	// new kID = read_data(1); // killer
-	new vID = read_data(2); // victim
-	// new isHS = read_data(3); // is headshot
-	// new wpnName = read_data(4); // wpnName
-
-	// Check Plugin Enabled
-	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
-		return PLUGIN_CONTINUE;
-
-	// Is Connected?
-	if (is_user_connected(vID)) 
-		delete_task(vID);
-
-	// Dead Player remove lasermine.
-	if (get_pcvar_num(gCvar[CVAR_DEATH_REMOVE]))
-		lm_remove_all_entity(vID, ENT_CLASS_LASER);
-
-	return PLUGIN_CONTINUE;
-}
-
 //====================================================
 // Put LaserMine Start Progress A
 //====================================================
 public lm_progress_deploy_main(id)
 {
-	// Deploying Check.
-	if (!check_for_deploy(id))
-		return PLUGIN_HANDLED;
-
-	new Float:wait = get_pcvar_float(gCvar[CVAR_LASER_ACTIVATE]);
-	if (wait > 0)
-	{
-		lm_show_progress(id, int:floatround(wait), gMsgBarTime);
-	}
-
-	// Set Flag. start progress.
-	lm_set_user_deploy_state(id, int:STATE_DEPLOYING);
-
-	// Start Task. Put Lasermine.
-	set_task(wait, "SpawnMine", (TASK_PLANT + id));
-
-	return PLUGIN_HANDLED;
-}
-
-//====================================================
-// Put LaserMine Start Progress B
-//====================================================
-public lm_progress_deploy(id)
-{
-	// Mode check. Bind Key Command.
-	if(get_pcvar_num(gCvar[CVAR_CMD_MODE]) != 0)
-		lm_progress_deploy_main(id);
-
+	mines_progress_deploy(id, gMinesId);
 	return PLUGIN_HANDLED;
 }
 
@@ -713,20 +557,7 @@ public lm_progress_deploy(id)
 //====================================================
 public lm_progress_remove(id)
 {
-	// Removing Check.
-	if (!check_for_remove(id))
-		return PLUGIN_HANDLED;
-
-	new Float:wait = get_pcvar_float(gCvar[CVAR_LASER_ACTIVATE]);
-	if (wait > 0)
-		lm_show_progress(id, int:floatround(wait), gMsgBarTime);
-
-	// Set Flag. start progress.
-	lm_set_user_deploy_state(id, int:STATE_DEPLOYING);
-
-	// Start Task. Remove Lasermine.
-	set_task(wait, "RemoveMine", (TASK_RELEASE + id));
-
+	mines_progress_pickup(id, gMinesId);
 	return PLUGIN_HANDLED;
 }
 
@@ -735,41 +566,18 @@ public lm_progress_remove(id)
 //====================================================
 public lm_progress_stop(id)
 {
-	lm_hide_progress(id, gMsgBarTime);
-	delete_task(id);
-
+	mines_progress_stop(id);
 	return PLUGIN_HANDLED;
-}
-
-//====================================================
-// Task: Spawn Lasermine.
-//====================================================
-public SpawnMine(id)
-{
-	// Task Number to uID.
-	new uID = id - TASK_PLANT;
-	// Create Entity.
-	new iEnt = engfunc(EngFunc_CreateNamedEntity, gEntMine);
-	// is Valid?
-	if(!iEnt)
-	{
-		cp_debug(uID);
-		return PLUGIN_HANDLED_MAIN;
-	}
-
-	set_spawn_entity_setting(iEnt, uID, ENT_CLASS_LASER);
-
-	return 1;
 }
 
 //====================================================
 // Lasermine Settings.
 //====================================================
-stock set_spawn_entity_setting(iEnt, uID, classname[])
+public mines_entity_spawn_settings(iEnt, uID)
 {
 	// Entity Setting.
 	// set class name.
-	set_pev(iEnt, pev_classname, classname);
+	set_pev(iEnt, pev_classname, ENT_CLASS_LASER);
 
 	// set models.
 	engfunc(EngFunc_SetModel, iEnt, ENT_MODELS);
@@ -798,24 +606,24 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	{
 		new Float:health;
 		PopStackCell(gRecycleMine[uID], health);
-		lm_set_user_health(iEnt, health);
+		set_pev(iEnt, pev_health, health);
 	}
 	else
 	{
-		lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
+		set_pev(iEnt, pev_health, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
 	}
 
 	// set mine position
 	set_mine_position(uID, iEnt);
 
 	// Save results to be used later.
-	set_pev(iEnt, LASERMINE_OWNER, uID );
-	set_pev(iEnt, LASERMINE_TEAM, int:cs_get_user_team(uID));
+	set_pev(iEnt, MINES_OWNER, uID );
+	set_pev(iEnt, MINES_TEAM, int:cs_get_user_team(uID));
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
 	set_pev(iEnt, LASERMINE_POWERUP, fCurrTime + 2.5 );   
-	set_pev(iEnt, LASERMINE_STEP, POWERUP_THINK);
+	set_pev(iEnt, MINES_STEP, POWERUP_THINK);
 	set_pev(iEnt, LASERMINE_COUNT, fCurrTime);
 	set_pev(iEnt, LASERMINE_BEAMTHINK, fCurrTime);
 
@@ -825,16 +633,6 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	// Power up sound.
 	lm_play_sound(iEnt, SOUND_POWERUP);
 
-	// Cound up. deployed.
-	lm_set_user_mine_deployed(uID, lm_get_user_mine_deployed(uID) + int:1);
-	// Cound down. have ammo.
-	lm_set_user_have_mine(uID, lm_get_user_have_mine(uID) - int:1);
-
-	// Refresh show ammo.
-	show_ammo(uID);
-
-	// Set Flag. end progress.
-	lm_set_user_deploy_state(uID, int:STATE_DEPLOYED);
 
 }
 
@@ -937,92 +735,19 @@ set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3], bool:claymore
 //====================================================
 // Task: Remove Lasermine.
 //====================================================
-public RemoveMine(id)
+public PickupMines(id, target)
 {
-	new target, body;
-	new Float:vOrigin[3];
-	new Float:tOrigin[3];
-
-	// Task Number to uID.
-	new uID = id - TASK_RELEASE;
-
-	// Get target entity.
-	get_user_aiming(uID, target, body);
-
-	// is valid target?
-	if(!pev_valid(target))
-		return 1;
-	
-	// Get Player Vector Origin.
-	pev(uID, pev_origin, vOrigin);
-	// Get Mine Vector Origin.
-	pev(target, pev_origin, tOrigin);
-
-	// Distance Check. far 70.0 (cm?)
-	if(get_distance_f(vOrigin, tOrigin) > 70.0)
-		return 1;
-	
-	new entityName[MAX_NAME_LENGTH];
-	entityName = lm_get_entity_class_name(target);
-
-	// Check. is Target Entity Lasermine?
-	if(!equali(entityName, ENT_CLASS_LASER))
-		return 1;
-
-	new ownerID = pev(target, LASERMINE_OWNER);
-
-	new PICKUP_MODE:pickup 	= PICKUP_MODE:get_pcvar_num(gCvar[CVAR_ALLOW_PICKUP]);
-	switch(pickup)
-	{
-		case DISALLOW_PICKUP:
-			return 1;
-		case ONLY_ME:
-		{
-			// Check. is Owner you?
-			if(ownerID != uID)
-				return 1;
-		}
-		case ALLOW_FRIENDLY:
-		{
-			// Check. is friendly team?
-			if(CsTeams:pev(target, LASERMINE_TEAM) != cs_get_user_team(uID))
-				return 1;
-		}		
-	}
-
 	// Recycle Health.
-	new Float:health = lm_get_user_health(target);
-	PushStackCell(gRecycleMine[uID], health);
-
-	// Remove!
-	lm_remove_entity(target);
-
-	// Collect for this removed lasermine.
-	lm_set_user_have_mine(uID, lm_get_user_have_mine(uID) + int:1);
-
-	if (pev_valid(ownerID))
-	{
-		// Return to before deploy count.
-		lm_set_user_mine_deployed(ownerID, lm_get_user_mine_deployed(ownerID) - int:1);
-	}
-
-	// Play sound.
-	lm_play_sound(uID, SOUND_PICKUP);
-
-	// Set Flag. end progress.
-	lm_set_user_deploy_state(uID, int:STATE_DEPLOYED);
-
-	// Refresh show ammo.
-	show_ammo(uID);
-
-	return 1;
+	new Float:health;
+	pev(target, pev_health, health);
+	PushStackCell(gRecycleMine[id], health);
 }
 
 
 //====================================================
 // Check: Remove Lasermine.
 //====================================================
-bool:check_for_remove(id)
+public bool:CheckForPickup(id)
 {
 	new int:cvar_ammo		= int:get_pcvar_num(gCvar[CVAR_MAX_HAVE]);
 	new ERROR:error 		= check_for_common(id);
@@ -1081,13 +806,13 @@ bool:check_for_remove(id)
 		case ONLY_ME:
 		{
 			// is owner you?
-			if(pev(target, LASERMINE_OWNER) != id)
+			if(pev(target, MINES_OWNER) != id)
 				return false;
 		}
 		case ALLOW_FRIENDLY:
 		{
 			// is team friendly?
-			if(CsTeams:pev(target, LASERMINE_TEAM) != cs_get_user_team(id))
+			if(CsTeams:pev(target, MINES_TEAM) != cs_get_user_team(id))
 				return false;
 		}
 	}
@@ -1099,19 +824,8 @@ bool:check_for_remove(id)
 //====================================================
 // Lasermine Think Event.
 //====================================================
-public LaserThink(iEnt)
+public MinesThink(iEnt, iMinesId)
 {
-	// Check plugin enabled.
-	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
-		return HAM_IGNORED;
-
-	// is valid this entity?
-	if (!pev_valid(iEnt))
-		return HAM_IGNORED;
-
-	new entityName[MAX_NAME_LENGTH];
-	entityName = lm_get_entity_class_name(iEnt);
-
 	// is this lasermine? no.
 	if (!equali(entityName, ENT_CLASS_LASER))
 		return HAM_IGNORED;
@@ -2408,4 +2122,9 @@ stock ClearStack(Stack:handle)
 	{
 		PopStackCell(handle, health);
 	}
+}
+
+public MinesThink()
+{
+
 }

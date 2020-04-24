@@ -26,18 +26,18 @@
 
 #define PLAYER_IN_BUYZONE			(1<<0)
 // CS Status Data.
-#define lm_get_user_team(%1)		CsTeams:get_offset_value(%1, OFFSET_TEAM)
-#define lm_set_user_team(%1,%2)		set_offset_value(%1, OFFSET_TEAM, %2)
-#define lm_get_user_deaths(%1)		get_offset_value(%1, OFFSET_GET_DEATH)
-#define lm_set_user_deaths(%1,%2)	set_offset_value(%1, OFFSET_SET_DEATH, %2)
-#define lm_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
-#define lm_set_user_money(%1,%2)	set_offset_value(%1, OFFSET_MONEY, %2)
-#define lm_set_user_lasthit(%1,%2)	set_pdata_int(%1, OFFSET_LAST_HIT_GROUP, %2, EXTRAOFFSET_PL_LINUX)
+#define mines_get_user_team(%1)			CsTeams:get_offset_value(%1, OFFSET_TEAM)
+#define mines_set_user_team(%1,%2)		set_offset_value(%1, OFFSET_TEAM, %2)
+#define mines_get_user_deaths(%1)		get_offset_value(%1, OFFSET_GET_DEATH)
+#define mines_set_user_deaths(%1,%2)	set_offset_value(%1, OFFSET_SET_DEATH, %2)
+#define mines_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
+#define mines_set_user_money(%1,%2)		set_offset_value(%1, OFFSET_MONEY, %2)
+#define mines_set_user_lasthit(%1,%2)	set_pdata_int(%1, OFFSET_LAST_HIT_GROUP, %2, EXTRAOFFSET_PL_LINUX)
 
 // Lasermine Data Save Area.
-#define MINES_TEAM				pev_iuser1
-#define MINES_OWNER				pev_iuser2
-#define MINES_STEP				pev_iuser3
+#define MINES_TEAM					pev_iuser1
+#define MINES_OWNER					pev_iuser2
+#define MINES_STEP					pev_iuser3
 #define LASERMINE_HITING			pev_iuser4
 #define LASERMINE_COUNT				pev_fuser1
 #define LASERMINE_POWERUP			pev_fuser2
@@ -128,11 +128,11 @@ enum _:COMMON_MINES_DATA
 	BUY_PRICE			,
 	BUY_ZONE			,
 	FRAG_MONEY			,
-	MINE_HEALTH			,
 	MINE_BROKEN			,
-	ACTIVATE_TIME		,
 	ALLOW_PICKUP		,
 	DEATH_REMOVE		,
+	Float:ACTIVATE_TIME	,
+	Float:MINE_HEALTH	,
 	Float:EXPLODE_RADIUS,
 	Float:EXPLODE_DAMAGE,
 }
