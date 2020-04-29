@@ -33,18 +33,20 @@
 #define mines_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
 #define mines_set_user_money(%1,%2)		set_offset_value(%1, OFFSET_MONEY, %2)
 #define mines_set_user_lasthit(%1,%2)	set_pdata_int(%1, OFFSET_LAST_HIT_GROUP, %2, EXTRAOFFSET_PL_LINUX)
+#define mines_get_health(%1,%2)			pev(%1, pev_health, %2)
+#define mines_get_user_max_speed(%1,%2)	pev(%1,pev_maxspeed,%2)
+#define mines_get_user_frags(%1)		pev(%1,pev_frags)
+#define mines_get_user_buyzone(%1)		(get_pdata_int(%1,OFFSET_MAPZONE) & PLAYER_IN_BUYZONE)
+#define mines_set_user_frags(%1,%2)		set_pev(%1,pev_frags,%2)
+#define mines_set_user_max_speed(%1,%2)	engfunc(EngFunc_SetClientMaxspeed,%1,%2);set_pev(%1, pev_maxspeed,%2)
+#define mines_set_user_health(%1,%2)	((health > 0) ? set_pev(id, pev_health, health) : user_kill(id, 1))
 
 // Lasermine Data Save Area.
 #define MINES_TEAM					pev_iuser1
 #define MINES_OWNER					pev_iuser2
+#define MINES_OWNER_ID				pev_message
 #define MINES_STEP					pev_iuser3
-#define LASERMINE_HITING			pev_iuser4
-#define LASERMINE_COUNT				pev_fuser1
-#define LASERMINE_POWERUP			pev_fuser2
-#define LASERMINE_BEAMTHINK			pev_fuser3
-#define LASERMINE_BEAMENDPOINT1		pev_vuser1
-#define LASERMINE_BEAMENDPOINT2		pev_vuser2
-#define LASERMINE_BEAMENDPOINT3		pev_vuser3
+#define MAX_CLASS_LENGTH			8
 
 //====================================================
 // ENUM AREA
@@ -52,12 +54,6 @@
 //
 // Tripmine Action Control
 //
-enum _:TRIPMINE_MODE
-{
-	MODE_LASERMINE			= 0,
-	MODE_TRIPMINE			,
-	MODE_BF4_CLAYMORE		,
-}
 enum _:TRIPMINE_STATE
 {
 	TRIPMINE_IDLE1			= 0,
@@ -123,18 +119,28 @@ enum _:COMMON_MINES_DATA
 {
 	AMMO_HAVE_START		,
 	AMMO_HAVE_MAX		,
+	NO_ROUND			,
 	DEPLOY_MAX			,
 	DEPLOY_TEAM_MAX		,
+	BUY_MODE			,
 	BUY_PRICE			,
 	BUY_ZONE			,
+	CsTeams:BUY_TEAM	,
 	FRAG_MONEY			,
-	MINE_BROKEN			,
+	MINES_BROKEN		,
 	ALLOW_PICKUP		,
 	DEATH_REMOVE		,
+	GLOW_ENABLE			,
+	GLOW_MODE			,
+	GLOW_COLOR_TR		,
+	GLOW_COLOR_CT		,
 	Float:ACTIVATE_TIME	,
 	Float:MINE_HEALTH	,
 	Float:EXPLODE_RADIUS,
 	Float:EXPLODE_DAMAGE,
+#if defined ZP_SUPPORT
+	ZP_WEAPON_ID		,
+#endif
 }
 
 //

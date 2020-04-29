@@ -11,26 +11,6 @@
 #define _mines_util_included
 
 #include <mines_const>
-stock bool:mines_is_user_godmode	(id) { return (pev(id, pev_takedamage) == DAMAGE_NO); }
-stock bool:mines_is_user_alive		(id) { return (pev(id,pev_deadflag) == DEAD_NO);}
-stock mines_get_entity_class_name	(id)
-{
-	new entityName[MAX_NAME_LENGTH];
-	pev(id, pev_classname, entityName, charsmax(entityName));
-	return entityName;
-}
-//====================================================
-// Glow Rendering
-//====================================================
-stock mines_set_glow_rendering(iEnt, fx = kRenderFxNone, Float:renderColor[3], render = kRenderNormal, amount = 16)
-{
-	set_pev(iEnt, pev_renderfx, fx);
-	set_pev(iEnt, pev_rendercolor, renderColor);
-	set_pev(iEnt, pev_rendermode, render);
-	set_pev(iEnt, pev_renderamt, float(amount));
-
-	return 1;
-}
 
 //====================================================
 // Show Progress Bar.
@@ -56,42 +36,6 @@ stock mines_hide_progress(id, msg)
 		write_short(0);
 		message_end();
 	}
-}
-
-//====================================================
-// Draw Spark
-//====================================================
-stock mines_draw_spark(Float:origin[3])
-{
-	message_begin(MSG_ALL, SVC_TEMPENTITY);
-	write_byte(TE_SPARKS);
-	engfunc(EngFunc_WriteCoord, origin[0]);
-	engfunc(EngFunc_WriteCoord, origin[1]);
-	engfunc(EngFunc_WriteCoord, origin[2]);
-	message_end();
-}
-
-stock mines_draw_spark_for_wall(const Float:vEndOrigin[3])
-{
-   	// Sparks
-	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vEndOrigin, 0);
-	write_byte(TE_SPARKS); // TE id
-	engfunc(EngFunc_WriteCoord, vEndOrigin[0]); // x
-	engfunc(EngFunc_WriteCoord, vEndOrigin[1]); // y
-	engfunc(EngFunc_WriteCoord, vEndOrigin[2]); // z
-	message_end();
-      
-	// Effects when cut
-	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
-	write_byte(TE_EXPLOSION);
-	engfunc(EngFunc_WriteCoord, vEndOrigin[0]);
-	engfunc(EngFunc_WriteCoord, vEndOrigin[1]);
-	engfunc(EngFunc_WriteCoord, vEndOrigin[2] - 10.0);
-	write_short(TE_SPARKS);	// sprite index
-	write_byte(1);	// scale in 0.1's
-	write_byte(30);	// framerate
-	write_byte(TE_EXPLFLAG_NODLIGHTS | TE_EXPLFLAG_NOPARTICLES | TE_EXPLFLAG_NOSOUND);	// flags
-	message_end();
 }
 
 //====================================================
@@ -136,49 +80,6 @@ stock mines_flash_money_hud(id, value, msg)
 		write_byte(1);	// Flash (difference between new and old money)
 		message_end();
 	}	
-}
-
-
-//====================================================
-// Draw Laserline
-//====================================================
-stock mines_draw_laser(
-	const iEnt,
-	/* const Float:vOrigin[3],*/ 
-	const Float:vEndOrigin[3], 
-	const beam, 
-	const framestart	= 0, 
-	const framerate		= 0, 
-	const life			= 1, 
-	const width			= 1, 
-	const wave			= 0, 
-	const tcolor		[3],
-	const bright		= 255,
-	const speed			= 255
-)
-{
-	// Draw Laser line message.
-	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
-	write_byte(TE_BEAMENTPOINT);
-	write_short(iEnt | 0x1000);
-	// engfunc(EngFunc_WriteCoord, vOrigin[0]);
-	// engfunc(EngFunc_WriteCoord, vOrigin[1]);
-	// engfunc(EngFunc_WriteCoord, vOrigin[2]);
-	engfunc(EngFunc_WriteCoord, vEndOrigin[0]); //Random
-	engfunc(EngFunc_WriteCoord, vEndOrigin[1]); //Random
-	engfunc(EngFunc_WriteCoord, vEndOrigin[2]); //Random
-	write_short(beam);
-	write_byte(framestart);						// framestart
-	write_byte(framerate);						// framerate
-	write_byte(life);							// Life
-	write_byte(width);							// Width
-	write_byte(wave);							// wave/noise
-	write_byte(tcolor[0]);						// r
-	write_byte(tcolor[1]);						// g
-	write_byte(tcolor[2]);						// b
-	write_byte(bright);							// Brightness.
-	write_byte(speed);							// speed
-	message_end();
 }
 
 //====================================================
@@ -256,7 +157,8 @@ stock mines_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 	else
 		falloff = 1.0;
 	
-	iClassName = mines_get_entity_class_name(iEnt);
+	pev(iEnt, pev_classname, iClassName, charsmax(iClassName));
+
 	// Find monsters and players inside a specifiec radius
 	while((rEnt = engfunc(EngFunc_FindEntityInSphere, rEnt, vOrigin, radius)) != 0)
 	{
@@ -264,7 +166,7 @@ stock mines_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 		if (!pev_valid(rEnt)) 
 			continue;
 
-		tClassName = mines_get_entity_class_name(rEnt);
+		pev(rEnt, pev_classname, tClassName, charsmax(tClassName));
 		if (!equali(tClassName, iClassName))
 		{
 			// Entity is not a player or monster, ignore it
@@ -273,7 +175,7 @@ stock mines_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 		}
 
 		// is alive?
-		if (!mines_is_user_alive(rEnt))
+		if (!is_user_alive(rEnt))
 			continue;
 		
 		// friendly fire
@@ -362,51 +264,3 @@ stock mines_show_status_text(id, szText[], msg)
 	write_string(szText);
 	message_end();	
 }
-
-//====================================================
-// Hit Shield Effect 
-//====================================================
-stock mines_hit_shield(id, Float:dmg)
-{
-	static Float:punchangle[3];
-	punchangle[0] = (dmg * random_float(-0.15, 0.15));
-	punchangle[2] = (dmg * random_float(-0.15, 0.15));
-	if (punchangle[0] < 4.0)
-		punchangle[0] = -4.0;
-	if (punchangle[2] < -5.0)
-		punchangle[2] = -5.0;
-	else
-		if (punchangle[2] > 5.0)
-			punchangle[2] = 5.0;
-
-	set_pev(id, pev_punchangle, punchangle);	
-}
-
-//====================================================
-// Remove all Entity.
-//====================================================
-stock mines_remove_all_entity(id, className[])
-{
-	new iEnt = -1;
-
-	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
-	{
-		if (!pev_valid(iEnt))
-			continue;
-
-		if (is_user_connected(id))
-		{
-			if (pev(iEnt, MINES_OWNER) != id)
-				continue;
-		}
-		// mines_play_sound(iEnt, SOUND_STOP);
-		mines_remove_entity(iEnt);
-	}
-}
-
-stock mines_remove_entity(iEnt)
-{
-	mines_stop_laserline(iEnt);
-	engfunc(EngFunc_RemoveEntity, iEnt);
-}
-
