@@ -80,7 +80,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.08"
+#define VERSION 					"3.09"
 
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
@@ -808,6 +808,9 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	// set mine position
 	set_mine_position(uID, iEnt);
 
+	new authid[MAX_AUTHID_LENGTH];
+	get_user_authid(uID, authid, charsmax(authid));
+	set_pev(iEnt, pev_netname, authid);
 	// Save results to be used later.
 	set_pev(iEnt, LASERMINE_OWNER, uID );
 	set_pev(iEnt, LASERMINE_TEAM, int:cs_get_user_team(uID));
@@ -1186,13 +1189,13 @@ public LaserThink(iEnt)
 	{
 		static Array:aTarget;
 		static hPlayer[HIT_PLAYER];
-		static Float:reStartPos[3];
 		static iTarget;
 		static hitGroup;
-		static Float:fFraction;
 		static iIgnoreEnt;
 		static trace;
+		static Float:fFraction;
 		static Float:hitPoint[3];
+		static Float:reStartPos[3];
 		static Float:nextTime = 0.0;
 		static Float:beamTime = 0.0;
 
@@ -2249,7 +2252,7 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 { 
 	static iHit, szName[MAX_NAME_LENGTH], iOwner, health;
 	static hudMsg[64];
-
+	static steamid[MAX_AUTHID_LENGTH];
 	iHit = get_tr2(iTrace, TR_pHit);
 	if (pev_valid(iHit))
 	{
@@ -2262,7 +2265,8 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 				iOwner = pev(iHit, LASERMINE_OWNER);
 				health = floatround(lm_get_user_health(iHit));
 				get_user_name(iOwner, szName, charsmax(szName));
-				formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG_KEY_MINE_HUD, szName, health, get_pcvar_num(gCvar[CVAR_MINE_HEALTH]));
+				pev(iHit, pev_netname, steamid, charsmax(steamid));
+				formatex(hudMsg, charsmax(hudMsg), "%L ^nSTEAMID:%s", id, LANG_KEY_MINE_HUD, szName, health, get_pcvar_num(gCvar[CVAR_MINE_HEALTH]), steamid);
 				//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
 				set_hudmessage(50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
 				show_hudmessage(id, hudMsg);

@@ -450,6 +450,9 @@ stock lm_hit_shield(id, Float:dmg)
 stock lm_remove_all_entity(id, className[])
 {
 	new iEnt = -1;
+	new authid[MAX_AUTHID_LENGTH];
+	new steamid[MAX_AUTHID_LENGTH];
+	get_user_authid(id, authid, charsmax(authid));
 
 	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
 	{
@@ -458,8 +461,12 @@ stock lm_remove_all_entity(id, className[])
 
 		if (pev(iEnt, LASERMINE_OWNER) == id)
 		{
-			lm_play_sound(iEnt, SOUND_STOP);
-			lm_remove_entity(iEnt);
+			pev(iEnt, pev_netname, steamid, charsmax(steamid));
+			if (equali(authid, steamid))
+			{
+				lm_play_sound(iEnt, SOUND_STOP);
+				lm_remove_entity(iEnt);
+			}
 		}
 	}
 	// reset deploy count.
