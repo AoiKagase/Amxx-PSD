@@ -102,7 +102,7 @@ TAKE_MINE     = ^4Admin %s ^1i-a adaugat mine laser lui %s.
 REMOVE_SPEC   = ^4%s Toate minele laser ale lui ^1%s au fost eliminate pentru ca a fost mutat la Spectator!
 MINE_HUD_MSG  = Detinator: %s^nViata: %i/%i
 
-[pt-pt]
+[pt]
 REFER         = ^4%s ^1Para veres as regras das minas laser deste servidor escreve 'lasermine'.
 BOUGHT        = ^4%s ^1Compraste com sucesso minas laser.
 NO_MONEY      = ^4%s ^1Nao tens dinheiro suficiente para comprar minas laser! ^3(Precisas $%i.)
