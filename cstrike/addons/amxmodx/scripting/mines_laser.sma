@@ -18,6 +18,10 @@
 #include <hamsandwich>
 #include <xs>
 #include <mines_natives>
+#if defined ZP_SUPPORT
+	#include <zp50_colorchat>
+	#include <zp50_ammopacks>
+#endif
 
 //=====================================
 //  Resource Setting AREA
@@ -38,25 +42,18 @@
 // String Data.
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
-#define PLUGIN 						"[M.E.P] Lasermine"
+#define PLUGIN 						"[M.P] Lasermine"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.08"
+#define VERSION 					"4.00"
 
-#define CHAT_TAG 					"[M.E.P LM]"
 #define CVAR_TAG					"mines_lm"
 
-//#define STR_MINEDETNATED 			"Your mine has detonated.",
-//#define STR_MINEDETNATED2			"detonated your mine.",
-//#define STR_CANTDEPLOY			"Your team can't deploying lasermine!"
-
-#define LANG_KEY_REFER				"REFER"
-#define LANG_KEY_LONGNAME			"LONG_NAME"
-#define LANG_KEY_STATE_AMMO   		"STATE_AMMO"
-#define LANG_KEY_STATE_INF    		"STATE_INF"
-#define LANG_KEY_PLANT_WALL   		"PLANT_WALL"
+#define LANG_KEY_PLANT_WALL   		"LM_PLANT_WALL"
+#define LANG_KEY_LONGNAME			"LM_LONG_NAME"
 
 // ADMIN LEVEL
 #define ENT_CLASS_LASER				"lasermine"
+
 #define LASERMINE_HITING			pev_iuser4
 #define LASERMINE_COUNT				pev_fuser1
 #define LASERMINE_POWERUP			pev_fuser2
@@ -64,9 +61,6 @@
 #define LASERMINE_BEAMENDPOINT1		pev_vuser1
 #define LASERMINE_BEAMENDPOINT2		pev_vuser2
 #define LASERMINE_BEAMENDPOINT3		pev_vuser3
-
-// Client Print Command Macro.
-#define cp_must_wall(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_PLANT_WALL,	CHAT_TAG)
 
 enum _:HIT_PLAYER
 {
@@ -137,20 +131,6 @@ public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
-	// Add your code here...
-	register_clcmd("+setlaser", 	"lm_progress_deploy");
-	register_clcmd("+setlm", 		"lm_progress_deploy");
-	register_clcmd("+dellaser", 	"lm_progress_remove");
-	register_clcmd("+remlm", 		"lm_progress_remove");
-   	register_clcmd("-setlaser", 	"lm_progress_stop");
-   	register_clcmd("-setlm", 		"lm_progress_stop");
-   	register_clcmd("-dellaser", 	"lm_progress_stop");
-   	register_clcmd("-remlm", 		"lm_progress_stop");
-
-	register_clcmd("say", 			"lm_say_lasermine");
-#if !defined ZP_SUPPORT	
-	register_clcmd("buy_lasermine", "lm_buy_lasermine");
-#endif
 	// CVar settings.
 	// Ammo.
 	gCvar[CVAR_START_HAVE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_amount"),				"1"			);	// Round start have ammo count.
@@ -191,7 +171,7 @@ public plugin_init()
 
 	// Misc Settings.
 	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"			);	// Dead Player remove lasermine. 0 = off, 1 = on.
-	gCvar[CVAR_LASER_ACTIVATE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1"			);	// Waiting for put lasermine. (int:seconds. 0 = no progress bar.)
+	gCvar[CVAR_LASER_ACTIVATE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1.0"		);	// Waiting for put lasermine. (int:seconds. 0 = no progress bar.)
 	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 	gCvar[CVAR_DIFENCE_SHIELD]	= register_cvar(fmt("%s%s", CVAR_TAG, "_shield_difence"),		"1"			);	// allow shiled difence.
 	gCvar[CVAR_REALISTIC_DETAIL]= register_cvar(fmt("%s%s", CVAR_TAG, "_realistic_detail"), 	"0"			);	// Spark Effect.
@@ -226,13 +206,12 @@ public plugin_init()
 	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color(argColor);
 	get_pcvar_string(gCvar[CVAR_MINE_GLOW_CT],	argColor,	charsmax(argColor) - 1);// last comma - 1
 	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color(argColor);
-
-	gMinesId = register_mines(ENT_CLASS_LASER, gMinesData);
-
-	// Multi Language Dictionary.
-	register_dictionary("mines/mines_laser.txt");
+	gMinesId 						= 	register_mines(ENT_CLASS_LASER, gMinesData, LANG_KEY_LONGNAME);
 
 	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+
+	// Multi Language Dictionary.
+	mines_register_dictionary("mines/mines_laser.txt");
 
 	return PLUGIN_CONTINUE;
 }
@@ -306,21 +285,18 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	// Entity Setting.
 	// set class name.
 	set_pev(iEnt, pev_classname, ENT_CLASS_LASER);
-
 	// set models.
 	engfunc(EngFunc_SetModel, iEnt, ENT_MODELS);
-
 	// set solid.
 	set_pev(iEnt, pev_solid, SOLID_NOT);
-
 	// set movetype.
 	set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
 
 	// set model animation.
 	set_pev(iEnt, pev_frame,		0);
+	set_pev(iEnt, pev_framerate,	0.0);
 	set_pev(iEnt, pev_body, 		3);
 	set_pev(iEnt, pev_sequence, 	TRIPMINE_WORLD);
-	set_pev(iEnt, pev_framerate,	0);
 	set_pev(iEnt, pev_rendermode,	kRenderNormal);
 	set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
 
@@ -350,13 +326,13 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
-	set_pev(iEnt, LASERMINE_POWERUP, fCurrTime + 2.5 );   
-	set_pev(iEnt, MINES_STEP, POWERUP_THINK);
-	set_pev(iEnt, LASERMINE_COUNT, fCurrTime);
-	set_pev(iEnt, LASERMINE_BEAMTHINK, fCurrTime);
+	set_pev(iEnt, LASERMINE_POWERUP, 	fCurrTime + 2.5 );   
+	set_pev(iEnt, MINES_STEP, 			POWERUP_THINK);
+	set_pev(iEnt, LASERMINE_COUNT, 		fCurrTime);
+	set_pev(iEnt, LASERMINE_BEAMTHINK, 	fCurrTime);
 
 	// think rate. hmmm....
-	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
+	set_pev(iEnt, pev_nextthink, 		fCurrTime + 0.2 );
 
 	// Power up sound.
 	lm_play_sound(iEnt, SOUND_POWERUP);
@@ -374,16 +350,16 @@ set_mine_position(uID, iEnt)
 
 	// get user position.
 	pev(uID, pev_origin, vOrigin);
-	xs_vec_add( gDeployPos[uID], vOrigin, vTraceEnd );
+	xs_vec_add(gDeployPos[uID], vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
+
 	// get wall position to vNewOrigin.
 	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, uID, trace);
 	{
 		new Float:fFraction;
 		get_tr2( trace, TR_flFraction, fFraction );
-			
 		// -- We hit something!
 		if ( fFraction < 1.0 )
 		{
@@ -391,26 +367,24 @@ set_mine_position(uID, iEnt)
 			get_tr2( trace, TR_vecEndPos, vTraceEnd );
 			get_tr2( trace, TR_vecPlaneNormal, vNormal );
 		}
+
+		xs_vec_mul_scalar(vNormal, 8.0, vNormal);
+		xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
+		// set size.
+		engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
+		// set entity position.
+		engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
+		// Rotate tripmine.
+		vector_to_angle(vNormal, vEntAngles);
+		// set angle.
+		set_pev(iEnt, pev_angles, vEntAngles);
+		// set laserbeam end point position.
+		set_laserend_postiion(iEnt, vNormal, vNewOrigin);
+
 	}
     // free the trace handle.
 	free_tr2(trace);
 
-	xs_vec_mul_scalar( vNormal, 8.0, vNormal );
-	xs_vec_add( vTraceEnd, vNormal, vNewOrigin );
-
-	// set size.
-	engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
-	// set entity position.
-	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
-
-	// Rotate tripmine.
-	vector_to_angle(vNormal, vEntAngles);
-
-	// set angle.
-	set_pev(iEnt, pev_angles, vEntAngles);
-
-	// set laserbeam end point position.
-	set_laserend_postiion(iEnt, vNormal, vNewOrigin);
 }
 
 //====================================================
@@ -422,17 +396,46 @@ set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3])
 	new Float:vBeamEnd[3];
 	new Float:vTracedBeamEnd[3];
 	new Float:range = get_pcvar_float(gCvar[CVAR_LASER_RANGE]);
+	new Float:vTemp[3];
+	new Float:fFraction = 0.0;
+	new iIgnore;
+	new className[MAX_NAME_LENGTH];
+	new trace;
 
 	xs_vec_mul_scalar(vNormal, range, vNormal );
 	xs_vec_add( vNewOrigin, vNormal, vBeamEnd );
 
     // create the trace handle.
-	new trace = create_tr2();
-	// (const float *v1, const float *v2, int fNoMonsters, edict_t *pentToSkip, TraceResult *ptr);
-	engfunc(EngFunc_TraceLine, vNewOrigin, vBeamEnd, IGNORE_MONSTERS, -1, trace);
+	vTracedBeamEnd	= vBeamEnd;
+	vTemp 			= vNewOrigin;
+	iIgnore 		= -1;
+	// Trace line
+
+	while(fFraction < 1.0)
 	{
-		get_tr2(trace, TR_vecEndPos, vTracedBeamEnd);
+ 		trace = create_tr2();
+ 		engfunc(EngFunc_TraceLine, vTemp, vBeamEnd, (IGNORE_MONSTERS | IGNORE_GLASS), iIgnore, trace);
+		{
+			get_tr2(trace, TR_flFraction, fFraction);
+			get_tr2(trace, TR_vecEndPos, vTemp);
+			iIgnore = get_tr2(trace, TR_pHit);
+
+			// is valid hit entity?
+			if (pev_valid(iIgnore))
+			{
+				pev(iIgnore, pev_classname, className, charsmax(className));
+				if (!equali(className, ENT_CLASS_BREAKABLE))
+				{
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+		free_tr2(trace);
 	}
+	vTracedBeamEnd = vTemp;
+
     // free the trace handle.
 	free_tr2(trace);
 	set_pev(iEnt, LASERMINE_BEAMENDPOINT1, vTracedBeamEnd);
@@ -542,16 +545,15 @@ mines_step_beamup(iEnt, Float:vEnd[3], Float:fCurrTime)
 mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 {
 	static Array:aTarget;
+	static className[32];
 	static hPlayer[HIT_PLAYER];
 	static iOwner;
 	static iTarget;
 	static hitGroup;
-	static iIgnoreEnt;
 	static trace;
 	static Float:fFraction;
 	static Float:vOrigin	[3];
 	static Float:vHitPoint	[3];
-	static Float:vReStartPos[3];
 	static Float:nextTime = 0.0;
 	static Float:beamTime = 0.0;
 
@@ -561,13 +563,11 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 	pev(iEnt, LASERMINE_BEAMTHINK, 	beamTime);
 	iOwner = pev(iEnt, MINES_OWNER);
 
-	if (fCurrTime > beamTime)
+	if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]))
 	{
-		// drawing spark.
-		if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
-		{
+		if (fCurrTime > beamTime)
 			draw_laserline(iEnt, vEnd);
-		}
+
 		set_pev(iEnt, LASERMINE_BEAMTHINK, fCurrTime + random_float(0.1, 0.2));
 	}
 
@@ -576,7 +576,6 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 		if (fCurrTime < nextTime)
 		{
 			// Think time.
-			// Think time. random_float = laser line blinking.
 			set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
 			return false;
 		}
@@ -588,16 +587,16 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 	trace = create_tr2();
 
 	fFraction	= 0.0;
-	iIgnoreEnt	= iEnt;
+	iTarget	= iEnt;
 	ArrayClear(aTarget);
-	vReStartPos = vOrigin;
+	vHitPoint = vOrigin;
 	set_pev(iEnt, LASERMINE_COUNT, get_gametime());
 
 	// Trace line
 	while(fFraction < 1.0)
 	{
 		// Trace line
-		engfunc(EngFunc_TraceLine, vReStartPos, vEnd, DONT_IGNORE_MONSTERS, iIgnoreEnt, trace);
+		engfunc(EngFunc_TraceLine, vHitPoint, vEnd, DONT_IGNORE_MONSTERS, iTarget, trace);
 		{
 			get_tr2(trace, TR_flFraction, fFraction);
 			iTarget		= get_tr2(trace, TR_pHit);
@@ -608,34 +607,50 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 		// Something has passed the laser.
 		if (fFraction < 1.0)
 		{
-
 			// is valid hit entity?
-			if (!pev_valid(iTarget)
-			// is user?
-			|| !(pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER))
-			// is dead?
-			|| !is_user_alive(iTarget)
-			// Hit friend and No FF.
-			|| !mines_valid_takedamage(iOwner, iTarget)
-			// is godmode?
-			|| get_user_godmode(iTarget)
-			)
+			if (pev_valid(iTarget))
 			{
-				vReStartPos = vHitPoint;
-				iIgnoreEnt  = iTarget;
+				pev(iTarget, pev_classname, className, charsmax(className));
+				if (equali(className, ENT_CLASS_BREAKABLE))
+				{
+					hPlayer[I_TARGET] 	= iTarget;
+					hPlayer[V_POSITION]	= vHitPoint;
+					hPlayer[I_HIT_GROUP]= hitGroup;
+					ArrayPushArray(aTarget, hPlayer);
+					continue;
+				}
+
+				// is user?
+				if (!(pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER)))
+					continue;
+
+				// is dead?
+				if (!is_user_alive(iTarget))
+					continue;
+
+				// Hit friend and No FF.
+				if (!mines_valid_takedamage(iOwner, iTarget))
+					continue;
+				
+				// is godmode?
+				if (get_user_godmode(iTarget))
+					continue;
+
+				hPlayer[I_TARGET] 	= iTarget;
+				hPlayer[V_POSITION]	= vHitPoint;
+				hPlayer[I_HIT_GROUP]= hitGroup;
+				ArrayPushArray(aTarget, hPlayer);
+
+				if (hitGroup == HIT_SHIELD && get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]))
+					break;
+
+				// keep target id.
+				set_pev(iEnt, pev_enemy, iTarget);
+			}
+			else
+			{
 				continue;
 			}
-			hPlayer[I_TARGET] 	= iTarget;
-			hPlayer[V_POSITION]	= vHitPoint;
-			hPlayer[I_HIT_GROUP]= hitGroup;
-			ArrayPushArray(aTarget, hPlayer);
-			if (hitGroup == HIT_SHIELD && get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]))
-				break;
-								
-			vReStartPos = vHitPoint;
-			iIgnoreEnt  = iTarget;
-			// keep target id.
-			set_pev(iEnt, pev_enemy, iTarget);
 		}
 	}
 
@@ -761,21 +776,17 @@ create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
 	}
 	else
 	{
-		lm_play_sound(iTarget, SOUND_HIT);
-		mines_set_user_lasthit(iTarget, hitGroup);
+		if (IsPlayer(iTarget))
+		{
+			lm_play_sound(iTarget, SOUND_HIT);
+			mines_set_user_lasthit(iTarget, hitGroup);
+		}
 
 		// Damage Effect, Damage, Killing Logic.
 		ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]), DMG_ENERGYBEAM);
 	}
 	set_pev(iEnt, LASERMINE_HITING, iTarget);		
-	
-	// // is target func_breakable?
-	// if (equali(entityName, ENT_CLASS_BREAKABLE))
-	// {
-	// 	ExecuteHamB(Ham_TakeDamage, iTarget, iEnt, iAttacker, get_pcvar_float(gCvar[CVAR_LASER_DMG]));
-	// 	// damage it.
-	// 	//set_user_health(iTarget, Float:(fm_get_user_health(iTarget) - get_pcvar_float(gCvar[CVAR_LASER_DMG])));
-	// }
+
 	return;
 }
 
@@ -797,21 +808,6 @@ lm_hit_shield(id, Float:dmg)
 
 	set_pev(id, pev_punchangle, punchangle);	
 }
-
-// //====================================================
-// // Show ammo.
-// //====================================================
-show_ammo(id)
-{ 
-	new ammo[51];
-	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
-		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_AMMO, lm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
-	else
-		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_INF);
-
-	if (is_user_connected(id))
-		client_print(id, print_center, ammo);
-} 
 
 public lm_buy_lasermine(id)
 {
@@ -881,7 +877,10 @@ public CheckForDeploy(id, iMinesId)
 	if ( fFraction < 1.0 )
 		return true;
 
-	cp_must_wall(id);
+	new sLongName[MAX_NAME_LENGTH];
+	formatex(sLongName, charsmax(sLongName), "%L", id, LANG_KEY_LONGNAME);
+	client_print_color(id, id, "%L", id, LANG_KEY_PLANT_WALL, CHAT_TAG, sLongName);
+
 	return false;
 }
 

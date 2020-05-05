@@ -2,8 +2,6 @@
 //=============================================
 //	Plugin Writed by Visual Studio Code.
 //=============================================
-//#pragma semicolon 1
-
 // Supported BIOHAZARD.
 // #define BIOHAZARD_SUPPORT
 
@@ -20,16 +18,20 @@
 #include <hamsandwich>
 #include <xs>
 #include <mines_util>
+#include <ini_file>
 #if defined BIOHAZARD_SUPPORT
 	#include <biohazard>
 #endif
 
 #if defined ZP_SUPPORT
+	#include <zombieplague>
 	#include <zp50_items>
 	#include <zp50_gamemodes>
 	#include <zp50_colorchat>
 	#include <zp50_ammopacks>
 #endif
+
+#pragma semicolon 1
 
 //=====================================
 //  VERSION CHECK
@@ -38,18 +40,8 @@
 	#assert "AMX Mod X v1.10.0 or greater library required!"
 #endif
 
-#define PLUGIN 					"Mines Entity Platform"
-
-#define CHAT_TAG 				"[M.E.P]"
+#define PLUGIN 					"Mines Platform"
 #define CVAR_TAG				"amx_mines"
-
-//=====================================
-//  Resource Setting AREA
-//=====================================
-#define ENT_SOUND				"items/gunpickup2.wav"
-#define ENT_SOUND1				"debris/bustglass1.wav"
-#define ENT_SOUND2				"debris/bustglass2.wav"
-#define ENT_SPRITE 				"sprites/eexplo.spr"
 
 //=====================================
 //  MACRO AREA
@@ -61,64 +53,19 @@
 #define AUTHOR 					"Aoi.Kagase"
 #define VERSION 				"4.00"
 
-//#define STR_MINEDETNATED 			"Your mine has detonated.",
-//#define STR_MINEDETNATED2			"detonated your mine.",
-//#define STR_CANTDEPLOY			"Your team can't deploying lasermine!"
-
-#define LANG_KEY_REFER			"REFER"
-#define LANG_KEY_BOUGHT       	"BOUGHT"
-#define LANG_KEY_NO_MONEY     	"NO_MONEY"
-#define LANG_KEY_NOT_ACCESS   	"NOT_ACCESS"
-#define LANG_KEY_NOT_ACTIVE   	"NOT_ACTIVE"
-#define LANG_KEY_NOT_HAVE     	"NOT_HAVE"
-#define LANG_KEY_NOT_BUY      	"NOT_BUY"
-#define LANG_KEY_NOT_BUYZONE  	"NOT_BUYZONE"
-#define LANG_KEY_NOT_PICKUP   	"NOT_PICKUP"
-#define LANG_KEY_MAX_DEPLOY   	"MAX_DEPLOY"
-#define LANG_KEY_MAX_HAVE     	"MAX_HAVE"
-#define LANG_KEY_MAX_PPL      	"MAX_PPL"
-#define LANG_KEY_DELAY_SEC    	"DELAY_SEC"
-#define LANG_KEY_STATE_AMMO   	"STATE_AMMO"
-#define LANG_KEY_STATE_INF    	"STATE_INF"
-#define LANG_KEY_PLANT_WALL   	"PLANT_WALL"
-#define LANG_KEY_PLANT_GROUND 	"PLANT_GROUND"
-#define LANG_KEY_SORRY_IMPL   	"SORRY_IMPL"
-#define LANG_KEY_NOROUND		"NO_ROUND"
-#define LANG_KEY_ALL_REMOVE		"ALL_REMOVE"
-#define LANG_KEY_GIVE_MINE		"GIVE_MINE"
-#define LANG_KEY_REMOVE_SPEC	"REMOVE_SPEC"
-#define LANG_KEY_MINE_HUD		"MINE_HUD_MSG"
-#define LANG_KEY_NOT_BUY_TEAM 	"NOT_BUY_TEAM"
-
 // ADMIN LEVEL
 #define ADMIN_ACCESSLEVEL		ADMIN_LEVEL_H
 
 // Put Guage ID
-#define TASK_PLANT				15100
-#define TASK_RESET				15500
-#define TASK_RELEASE			15900
+#define TASK_PLANT				315100
+#define TASK_RESET				315500
+#define TASK_RELEASE			315900
 
-// Client Print Command Macro.
-#define cp_debug(%1)				client_print_color(%1, %1, "^4[Laesrmine Debug] ^1Can't Create Entity")
-#define cp_not_active(%1)			client_print_color(%1, print_team_red, "%L", %1, LANG_KEY_NOT_ACTIVE, CHAT_TAG)
-#define cp_not_access(%1)			client_print_color(%1, print_team_red, "%L", %1, LANG_KEY_NOT_ACCESS, CHAT_TAG)
-#define cp_delay_time(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_DELAY_SEC,	CHAT_TAG, cvar_delay - nowTime)
-
-#define cp_bought(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_BOUGHT,		CHAT_TAG)
-#define	cp_no_money(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NO_MONEY,		CHAT_TAG, cost)
-#define cp_dont_have(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_HAVE,		CHAT_TAG)
-#define cp_cant_buy(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_BUY,		CHAT_TAG)
-#define cp_buyzone(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_BUYZONE,	CHAT_TAG)
-#define cp_cant_buy_team(%1)		client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_BUY_TEAM,	CHAT_TAG)
-#define cp_cant_pickup(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_PICKUP,	CHAT_TAG)
-#define cp_maximum_deployed(%1)		client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_DEPLOY,	CHAT_TAG)
-#define cp_have_max(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_HAVE,		CHAT_TAG)
-#define cp_many_ppl(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_PPL,		CHAT_TAG)
-#define cp_noround(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOROUND, 		CHAT_TAG)
-#define cp_all_remove(%1,%2,%3)		client_print_color(%1, %1, "%L", %1, LANG_KEY_ALL_REMOVE,	CHAT_TAG, %2, %3)
-#define cp_gave(%1,%2,%3)			client_print_color(%1, %1, "%L", %1, LANG_KEY_GIVE_MINE,	CHAT_TAG, %2, %3)
-#define cp_remove_spec(%1,%2)		client_print_color(%1, %1, "%L", %1, LANG_KEY_REMOVE_SPEC,	CHAT_TAG, %2)
-
+#define INI_FILE				"mines/mines_resources.ini"
+#define CVAR_FILE				"mines/mines_cvars.cfg"
+//====================================================
+//  Enum Area.
+//====================================================
 //
 // CVAR SETTINGS
 //
@@ -132,20 +79,6 @@ enum CVAR_SETTING
 	CVAR_START_DELAY        ,   	// Round start delay time.
 };
 
-enum _:FORWARDER
-{
-	FWD_SET_ENTITY_SPAWN,
-	FWD_PUTIN_SERVER,
-	FWD_CHECK_DEPLOY,
-	FWD_CHECK_PICKUP,
-	FWD_CHECK_BUY,
-	FWD_DISCONNECTED,
-	FWD_MINES_THINK,
-	FWD_MINES_BREAKED,
-	FWD_MINES_PICKUP,
-	FWD_REMOVE_ENTITY,
-	FWD_PLUGINS_END,
-};
 #if defined ZP_SUPPORT
 enum _:GAMEMODE_TAG
 {
@@ -157,112 +90,29 @@ new gZpGameMode[GAMEMODE_TAG];
 #endif
 
 //====================================================
-//  GLOBAL VARIABLES
+//  GLOBAL VARIABLES.
 //====================================================
 new gBoom;
 new gMsgBarTime;
 new gEntMine;
+new gSubMenuCallback;
 new gCvar				[CVAR_SETTING];
-new gForwarder			[FORWARDER];
-
-new Array:gMinesClass;
-new Array:gMinesLongName;
-new Array:gMinesParameter;
-new Array:gPlayerData	[MAX_PLAYERS];
-new gCPlayerData		[MAX_PLAYERS][COMMON_PLAYER_DATA];
+new gSelectedMines		[MAX_PLAYERS];
 
 //====================================================
-//  Player Data functions
+//  PLUGIN PRECACHE
 //====================================================
-#define mines_get_user_deploy_state(%1)					gCPlayerData[%1][PL_STATE_DEPLOY]
-#define mines_set_user_deploy_state(%1,%2)				gCPlayerData[%1][PL_STATE_DEPLOY] = %2
-#define mines_load_user_max_speed(%1)					gCPlayerData[%1][PL_MAX_SPEED]
-#define mines_save_user_max_speed(%1,%2)				gCPlayerData[%1][PL_MAX_SPEED] = Float:%2
-
-//====================================================
-// Function: Count to deployed in team.
-//====================================================
-stock int:mines_get_team_deployed_count(id, iMinesId, plData[PLAYER_DATA])
+public plugin_precache() 
 {
-	new int:i;
-	new int:count;
-	new int:num;
-	new team[3] = '^0';
-	new players[MAX_PLAYERS];
-
-	// Witch your team?
-	switch(CsTeams:mines_get_user_team(id))
-	{
-		case CS_TEAM_CT: team = "CT";
-		case CS_TEAM_T : team = "T";
-		default:
-			return int:0;
-	}
-
-	// Get your team member.
-	get_players(players, num, "e", team);
-
-	// Count your team deployed lasermine.
-	count = int:0;
-	for(i = int:0;i < num;i++)
-	{
-		ArrayGetArray(gPlayerData[players[i]], iMinesId, plData, sizeof(plData));
-		count += plData[PL_COUNT_DEPLOYED];
-	}
-
-	return count;
+	precache_sound(ENT_SOUND);
+	precache_sound(ENT_SOUND1);
+	precache_sound(ENT_SOUND2);
+	precache_sound(ENT_SOUND3);
+	gBoom = precache_model(ENT_SPRITE);
+	
+	return PLUGIN_CONTINUE;
 }
 
-stock mines_reset_have_mines(id)
-{
-	new plData[PLAYER_DATA];
-	for(new i = 0; i < ArraySize(gMinesClass); i++)
-	{
-		ArrayGetArray(gPlayerData[id], i, plData, sizeof(plData));
-		// reset deploy count.
-		plData[PL_COUNT_DEPLOYED]	= int:0;
-		// reset hove mine.
-		plData[PL_COUNT_HAVE_MINE]	= int:0;
-
-		ArraySetArray(gPlayerData[id], i, plData, sizeof(plData));
-	}
-}
-
-stock mines_remove_all_mines(id)
-{
-	static minesData[COMMON_MINES_DATA];
-	new result = false;
-
-	for(new i = 0; i < ArraySize(gMinesClass); i++)
-	{
-		ArrayGetArray(gMinesParameter, i, minesData, sizeof(minesData));
-		// Dead Player remove lasermine.
-		if (minesData[DEATH_REMOVE])
-		{
-			result |= mines_remove_all_entity_main(id, i);
-		}
-	}
-	return result;
-}
-
-stock mines_remove_all_entity_main(id, iMinesId)
-{
-	static plData[PLAYER_DATA];
-	static sClassName[MAX_CLASS_LENGTH];
-	new result = false;
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-
-	if (plData[PL_COUNT_DEPLOYED] > int:0)
-		result = true;
-
-	ArrayGetString(gMinesClass, iMinesId, sClassName, charsmax(sClassName));
-	mines_remove_all_entity(id, sClassName);
-
-	// reset deploy count.
-	plData[PL_COUNT_DEPLOYED] = int:0;
-	ArraySetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-	return result;
-}
 //====================================================
 //  PLUGIN INITIALIZE
 //====================================================
@@ -270,35 +120,46 @@ public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
+	// Add your code here...
+	register_concmd("mines_remove", "admin_remove_mines",ADMIN_ACCESSLEVEL, " - <userid>"); 
+	register_concmd("mines_give", 	"admin_give_mines",  ADMIN_ACCESSLEVEL, " - <userid> <minesId>"); 
+
+	// Add your code here...
+	register_clcmd("+mdeploy", "mines_cmd_progress_deploy");
+	register_clcmd("+mpickup", "mines_cmd_progress_pickup");
+   	register_clcmd("-mdeploy", "mines_cmd_progress_stop");
+   	register_clcmd("-mpickup", "mines_cmd_progress_stop");
+	register_clcmd("say", 		"say_mines");
+
 	// CVar settings.
 	// Common.
-	gCvar[CVAR_ENABLE]	        = register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),		"1"	);	// 0 = off, 1 = on.
-	gCvar[CVAR_ACCESS_LEVEL]   	= register_cvar(fmt("%s%s", CVAR_TAG, "_access"),		"0"	);	// 0 = all, 1 = admin
-	gCvar[CVAR_START_DELAY]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),	"5"	);	// Round start delay time.
-	gCvar[CVAR_FRIENDLY_FIRE]  	= get_cvar_pointer("mp_friendlyfire");							// Friendly fire. 0 or 1
+	gCvar[CVAR_ENABLE]				= register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),		"1"	);	// 0 = off, 1 = on.
+	gCvar[CVAR_ACCESS_LEVEL]		= register_cvar(fmt("%s%s", CVAR_TAG, "_access"),		"0"	);	// 0 = all, 1 = admin
+	gCvar[CVAR_START_DELAY]			= register_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),	"5"	);	// Round start delay time.
+	gCvar[CVAR_FRIENDLY_FIRE]		= get_cvar_pointer("mp_friendlyfire");							// Friendly fire. 0 or 1
 
-	// Get Message Id
-	gMsgBarTime		= get_user_msgid("BarTime");
-
-	gForwarder[FWD_SET_ENTITY_SPAWN] = CreateMultiForward("mines_entity_spawn_settings"	, ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
-	gForwarder[FWD_PUTIN_SERVER]	 = CreateMultiForward("mines_client_putinserver"	, ET_IGNORE, FP_CELL);
-	gForwarder[FWD_DISCONNECTED] 	 = CreateMultiForward("mines_client_disconnected"	, ET_IGNORE, FP_CELL);
-	gForwarder[FWD_REMOVE_ENTITY]	 = CreateMultiForward("mines_remove_entity"			, ET_IGNORE, FP_CELL);
-	gForwarder[FWD_PLUGINS_END] 	 = CreateMultiForward("mines_plugin_end"			, ET_IGNORE);
-	gForwarder[FWD_CHECK_PICKUP]	 = CreateMultiForward("CheckForPickup"				, ET_STOP,   FP_CELL, FP_CELL, FP_CELL);
-	gForwarder[FWD_CHECK_DEPLOY]	 = CreateMultiForward("CheckForDeploy"				, ET_STOP,   FP_CELL, FP_CELL);
-	gForwarder[FWD_CHECK_BUY]	 	 = CreateMultiForward("CheckForBuy"					, ET_STOP,   FP_CELL, FP_CELL);
-	gForwarder[FWD_MINES_THINK]		 = CreateMultiForward("MinesThink"					, ET_IGNORE, FP_CELL, FP_CELL);
-	gForwarder[FWD_MINES_PICKUP]	 = CreateMultiForward("MinesPickup"					, ET_IGNORE, FP_CELL, FP_CELL);
-	gForwarder[FWD_MINES_BREAKED]	 = CreateMultiForward("MinesBreaked"				, ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
+	gForwarder[FWD_SET_ENTITY_SPAWN]= CreateMultiForward("mines_entity_spawn_settings"	, ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
+	gForwarder[FWD_PUTIN_SERVER]	= CreateMultiForward("mines_client_putinserver"		, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_DISCONNECTED] 	= CreateMultiForward("mines_client_disconnected"	, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_REMOVE_ENTITY]	= CreateMultiForward("mines_remove_entity"			, ET_IGNORE, FP_CELL);
+	gForwarder[FWD_PLUGINS_END] 	= CreateMultiForward("mines_plugin_end"				, ET_IGNORE);
+	gForwarder[FWD_CHECK_PICKUP]	= CreateMultiForward("CheckForPickup"				, ET_STOP,   FP_CELL, FP_CELL, FP_CELL);
+	gForwarder[FWD_CHECK_DEPLOY]	= CreateMultiForward("CheckForDeploy"				, ET_STOP,   FP_CELL, FP_CELL);
+	gForwarder[FWD_CHECK_BUY]	 	= CreateMultiForward("CheckForBuy"					, ET_STOP,   FP_CELL, FP_CELL);
+	gForwarder[FWD_MINES_THINK]		= CreateMultiForward("MinesThink"					, ET_IGNORE, FP_CELL, FP_CELL);
+	gForwarder[FWD_MINES_PICKUP]	= CreateMultiForward("MinesPickup"					, ET_IGNORE, FP_CELL, FP_CELL);
+	gForwarder[FWD_MINES_BREAKED]	= CreateMultiForward("MinesBreaked"					, ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
 
 	gMinesClass 					= ArrayCreate(MAX_CLASS_LENGTH);
 	gMinesParameter 				= ArrayCreate(COMMON_MINES_DATA);
+	gMinesLongName					= ArrayCreate(MAX_NAME_LENGTH);
+
+	// Get Message Id
+	gMsgBarTime						= get_user_msgid("BarTime");
+	gSubMenuCallback				= menu_makecallback("mines_submenu_callback");
 
 	for(new i = 0; i < MAX_PLAYERS; i++)
-	{
 		gPlayerData[i] = ArrayCreate(PLAYER_DATA);
-	}
 
 	// Register Event
 	register_event("DeathMsg", "DeathEvent",	"a");
@@ -321,10 +182,52 @@ public plugin_init()
 
 	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
-
 	return PLUGIN_CONTINUE;
 }
 
+//====================================================
+//  PLUGIN END
+//====================================================
+public plugin_end()
+{
+	// Forward Plugin End Function.
+	ExecuteForward(gForwarder[FWD_PLUGINS_END]);
+
+	// Destroy Fowards
+	for (new i = 0; i < FORWARDER; i++)
+		DestroyForward(gForwarder[i]);
+
+	// Destroy Arrays
+	ArrayDestroy(gMinesClass);
+	ArrayDestroy(gMinesParameter);
+	ArrayDestroy(gMinesLongName);
+
+	for (new i = 0; i < MAX_PLAYERS; i++)
+		ArrayDestroy(gPlayerData[i]);
+}
+
+//====================================================
+//  PLUGIN CONFIG
+//====================================================
+public plugin_cfg()
+{
+	// registered func_breakable
+	gEntMine = engfunc(EngFunc_AllocString, ENT_CLASS_BREAKABLE);
+
+	new file[64];
+	new len = charsmax(file);
+	get_configsdir(file, len);
+	format(file, len, "%s/%s", file, CVAR_FILE);
+	if(file_exists(file)) 
+	{
+		server_cmd("exec %s", file);
+		server_exec();
+	}
+}
+
+//====================================================
+//  PLUGIN NATIVES
+//====================================================
 public plugin_natives()
 {
 	register_library("mines_natives");
@@ -336,6 +239,7 @@ public plugin_natives()
 	register_native("mines_explosion", 			"_native_mines_explosion");
 	register_native("mines_buy",				"_native_buy_mines");
 	register_native("mines_valid_takedamage",	"_native_is_valid_takedamage");
+	register_native("mines_register_dictionary","_native_register_dictionary");
 
 #if defined ZP_SUPPORT
 	register_native("zp_give_lm", 				"ZpMinesNative");
@@ -343,23 +247,20 @@ public plugin_natives()
 }
 
 //====================================================
-//  Native: Register Mines.
+//  Native Functions
 //====================================================
-public _native_is_valid_takedamage(iPlugin, iParams)
-	return is_valid_takedamage(get_param(1), get_param(2));
-
-//====================================================
-//  Native: Register Mines.
-//====================================================
+// Register Mines.
 public _native_register_mines(iPlugin, iParams)
 {
-	new className[MAX_CLASS_LENGTH];
-	new sLongName[MAX_NAME_LENGTH];
-	new minesData[COMMON_MINES_DATA];
+	new className	[MAX_CLASS_LENGTH];
+	new sLongName	[MAX_NAME_LENGTH];
+	new minesData	[COMMON_MINES_DATA];
+	new plData		[PLAYER_DATA];
 	new iMinesId = -1;
-	get_string(1, className, charsmax(className));
-	get_string(2, sLongName, charsmax(sLongName));
-	get_array(3, minesData, sizeof(minesData));
+
+	get_string	(1, className, charsmax(className));
+	get_array	(2, minesData, sizeof(minesData));
+	get_string	(3, sLongName, charsmax(sLongName));
 
 	#if defined ZP_SUPPORT
 		new zpWeaponId					= zp_items_register(className, minesData[BUY_PRICE]);
@@ -368,63 +269,52 @@ public _native_register_mines(iPlugin, iParams)
 		gZpGameMode[GMODE_ASSASIN]		= zp_gamemodes_get_id("Assassin Mode");
 		minesData[ZP_WEAPON_ID]			= zpWeaponId;
 	#endif
-	iMinesId = ArrayPushString(gMinesClass, className);
-	ArrayPushString(gMinesLongName, sLongName);
-	ArrayPushArray(gMinesParameter, minesData);
 
-	new plData[PLAYER_DATA];
+	// register mines classname/parameter/longname key
+	iMinesId = ArrayPushString(gMinesClass, className);
+	ArrayPushArray	(gMinesParameter, 	minesData);
+	ArrayPushString	(gMinesLongName, 	sLongName);
+
+	// initialize player data.
 	for(new i = 0; i < MAX_PLAYERS; i++)
 		ArrayPushArray(gPlayerData[i], plData, sizeof(plData));
 
 	return iMinesId;
 }
+
+// Register Dictionary
+public _native_register_dictionary(iPlugin, iParams)
+{
+	new sDictionary[64];
+	get_string(1, sDictionary, charsmax(sDictionary));
+	register_dictionary(sDictionary);
+}
+
+// is valid Take Damage.
+public _native_is_valid_takedamage(iPlugin, iParams) 
+{
+	return is_valid_takedamage(get_param(1), get_param(2));
+}
+
 // mines_progress_deploy(id, iMinesId);
 public _native_deploy_progress(iPlugin, iParams)
 {
 	mines_progress_deploy(get_param(1), get_param(2));
 }
+
 // mines_progress_pickup(id, iMinesId);
 public _native_pickup_progress(iPlugin, iParams)
 {
 	mines_progress_pickup(get_param(1), get_param(2));
 }
+
 // mines_progress_stop(id);
 public _native_stop_progress(iPlugin, iParams)
 {
 	mines_progress_stop(get_param(1));
 }
-// mines_mines_explosion(id, iMinesId, iEnt);
-public _native_mines_explosion(iPlugin, iParams)
-{
-	new id	= get_param(1);
-	new mId = get_param(2);
-	new iEnt= get_param(3); 
-	static plData[PLAYER_DATA];
-	static minesData[COMMON_MINES_DATA];
 
-	// Stopping entity to think
-	set_pev(iEnt, pev_nextthink, 0.0);
-
-	// reset deploy count.
-	// Count down. deployed lasermines.
-	ArrayGetArray(gPlayerData[id], mId, plData, sizeof(plData));
-	plData[PL_COUNT_DEPLOYED]--;
-	ArraySetArray(gPlayerData[id], mId, plData, sizeof(plData));
-	ArrayGetArray(gMinesParameter, mId, minesData, sizeof(minesData));
-
-	// effect explosion.
-	mines_create_explosion(iEnt, gBoom);
-	
-	// damage.
-	mines_create_explosion_damage(iEnt, id, Float:minesData[EXPLODE_DAMAGE], Float:minesData[EXPLODE_RADIUS]);
-
-	// remove this.
-	mines_remove_entity(iEnt);
-}
-
-//====================================================
-// Buy Lasermine.
-//====================================================
+// Buy mines.
 public _native_buy_mines(iPlugin, iParams)
 {	
 #if !defined ZP_SUPPORT
@@ -433,51 +323,53 @@ public _native_buy_mines(iPlugin, iParams)
 	return PLUGIN_HANDLED;
 }
 
-//====================================================
-//  PLUGIN END
-//====================================================
-public plugin_end()
+// mines_mines_explosion(id, iMinesId, iEnt);
+public _native_mines_explosion(iPlugin, iParams)
 {
-	ExecuteForward(gForwarder[FWD_PLUGINS_END]);
-	ArrayDestroy(gMinesClass);
-	ArrayDestroy(gMinesParameter);
+	new id		 = get_param(1);
+	new iMinesId = get_param(2);
+	new iEnt	 = get_param(3); 
 
-	for (new i = 0; i < FORWARDER; i++)
-		DestroyForward(gForwarder[i]);
+	static plData[PLAYER_DATA];
+	static minesData[COMMON_MINES_DATA];
 
-	for (new i = 0; i < MAX_PLAYERS; i++)
-		ArrayDestroy(gPlayerData[i]);
-}
+	// Stopping entity to think
+	set_pev(iEnt, pev_nextthink, 0.0);
 
-//====================================================
-//  PLUGIN PRECACHE
-//====================================================
-public plugin_precache() 
-{
-	precache_sound(ENT_SOUND);
-	precache_sound(ENT_SOUND1);
-	precache_sound(ENT_SOUND2);
-	gBoom = precache_model(ENT_SPRITE);
+	// reset deploy count.
+	// Count down. deployed lasermines.
+	ArrayGetArray(gPlayerData[id], iMinesId, plData, 	sizeof(plData));
+	plData[PL_COUNT_DEPLOYED]--;
+	ArraySetArray(gPlayerData[id], iMinesId, plData, 	sizeof(plData));
+	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
+	if (minesData[EXPLODE_SPRITE])
+		mines_create_explosion(iEnt, minesData[EXPLODE_SPRITE]);
+	else
+		// effect explosion. (default sprite)
+		mines_create_explosion(iEnt, gBoom);
 	
-	return PLUGIN_CONTINUE;
-}
-//====================================================
-//  PLUGIN CONFIG
-//====================================================
-public plugin_cfg()
-{
-	// registered func_breakable
-	gEntMine = engfunc(EngFunc_AllocString, ENT_CLASS_BREAKABLE);
+	// damage.
+	mines_create_explosion_damage(iEnt, id, Float:minesData[EXPLODE_DAMAGE], Float:minesData[EXPLODE_RADIUS]);
 
-	new file[64];
-	new len = charsmax(file);
-	get_localinfo("amxx_configsdir", file, len);
-	format(file, len, "%s/mines_cvars.cfg", file);
-	if(file_exists(file)) 
-	{
-		server_cmd("exec %s", file);
-		server_exec();
-	}
+	// remove this.
+	mines_remove_entity(iEnt);
+}
+
+// mines_read_resources(section, key, value, size);
+public _native_read_ini_resources(iMinesId, key[], value[], size, def[])
+{
+	new inifile[64];
+	new sClassName[MAX_CLASS_LENGTH];
+	ArrayGetArray(gMinesClass, iMinesId, sClassName, charsmax(sClassName));
+
+	get_configsdir(inifile, charsmax(inifile));
+	formatex(inifile, charsmax(inifile), "%s/%s", inifile, INI_FILE);
+
+	new result = ini_read_string(inifile, sClassName, key, value, size);
+
+	if (result <= 0)
+		formatex(value, size, "%s", def);
 }
 
 //====================================================
@@ -543,13 +435,29 @@ public NewRound(id)
 			// Delay time reset
 			plData[PL_COUNT_DELAY] = int:floatround(get_gametime());
 			ArraySetArray(gPlayerData[id], i, plData, sizeof(plData));
-			// Removing already put lasermine.
+			// Removing already put mines.
 			mines_remove_all_entity_main(id, i);
 			// Round start set ammo.
 			set_start_ammo(id, i);
 		}
 	}
 	return PLUGIN_CONTINUE;
+}
+
+//====================================================
+// Client Commands
+//====================================================
+public mines_cmd_progress_deploy(id)
+{
+	mines_progress_deploy(id, gSelectedMines[id]);
+}
+public mines_cmd_progress_pickup(id)
+{
+	mines_progress_pickup(id, gSelectedMines[id]);
+}
+public mines_cmd_progress_stop(id)
+{
+	mines_progress_stop(id);
 }
 
 //====================================================
@@ -585,10 +493,7 @@ set_start_ammo(id, iMinesId)
 //====================================================
 public DeathEvent()
 {
-	// new kID = read_data(1); // killer
 	new vID = read_data(2); // victim
-	// new isHS = read_data(3); // is headshot
-	// new wpnName = read_data(4); // wpnName
 
 	// Check Plugin Enabled
 	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
@@ -604,7 +509,7 @@ public DeathEvent()
 }
 
 //====================================================
-// Put LaserMine Start Progress A
+// Put mines Start Progress A
 //====================================================
 public mines_progress_deploy(id, iMinesId)
 {
@@ -624,14 +529,14 @@ public mines_progress_deploy(id, iMinesId)
 
 	new sMineId[4];
 	num_to_str(iMinesId, sMineId, charsmax(sMineId));
-	// Start Task. Put Lasermine.
+	// Start Task. Put mines.
 	set_task(wait, "SpawnMine", (TASK_PLANT + id), sMineId, charsmax(sMineId));
 
 	return PLUGIN_HANDLED;
 }
 
 //====================================================
-// Removing target put lasermine.
+// Removing target put mines.
 //====================================================
 public mines_progress_pickup(id, iMinesId)
 {
@@ -651,7 +556,7 @@ public mines_progress_pickup(id, iMinesId)
 
 	new sMineId[4];
 	num_to_str(iMinesId, sMineId, charsmax(sMineId));
-	// Start Task. Remove Lasermine.
+	// Start Task. Remove mines.
 	set_task(wait, "RemoveMine", (TASK_RELEASE + id), sMineId, charsmax(sMineId));
 
 	return PLUGIN_HANDLED;
@@ -669,7 +574,7 @@ public mines_progress_stop(id)
 }
 
 //====================================================
-// Task: Spawn Lasermine.
+// Task: Spawn mines.
 //====================================================
 public SpawnMine(params[], id)
 {
@@ -703,12 +608,14 @@ public SpawnMine(params[], id)
 
 		// Set Flag. end progress.
 		mines_set_user_deploy_state(uID, int:STATE_DEPLOYED);
+
+		show_ammo(id, iMinesId);
 	}
 	return iReturn;
 }
 
 //====================================================
-// Task: Remove Lasermine.
+// Task: Remove mines.
 //====================================================
 public RemoveMine(params[], id)
 {
@@ -743,7 +650,7 @@ public RemoveMine(params[], id)
 	pev(target, pev_classname, tClassName, charsmax(tClassName));
 	ArrayGetString(gMinesClass, iMinesId, iClassName, charsmax(iClassName));
 
-	// Check. is Target Entity Lasermine?
+	// Check. is Target Entity mines?
 	if(!equali(tClassName, iClassName))
 		return;
 
@@ -775,10 +682,9 @@ public RemoveMine(params[], id)
 	mines_remove_entity(target);
 
 	ArrayGetArray(gPlayerData[uID], iMinesId, plData, sizeof(plData));
-	// Collect for this removed lasermine.
+	// Collect for this removed mines.
 	plData[PL_COUNT_HAVE_MINE]++;
 	ArraySetArray(gPlayerData[uID], iMinesId, plData, sizeof(plData));
-
 
 	if (pev_valid(ownerID))
 	{
@@ -792,11 +698,13 @@ public RemoveMine(params[], id)
 	// Set Flag. end progress.
 	mines_set_user_deploy_state(uID, int:STATE_DEPLOYED);
 
+	show_ammo(id, iMinesId);
+
 	return;
 }
 
 //====================================================
-// Blocken Mines.
+// Brocken Mines.
 //====================================================
 public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 {
@@ -846,6 +754,9 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 	return HAM_IGNORED;
 }
 
+//====================================================
+// Mines Think.
+//====================================================
 public MinesThinkMain(iEnt)
 {
 	// Check plugin enabled.
@@ -868,6 +779,69 @@ public MinesThinkMain(iEnt)
 	}
 	return HAM_SUPERCEDE;
 }
+//====================================================
+// Check Spectartor
+//====================================================
+public MinesBreakedMain(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
+{
+	static sClassName[MAX_CLASS_LENGTH];
+	static iMinesId;
+
+	pev(victim, pev_classname, sClassName, charsmax(sClassName));
+	iMinesId = ArrayFindString(gMinesClass, sClassName);
+
+    // is this mines? no.
+	if (iMinesId == -1)
+		return HAM_IGNORED;
+
+	new Float:health;
+	mines_get_health(victim, health);
+	if (health <= 0.0)
+	{
+		new iReturn;
+		ExecuteForward(gForwarder[FWD_MINES_BREAKED], iReturn, iMinesId, victim, attacker);
+	}
+	return HAM_IGNORED;
+}
+
+//====================================================
+// ShowInfo Hud Message
+//====================================================
+public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
+{ 
+	static sClassName[MAX_CLASS_LENGTH];
+	static sName[MAX_NAME_LENGTH];
+	static minesData[COMMON_MINES_DATA];
+
+	new iHit, iOwner, Float:health;
+	new hudMsg[64];
+	new Float:vHitPoint[3];
+
+	iHit = get_tr2(iTrace, TR_pHit);
+	get_tr2(iTrace, TR_vecEndPos, vHitPoint);				
+
+	if (pev_valid(iHit))
+	{
+		static iMinesId;
+		pev(iHit, pev_classname, sClassName, charsmax(sClassName));
+		iMinesId = ArrayFindString(gMinesClass, sClassName);
+
+		if (iMinesId != -1)
+		{
+			if (get_distance_f(vStart, vHitPoint) < 200.0) 
+			{
+				ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+				iOwner = pev(iHit, MINES_OWNER);
+				mines_get_health(iHit, health);
+				get_user_name(iOwner, sName, charsmax(sName));
+				formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG_KEY_MINE_HUD, sName, floatround(health), floatround(Float:minesData[MINE_HEALTH]));
+				//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
+				set_hudmessage(50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
+				show_hudmessage(id, hudMsg);
+			}
+		}
+    }
+} 
 
 //====================================================
 // Player killing (Set Money, Score)
@@ -919,30 +893,6 @@ public PlayerKilling(iVictim, iAttacker)
 }
 
 //====================================================
-// Buy Lasermine.
-//====================================================
-stock mines_buy_mine(id, iMinesId)
-{	
-	if (!CheckBuyMines(id, iMinesId))
-		return PLUGIN_CONTINUE;
-	static plData[PLAYER_DATA];
-	static minesData[COMMON_MINES_DATA];
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-	new cost = minesData[BUY_PRICE];
-	cs_set_user_money(id, cs_get_user_money(id) - cost);
-
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-	plData[PL_COUNT_HAVE_MINE]++;
-	ArraySetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-
-	cp_bought(id);
-
-	emit_sound(id, CHAN_ITEM, ENT_SOUND, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-
-	return PLUGIN_HANDLED;
-}
-
-//====================================================
 // Player post think event.
 // Stop movement for mine deploying.
 //====================================================
@@ -957,7 +907,8 @@ public PlayerPostThink(id)
 		{
 			new Float:speed;
 			mines_get_user_max_speed(id, speed);
-			new bool:now_speed = (speed <= 1.0)
+
+			new bool:now_speed = (speed <= 1.0);
 			if (now_speed)
 				ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
 		}
@@ -995,9 +946,6 @@ public client_putinserver(id)
 //====================================================
 // Player Disconnect.
 //====================================================
-/*
-	symbol "client_disconnect" is marked as deprecated: Use client_disconnected() instead.
-*/
 public client_disconnected(id)
 {
 	// check plugin enabled.
@@ -1009,7 +957,7 @@ public client_disconnected(id)
 
 	// delete task.
 	delete_task(id);
-	// remove all lasermine.
+	// remove all mines.
 	mines_remove_all_mines(id);
 	return PLUGIN_CONTINUE;
 }
@@ -1131,7 +1079,7 @@ stock bool:CheckRoundStarted(id, iMinesId, minesData[COMMON_MINES_DATA])
 #endif
 
 //====================================================
-// Check: Remove Lasermine.
+// Check: Remove mines.
 //====================================================
 public bool:CheckPickup(id, iMinesId)
 {
@@ -1175,7 +1123,7 @@ public bool:CheckPickup(id, iMinesId)
 	pev(target, pev_classname, sClassName, charsmax(sClassName));
 	ArrayGetString(gMinesClass, iMinesId, minesClass, charsmax(minesClass));
 
-	// is target lasermine?
+	// is target mines?
 	if(!equali(sClassName, minesClass))
 		return false;
 
@@ -1214,109 +1162,8 @@ public bool:CheckPickup(id, iMinesId)
 }
 
 //====================================================
-// Check: Buy Mines
+// Check Spectartor
 //====================================================
-stock bool:CheckBuyMines(id, iMinesId)
-{
-	static minesData[COMMON_MINES_DATA];
-	static plData[PLAYER_DATA];
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-
-	// Check common.
-	if (!CheckCommon(id, plData))
-		return false;
-
-	new buymode	= 	minesData[BUY_MODE];
-	new maxhave	=	minesData[AMMO_HAVE_MAX];
-	new cost	= 	minesData[BUY_PRICE];
-	new buyzone	=	minesData[BUY_ZONE];
-
-	// Buy mode ON?
-	if (buymode)
-	{
-		// Can this team buying?
-		if (!CheckTeam(id, minesData))
-		{
-			cp_cant_buy_team(id);
-			return false;
-		}
-
-		// Have Max?
-		if (plData[PL_COUNT_HAVE_MINE] >= int:maxhave)
-		{
-			cp_have_max(id);
-			return false;
-		}
-
-		// buyzone area?
-		if (buyzone && !cs_get_user_buyzone(id))
-		{
-			cp_buyzone(id);
-			return false;
-		}
-
-		// Have money?
-		if (cs_get_user_money(id) < cost)
-		{
-			cp_no_money(id);
-			return false;
-		}
-
-	}
-	else
-	{
-		cp_cant_buy(id);
-		return false;
-	}
-
-	return true;
-}
-
-//====================================================
-// Check: Can use this Team.
-//====================================================
-stock bool:CheckTeam(id, minesData[COMMON_MINES_DATA])
-{
-	new CsTeams:team;
-
-	team = CsTeams:minesData[BUY_TEAM]
-
-	// Cvar setting equal your team? Not.
-	if(team != CS_TEAM_UNASSIGNED && team != cs_get_user_team(id))
-		return false;
-
-	return true;
-}
-
-//====================================================
-// Check: Max Deploy.
-//====================================================
-stock bool:CheckMaxDeploy(id, iMinesId, plData[PLAYER_DATA], minesData[COMMON_MINES_DATA])
-{
-	new max_have 	= minesData[AMMO_HAVE_MAX];
-	new team_max 	= minesData[DEPLOY_TEAM_MAX];
-	new team_count 	= mines_get_team_deployed_count(id, iMinesId, plData);
-
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-
-	// Max deployed per player.
-	if (plData[PL_COUNT_HAVE_MINE] >= int:max_have)
-	{
-		cp_maximum_deployed(id);
-		return false;
-	}
-
-	// Max deployed per team.
-	if (team_count >= team_max)
-	{
-		cp_many_ppl(id);
-		return false;
-	}
-
-	return true;
-}
-
 public CheckSpectator() 
 {
 	new id, szTeam[2];
@@ -1335,70 +1182,8 @@ public CheckSpectator()
      } 
 }
 
-public MinesBreakedMain(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
-{
-	static sClassName[MAX_CLASS_LENGTH];
-	static iMinesId;
-
-	pev(victim, pev_classname, sClassName, charsmax(sClassName));
-	iMinesId = ArrayFindString(gMinesClass, sClassName);
-
-    // is this lasermine? no.
-	if (iMinesId == -1)
-		return HAM_IGNORED;
-
-	new Float:health;
-	mines_get_health(victim, health);
-	if (health <= 0.0)
-	{
-		new iReturn;
-		ExecuteForward(gForwarder[FWD_MINES_BREAKED], iReturn, iMinesId, victim, attacker);
-	}
-	return HAM_IGNORED;
-}
-
-
 //====================================================
-// ShowInfo Hud Message
-//====================================================
-public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
-{ 
-	static sClassName[MAX_CLASS_LENGTH];
-	static sName[MAX_NAME_LENGTH];
-	static minesData[COMMON_MINES_DATA];
-
-	new iHit, iOwner, Float:health;
-	new hudMsg[64];
-	new Float:vHitPoint[3];
-
-	iHit = get_tr2(iTrace, TR_pHit);
-	get_tr2(iTrace, TR_vecEndPos, vHitPoint);				
-
-	if (pev_valid(iHit))
-	{
-		static iMinesId;
-		pev(iHit, pev_classname, sClassName, charsmax(sClassName));
-		iMinesId = ArrayFindString(gMinesClass, sClassName);
-
-		if (iMinesId != -1)
-		{
-			if (get_distance_f(vStart, vHitPoint) < 200.0) 
-			{
-				ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-				iOwner = pev(iHit, MINES_OWNER);
-				mines_get_health(iHit, health)
-				get_user_name(iOwner, sName, charsmax(sName));
-				formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG_KEY_MINE_HUD, sName, floatround(health), floatround(Float:minesData[MINE_HEALTH]));
-				//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
-				set_hudmessage(50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
-				show_hudmessage(id, hudMsg);
-			}
-		}
-    }
-} 
-
-//====================================================
-// Admin: Remove Player Lasermine
+// Admin: Remove Player mines
 //====================================================
 public admin_remove_mines(id, level, cid) 
 { 
@@ -1415,16 +1200,13 @@ public admin_remove_mines(id, level, cid)
 	delete_task(player);
 	mines_remove_all_mines(player);
 
-	new namea[MAX_NAME_LENGTH],namep[MAX_NAME_LENGTH]; 
-	get_user_name(id, namea, charsmax(namea));
-	get_user_name(player, namep, charsmax(namep));
-	cp_all_remove(0, namea, namep);
+	cp_all_remove(0, id, player);
 
 	return PLUGIN_HANDLED; 
 } 
 
 //====================================================
-// Admin: Give Player Lasermine
+// Admin: Give Player mines
 //====================================================
 public admin_give_mines(id, level, cid) 
 { 
@@ -1448,16 +1230,204 @@ public admin_give_mines(id, level, cid)
 	delete_task(player);
 	set_start_ammo(player, iMinesId);
 
-	new namea[MAX_NAME_LENGTH];
-	new namep[MAX_NAME_LENGTH]; 
-
-	get_user_name(id, namea, charsmax(namea)); 
-	get_user_name(player, namep, charsmax(namep)); 
-	cp_gave(0, namea, namep);
+	cp_gave(0, player);
 
 	return PLUGIN_HANDLED; 
 } 
 
+//====================================================
+// Show ammo.
+//====================================================
+show_ammo(id, iMinesId)
+{ 
+	new ammo[64];
+	new minesData[COMMON_MINES_DATA];
+	new plData[PLAYER_DATA];
+
+	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+	if (is_user_connected(id))
+	{
+		if (minesData[BUY_MODE] != 0)
+		{
+			ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+			formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_AMMO, plData[PL_COUNT_HAVE_MINE], minesData[AMMO_HAVE_MAX]);
+			client_print(id, print_center, ammo);
+		}
+	}
+} 
+
+//====================================================
+// Say Command (Menu Open).
+//====================================================
+public say_mines(id)
+{
+	new said[32];
+	read_argv(1, said, 31);
+
+	if (equali(said, "mines") || equali(said, "/mines"))
+	{
+		mines_show_menu(id, 0);
+		return PLUGIN_HANDLED;
+	}
+	return PLUGIN_CONTINUE;
+}
+
+//====================================================
+// Mines Menu.
+//====================================================
+public mines_show_menu(id, iPage)
+{
+	new count = ArraySize(gMinesClass);
+	if (count <= 0)
+		return;
+	
+	new sMenuTitle[32];
+	formatex(sMenuTitle, charsmax(sMenuTitle), "%L", id, LANG_KEY_MENU_TITLE);
+	new menu = menu_create(sMenuTitle, "mines_menu_handler");
+	new sItemName[MAX_NAME_LENGTH];
+	for(new i = 0; i < count; i++)
+	{
+		ArrayGetString(gMinesLongName, i, sItemName, charsmax(sItemName));
+		formatex(sItemName, charsmax(sItemName), "%L", id, sItemName);
+		menu_additem(menu, sItemName);
+	}
+
+	menu_display(id, menu, iPage);
+}
+
+//====================================================
+// Mines Menu Handler.
+//====================================================
+public mines_menu_handler(id, menu, item)
+{
+	if (item == MENU_EXIT)
+	{
+		menu_destroy(menu);
+		return;
+	}
+	mines_show_menu_sub(id, item);
+}
+
+//====================================================
+// Mines Sub Menu.
+//====================================================
+public mines_show_menu_sub(id, iMinesId)
+{
+	new sMenuTitle[32];
+	new sMinesId[3];
+	new sItemName[MAX_NAME_LENGTH];
+
+	num_to_str(iMinesId, sMinesId, charsmax(sMinesId));
+	ArrayGetString(gMinesLongName, iMinesId, sItemName, charsmax(sItemName));
+	formatex(sItemName, charsmax(sItemName), "%L", id, sItemName);
+	formatex(sMenuTitle, charsmax(sMenuTitle), "%L", id, LANG_KEY_SUB_MENU_TITLE, sItemName);
+
+	new menu = menu_create(sMenuTitle, "mines_menu_sub_handler");
+	new minesData[COMMON_MINES_DATA];
+	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
+	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_SELECT,		sItemName), 						sMinesId, 0, gSubMenuCallback);
+	#if defined ZP_SUPPORT
+		menu_addblank2(menu);
+	#else
+		menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_BUY, 		sItemName, minesData[BUY_PRICE]), 	sMinesId, 0, gSubMenuCallback);
+	#endif
+	menu_addblank2(menu);
+	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_DEPLOY, 		sItemName), 						sMinesId);
+	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_PICKUP, 		sItemName), 						sMinesId);
+	menu_addblank2(menu);
+	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_EXPLOSION, 	sItemName), 						sMinesId);
+
+	menu_setprop(menu, MPROP_EXIT, MEXIT_FORCE);
+
+	menu_display(id, menu, 0);
+}
+
+//====================================================
+// Mines Sub Menu Callback.
+//====================================================
+public mines_submenu_callback(id, menu, item)
+{
+	new szData[6], szName[64];
+	new item_access, item_callback;
+	//Get information about the menu item
+	menu_item_getinfo(menu, item, item_access, szData, charsmax(szData), szName, charsmax(szName), item_callback);
+	new iMinesId = str_to_num(szData);
+	new minesData[COMMON_MINES_DATA];
+
+	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
+	switch(item)
+	{
+		case 0:
+		{
+			if (gSelectedMines[id] == iMinesId)
+			{
+				formatex(szName, charsmax(szName), "%s\R\y[SELECTED]", szName);
+				menu_item_setname(menu, item, szName);
+				return ITEM_DISABLED;
+			}
+		}
+		case 1:
+		{
+			if (!minesData[BUY_MODE])
+			{
+				return ITEM_DISABLED;
+			}
+		}
+	}
+	return ITEM_IGNORE;
+}
+
+//====================================================
+// Mines Sub Menu Handler.
+//====================================================
+public mines_menu_sub_handler(id, menu, item)
+{
+	new szData[6], szName[64];
+	new item_access, item_callback;
+    //Get information about the menu item
+	menu_item_getinfo(menu, item, item_access, szData, charsmax(szData), szName, charsmax(szName), item_callback);
+
+	new iMinesId = str_to_num(szData);
+	switch(item)
+	{
+		// Select current Mines.
+		case 0:
+		{
+			gSelectedMines[id] = iMinesId;
+			// Play sound.
+			emit_sound(id, CHAN_ITEM, ENT_SOUND3, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+		}
+		// Buy Mines.
+		case 1:
+			mines_buy_mine			(id, iMinesId);
+		// Deploy Mines.
+		case 3:
+			mines_progress_deploy	(id, iMinesId);
+		// Pickup Mines.
+		case 4:
+			mines_progress_pickup	(id, iMinesId);
+		// All Mines Explosion.(current selected mines.)
+		case 6:
+			mines_all_explosion		(id, iMinesId);
+		// 
+		case MENU_EXIT:
+		{
+			if (is_user_connected(id))
+			{
+				mines_show_menu(id, .iPage = (item / 7));
+			}
+			return PLUGIN_HANDLED;
+		}
+	}
+	mines_show_menu_sub(id, iMinesId);
+	return PLUGIN_HANDLED;
+}
+
+//====================================================
+// Zombie Plague Support Logic.
+//====================================================
 #if defined ZP_SUPPORT
 public ZpMinesNative(iPlugin, iParams)
 {
@@ -1479,7 +1449,7 @@ public zp_fw_core_infect_post(id, attacker)
 	if (is_user_connected(id)) 
 		delete_task(id);
 
-	// Dead Player remove lasermine.
+	// Dead Player remove mines.
 	mines_remove_all_mines(id);
 
 	return PLUGIN_HANDLED;
@@ -1554,39 +1524,3 @@ public zp_fw_items_select_post(id, itemid, ignorecost)
 	}
 }
 #endif
-
-//====================================================
-// Remove all Entity.
-//====================================================
-stock mines_remove_all_entity(id, className[])
-{
-	new iEnt = -1;
-	new steamid[MAX_AUTHID_LENGTH];
-	new sAuthid[MAX_AUTHID_LENGTH];
-	get_user_authid(id, sAuthid, charsmax(sAuthid));
-
-	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
-	{
-		if (!pev_valid(iEnt))
-			continue;
-
-		if (pev(iEnt, MINES_OWNER) == id)
-		{
-			pev(iEnt, pev_netname, steamid, charsmax(steamid));
-			if (equali(sAuthid, steamid))
-			{
-				// mines_play_sound(iEnt, SOUND_STOP);
-				mines_remove_entity(iEnt);
-			}
-		}
-	}
-}
-
-stock mines_remove_entity(iEnt)
-{
-	new iReturn;
-	ExecuteForward(gForwarder[FWD_REMOVE_ENTITY], iReturn, iEnt);
-	mines_stop_laserline(iEnt);
-	engfunc(EngFunc_RemoveEntity, iEnt);
-}
-

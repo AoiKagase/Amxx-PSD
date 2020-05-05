@@ -18,6 +18,10 @@
 #include <hamsandwich>
 #include <xs>
 #include <mines_natives>
+#if defined ZP_SUPPORT
+	#include <zp50_colorchat>
+	#include <zp50_ammopacks>
+#endif
 
 //=====================================
 //  Resource Setting AREA
@@ -35,50 +39,18 @@
 // String Data.
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
-#define PLUGIN 						"[M.E.P] Tripmine"
+#define PLUGIN 						"[M.P] Tripmine"
 #define AUTHOR 						"Aoi.Kagase"
 #define VERSION 					"0.01"
-
-#define CHAT_TAG 					"[M.E.P TM]"
 #define CVAR_TAG					"mines_tm"
 
-//#define STR_MINEDETNATED 			"Your mine has detonated.",
-//#define STR_MINEDETNATED2			"detonated your mine.",
-//#define STR_CANTDEPLOY			"Your team can't deploying lasermine!"
-
-#define LANG_KEY_REFER				"REFER"
-#define LANG_KEY_BOUGHT       		"BOUGHT"
-#define LANG_KEY_NO_MONEY     		"NO_MONEY"
-#define LANG_KEY_NOT_ACCESS   		"NOT_ACCESS"
-#define LANG_KEY_NOT_ACTIVE   		"NOT_ACTIVE"
-#define LANG_KEY_NOT_HAVE     		"NOT_HAVE"
-#define LANG_KEY_NOT_BUY      		"NOT_BUY"
-#define LANG_KEY_NOT_BUYZONE  		"NOT_BUYZONE"
-#define LANG_KEY_NOT_PICKUP   		"NOT_PICKUP"
-#define LANG_KEY_MAX_DEPLOY   		"MAX_DEPLOY"
-#define LANG_KEY_MAX_HAVE     		"MAX_HAVE"
-#define LANG_KEY_MAX_PPL      		"MAX_PPL"
-#define LANG_KEY_DELAY_SEC    		"DELAY_SEC"
-#define LANG_KEY_STATE_AMMO   		"STATE_AMMO"
-#define LANG_KEY_STATE_INF    		"STATE_INF"
-#define LANG_KEY_PLANT_WALL   		"PLANT_WALL"
-#define LANG_KEY_PLANT_GROUND 		"PLANT_GROUND"
-#define LANG_KEY_SORRY_IMPL   		"SORRY_IMPL"
-#define LANG_KEY_NOROUND			"NO_ROUND"
-#define LANG_KEY_ALL_REMOVE			"ALL_REMOVE"
-#define LANG_KEY_GIVE_MINE			"GIVE_MINE"
-#define LANG_KEY_REMOVE_SPEC		"REMOVE_SPEC"
-#define LANG_KEY_MINE_HUD			"MINE_HUD_MSG"
-#define LANG_KEY_LONGNAME			"LONG_NAME"
+#define LANG_KEY_PLANT_WALL   		"TM_PLANT_WALL"
+#define LANG_KEY_LONGNAME			"TM_LONG_NAME"
 
 // ADMIN LEVEL
 #define ADMIN_ACCESSLEVEL			ADMIN_LEVEL_H
 
 #define ENT_CLASS_TRIP				"tripmine"
-
-// Client Print Command Macro.
-#define cp_refer(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_REFER,		CHAT_TAG)
-#define cp_must_wall(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_PLANT_WALL,	CHAT_TAG)
 
 #define TRIPMINE_COUNT				pev_fuser1
 #define TRIPMINE_POWERUP			pev_fuser2
@@ -140,19 +112,6 @@ public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
-	// Add your code here...
-	register_clcmd("+settm", 		"tm_progress_deploy");
-	register_clcmd("+deltm", 		"tm_progress_remove");
-	register_clcmd("+remtm", 		"tm_progress_remove");
-   	register_clcmd("-settm", 		"tm_progress_stop");
-   	register_clcmd("-settm", 		"tm_progress_stop");
-   	register_clcmd("-deltm", 		"tm_progress_stop");
-   	register_clcmd("-remtm", 		"tm_progress_stop");
-
-	register_clcmd("say", 			"tm_say_lasermine");
-#if !defined ZP_SUPPORT	
-	register_clcmd("buy_lasermine", "tm_buy_lasermine");
-#endif
 	// CVar settings.
 	// Ammo.
 	gCvar[CVAR_START_HAVE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_amount"),				"1"			);	// Round start have ammo count.
@@ -190,7 +149,7 @@ public plugin_init()
 
 	// Misc Settings.
 	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"			);	// Dead Player remove lasermine. 0 = off, 1 = on.
-	gCvar[CVAR_LASER_ACTIVATE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1"			);	// Waiting for put lasermine. (int:seconds. 0 = no progress bar.)
+	gCvar[CVAR_LASER_ACTIVATE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1.0"		);	// Waiting for put lasermine. (int:seconds. 0 = no progress bar.)
 	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 
 	gMinesData[AMMO_HAVE_START]		=	get_pcvar_num(gCvar[CVAR_START_HAVE]);
@@ -220,14 +179,12 @@ public plugin_init()
 	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color(argColor);
 	get_pcvar_string(gCvar[CVAR_MINE_GLOW_CT],	argColor,	charsmax(argColor) - 1);// last comma - 1
 	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color(argColor);
-
-	// Multi Language Dictionary.
-	register_dictionary("mines_trip.txt");
-
-	gMinesId = register_mines(ENT_CLASS_TRIP, gMinesData);
-
+	gMinesId 						= 	register_mines(ENT_CLASS_TRIP, gMinesData, LANG_KEY_LONGNAME);
 
 	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+
+	// Multi Language Dictionary.
+	mines_register_dictionary("mines/mines_trip.txt");
 
 	return PLUGIN_CONTINUE;
 }
@@ -640,7 +597,6 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		tcolor[n++] = str_to_num(sColor);
 	}
 	/*
-	stock tm_draw_laser(
 		const iEnt,
 		const Float:vEndOrigin[3], 
 		const beam, 
@@ -652,80 +608,13 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		const tcolor		[3],
 		const bright		= 255,
 		const speed			= 255
-	)
 	*/
 	draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 2, width, 0, tcolor, get_pcvar_num(gCvar[CVAR_LASER_BRIGHT]), 255);
 }
 
-// //====================================================
-// // Show ammo.
-// //====================================================
-// show_ammo(id)
-// { 
-
-// #if defined ZP_SUPPORT
-// 	client_print(id, print_center, "[%i/%i]", tm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
-// #else
-// #if defined BIOHAZARD_SUPPORT
-// 	client_print(id, print_center, "[%i/%i]", tm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
-// #else
-// 	new ammo[51];
-// 	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
-// 		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_AMMO, tm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
-// 	else
-// 		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_INF);
-
-// 	if (pev_valid(id))
-// 		client_print(id, print_center, ammo);
-// #endif
-// #endif
-// } 
-
 public tm_buy_lasermine(id)
 {
 	mines_buy(id, gMinesId);
-}
-//====================================================
-// Chat command.
-//====================================================
-public tm_say_lasermine(id)
-{
-	new said[32];
-	read_argv(1, said, charsmax(said));
-	
-	if (equali(said,"/buy tripmine") || equali(said,"/tm"))
-	{
-#if defined ZP_SUPPORT
-		zp_items_force_buy(id, gZpWeaponId);
-#else
-		mines_buy(id, gMinesId);
-#endif
-	} else 
-	if (equali(said, "tripmine") || equali(said, "/tripmine"))
-	{
-		const SIZE = 1024;
-		new msg[SIZE + 1], len = 0;
-		len += formatex(msg[len], SIZE - len, "<html><head><style>body{background-color:gray;color:white;} table{border-color:black;}</style></head><body>");
-		len += formatex(msg[len], SIZE - len, "<p><b>Laser/TripMine Entity v%s</b></p>", VERSION);
-		len += formatex(msg[len], SIZE - len, "<p>You can be setting the mine on the wall.</p>");
-		len += formatex(msg[len], SIZE - len, "<p>That laser will give what touched it damage.</p>");
-		len += formatex(msg[len], SIZE - len, "<p><b>Commands</b></p>");
-		len += formatex(msg[len], SIZE - len, "<table border='1' cellspacing='0' cellpadding='10'>");
-		len += formatex(msg[len], SIZE - len, "<tr><td>say</td><td><b>/buy lasermine</b> or <b>/lm</td><td rowspan='2'>buying lasermine</td></tr>");
-		len += formatex(msg[len], SIZE - len, "<tr><td>console</td><td><b>buy_lasermine</b></td></tr>");
-		len += formatex(msg[len], SIZE - len, "<tr><tr><td rowspan='2'>bind</td><td><b>+setlaser</b></td><td>bind j +setlaser :using j set lasermine on wall.</td></tr>");
-		len += formatex(msg[len], SIZE - len, "<tr><td><b>+dellaser</b></td><td>bind k +dellaser :using k remove lasermine.</td></tr>");
-		len += formatex(msg[len], SIZE - len, "</table>");
-		len += formatex(msg[len], SIZE - len, "</body></html>");
-		show_motd(id, msg, "tripmine Entity help");
-		return PLUGIN_HANDLED;
-	} else 
-	if (containi(said, "laser") != -1) 
-	{
-		cp_refer(id);
-		return PLUGIN_CONTINUE;
-	}
-	return PLUGIN_CONTINUE;
 }
 
 //====================================================
@@ -759,7 +648,10 @@ public CheckForDeploy(id, iMinesId)
 	if ( fFraction < 1.0 )
 		return true;
 
-	cp_must_wall(id);
+	new sLongName[MAX_NAME_LENGTH];
+	formatex(sLongName, charsmax(sLongName), "%L", id, LANG_KEY_LONGNAME);
+	client_print_color(id, id, "%L", id, LANG_KEY_PLANT_WALL, CHAT_TAG, sLongName);
+
 	return false;
 }
 
@@ -771,7 +663,7 @@ public MinesBreaked(iMinesId, iEnt, iAttacker)
 	new addpoint = get_pcvar_num(gCvar[CVAR_FRAG_MONEY]);
 	get_user_name(iAttacker, szName, charsmax(szName));
 	zp_ammopacks_set(iAttacker, zp_ammopacks_get(iAttacker) + addpoint);
-	zp_colored_print(0, "^4%s ^1earned^4 %i points ^1for destorying a lasermine !", szName, addpoint);
+	zp_colored_print(0, "^4%s ^1earned^4 %i points ^1for destorying a tripmine !", szName, addpoint);
 #endif
     return HAM_IGNORED;
 }

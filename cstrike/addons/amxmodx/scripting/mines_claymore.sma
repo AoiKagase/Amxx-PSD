@@ -11,15 +11,18 @@
 //=====================================
 #include <amxmodx>
 #include <amxmisc>
-#include <amxconst>
 #include <cstrike>
 #include <fakemeta>
+#include <engine>
 #include <fun>
 #include <hamsandwich>
 #include <xs>
 #include <mines_natives>
 #include <beams>
-
+#if defined ZP_SUPPORT
+	#include <zp50_colorchat>
+	#include <zp50_ammopacks>
+#endif
 //=====================================
 //  Resource Setting AREA
 //=====================================
@@ -35,75 +38,20 @@
 // String Data.
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
-#define PLUGIN 						"[M.E.P] Claymore"
+#define PLUGIN 						"[M.P] Claymore"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.08"
+#define VERSION 					"0.01"
 
-#define CHAT_TAG 					"[M.E.P CM]"
 #define CVAR_TAG					"mines_cm"
 
-#if defined BIOHAZARD_SUPPORT
-	#define LANG_KEY_NOT_BUY_TEAM	"NOT_BUY_TEAMB"
-#else
-	#define LANG_KEY_NOT_BUY_TEAM 	"NOT_BUY_TEAM"
-#endif
-
-//#define STR_MINEDETNATED 			"Your mine has detonated.",
-//#define STR_MINEDETNATED2			"detonated your mine.",
-//#define STR_CANTDEPLOY			"Your team can't deploying claymore!"
-
-#define LANG_KEY_REFER				"REFER"
-#define LANG_KEY_BOUGHT       		"BOUGHT"
-#define LANG_KEY_NO_MONEY     		"NO_MONEY"
-#define LANG_KEY_NOT_ACCESS   		"NOT_ACCESS"
-#define LANG_KEY_NOT_ACTIVE   		"NOT_ACTIVE"
-#define LANG_KEY_NOT_HAVE     		"NOT_HAVE"
-#define LANG_KEY_NOT_BUY      		"NOT_BUY"
-#define LANG_KEY_NOT_BUYZONE  		"NOT_BUYZONE"
-#define LANG_KEY_NOT_PICKUP   		"NOT_PICKUP"
-#define LANG_KEY_MAX_DEPLOY   		"MAX_DEPLOY"
-#define LANG_KEY_MAX_HAVE     		"MAX_HAVE"
-#define LANG_KEY_MAX_PPL      		"MAX_PPL"
-#define LANG_KEY_DELAY_SEC    		"DELAY_SEC"
-#define LANG_KEY_STATE_AMMO   		"STATE_AMMO"
-#define LANG_KEY_STATE_INF    		"STATE_INF"
-#define LANG_KEY_PLANT_WALL   		"PLANT_WALL"
-#define LANG_KEY_PLANT_GROUND 		"PLANT_GROUND"
-#define LANG_KEY_SORRY_IMPL   		"SORRY_IMPL"
-#define LANG_KEY_NOROUND			"NO_ROUND"
-#define LANG_KEY_ALL_REMOVE			"ALL_REMOVE"
-#define LANG_KEY_GIVE_MINE			"GIVE_MINE"
-#define LANG_KEY_REMOVE_SPEC		"REMOVE_SPEC"
-#define LANG_KEY_MINE_HUD			"MINE_HUD_MSG"
-
+#define LANG_KEY_PLANT_GROUND 		"CM_PLANT_GROUND"
+#define LANG_KEY_LONGNAME			"CM_LONG_NAME"
 // ADMIN LEVEL
 #define ADMIN_ACCESSLEVEL			ADMIN_LEVEL_H
 
 #define MAX_CLAYMORE				40
 #define ENT_CLASS_CLAYMORE			"claymore"
 #define CLAYMORE_WIRE_STARTPOINT	pev_vuser4
-// Client Print Command Macro.
-#define cp_refer(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_REFER,		CHAT_TAG)
-#define cp_bought(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_BOUGHT,		CHAT_TAG)
-#define	cp_no_money(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NO_MONEY,		CHAT_TAG, get_pcvar_num(gCvar[CVAR_COST]))
-#define cp_not_access(%1)			client_print_color(%1, print_team_red, "%L", %1, LANG_KEY_NOT_ACCESS, CHAT_TAG)
-#define cp_not_active(%1)			client_print_color(%1, print_team_red, "%L", %1, LANG_KEY_NOT_ACTIVE, CHAT_TAG)
-#define cp_dont_have(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_HAVE,		CHAT_TAG)
-#define cp_cant_buy(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_BUY,		CHAT_TAG)
-#define cp_buyzone(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_BUYZONE,	CHAT_TAG)
-#define cp_cant_buy_team(%1)		client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_BUY_TEAM,	CHAT_TAG)
-#define cp_cant_pickup(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_PICKUP,	CHAT_TAG)
-#define cp_maximum_deployed(%1)		client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_DEPLOY,	CHAT_TAG)
-#define cp_have_max(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_HAVE,		CHAT_TAG)
-#define cp_many_ppl(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_PPL,		CHAT_TAG)
-#define cp_delay_time(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_DELAY_SEC,	CHAT_TAG, int:get_pcvar_num(gCvar[CVAR_START_DELAY]) - gNowTime)
-#define cp_must_wall(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_PLANT_WALL,	CHAT_TAG)
-#define cp_must_ground(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_PLANT_GROUND,	CHAT_TAG)
-#define cp_sorry(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_SORRY_IMPL,	CHAT_TAG)
-#define cp_noround(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOROUND, 		CHAT_TAG)
-#define cp_all_remove(%1,%2,%3)		client_print_color(%1, %1, "%L", %1, LANG_KEY_ALL_REMOVE,	CHAT_TAG, %2, %3)
-#define cp_gave(%1,%2,%3)			client_print_color(%1, %1, "%L", %1, LANG_KEY_GIVE_MINE,	CHAT_TAG, %2, %3)
-#define cp_remove_spec(%1,%2)		client_print_color(%1, %1, "%L", %1, LANG_KEY_REMOVE_SPEC,	CHAT_TAG, %2)
 
 #define CLAYMORE_POWERUP			pev_fuser2
 #define CLAYMORE_WIREENDPOINT1		pev_vuser1
@@ -158,14 +106,7 @@ enum CVAR_SETTING
 //====================================================
 new gCvar[CVAR_SETTING];
 new gMinesId;
-
 new Float:gDeployPos	[MAX_PLAYERS][3];
-
-#if defined ZP_SUPPORT
-	new ITEM_NAME[] = "Claymore";
-	new gZpGameMode[GAMEMODE_TAG];
-	new gZpWeaponId;
-#endif
 
 new gMinesData[COMMON_MINES_DATA];
 new CLAYMORE_WIRE[]	= {
@@ -183,16 +124,6 @@ public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	
-	// Add your code here...
-	register_clcmd("+setcm", 	"cm_progress_deploy");
-	register_clcmd("+remcm", 	"cm_progress_remove");
-   	register_clcmd("-setcm", 	"cm_progress_stop");
-   	register_clcmd("-remcm", 	"cm_progress_stop");
-	register_clcmd("say", 		"cm_say_claymore");
-#if !defined ZP_SUPPORT	
-	register_clcmd("buy_cm",	"cm_buy_claymore");
-#endif
-
 	// CVar settings.
 	// Ammo.
 	gCvar[CVAR_START_HAVE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_amount"),				"1"			);	// Round start have ammo count.
@@ -219,7 +150,7 @@ public plugin_init()
 
 	// Misc Settings.
 	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"			);	// Dead Player remove claymore. 0 = off, 1 = on.
-	gCvar[CVAR_CM_ACTIVATE]		= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1"			);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
+	gCvar[CVAR_CM_ACTIVATE]		= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1.0"		);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
 	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 
 	// Claymore Settings. (Color is Laser color)
@@ -265,13 +196,11 @@ public plugin_init()
 	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color(argColor);
 	get_pcvar_string(gCvar[CVAR_MINE_GLOW_CT],	argColor,	charsmax(argColor) - 1);// last comma - 1
 	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color(argColor);
-
-	gMinesId = register_mines(ENT_CLASS_CLAYMORE, gMinesData);
-
-	// Multi Language Dictionary.
-	register_dictionary("claymore.txt");
+	gMinesId 						= 	register_mines(ENT_CLASS_CLAYMORE, gMinesData, LANG_KEY_LONGNAME);
 
 	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+	// Multi Language Dictionary.
+	mines_register_dictionary("mines/mines_claymore.txt");
 
 	return PLUGIN_CONTINUE;
 }
@@ -746,21 +675,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		i = split_string(sRGB[iPos += i], ",", sColor, sColorLen);
 		tcolor[n++] = str_to_float(sColor);
 	}
-	/*
-	stock cm_draw_laser(
-		const iEnt,
-		const Float:vEndOrigin[3], 
-		const beam, 
-		const framestart	= 0, 
-		const framerate		= 0, 
-		const life			= 1, 
-		const width			= 1, 
-		const wave			= 0, 
-		const tcolor		[3],
-		const bright		= 255,
-		const speed			= 255
-	)
-	*/
+
 	static Float:vStartOrigin[3];
 	pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vStartOrigin);
 	// lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 0, width, 0, tcolor, get_pcvar_num(gCvar[CVAR_CM_WIRE_BRIGHT]), 0);
@@ -790,75 +705,9 @@ stock cm_draw_wire(
 	return beams;
 }
 
-// //====================================================
-// // Show ammo.
-// //====================================================
-// show_ammo(id)
-// { 
-
-// #if defined ZP_SUPPORT
-// 	client_print(id, print_center, "[%i/%i]", cm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
-// #else
-// #if defined BIOHAZARD_SUPPORT
-// 	client_print(id, print_center, "[%i/%i]", cm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
-// #else
-// 	new ammo[51];
-// 	if (get_pcvar_num(gCvar[CVAR_BUY_MODE]) != 0)
-// 		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_AMMO, cm_get_user_have_mine(id), get_pcvar_num(gCvar[CVAR_MAX_HAVE]));
-// 	else
-// 		formatex(ammo, charsmax(ammo), "%L", id, LANG_KEY_STATE_INF);
-
-// 	if (pev_valid(id))
-// 		client_print(id, print_center, ammo);
-// #endif
-// #endif
-// } 
-
 public cm_buy_claymore(id)
 {
 	mines_buy(id, gMinesId);
-}
-//====================================================
-// Chat command.
-//====================================================
-public cm_say_claymore(id)
-{
-	new said[32];
-	read_argv(1, said, charsmax(said));
-	
-	if (equali(said,"/buy claymore") || equali(said,"/lm"))
-	{
-#if defined ZP_SUPPORT
-		zp_items_force_buy(id, gZpWeaponId);
-#else
-		mines_buy(id, gMinesId);
-#endif
-	} else 
-	if (equali(said, "claymore") || equali(said, "/claymore"))
-	{
-		const SIZE = 1024;
-		new msg[SIZE + 1], len = 0;
-		len += formatex(msg[len], SIZE - len, "<html><head><style>body{background-color:gray;color:white;} table{border-color:black;}</style></head><body>");
-		len += formatex(msg[len], SIZE - len, "<p><b>Laser/TripMine Entity v%s</b></p>", VERSION);
-		len += formatex(msg[len], SIZE - len, "<p>You can be setting the mine on the wall.</p>");
-		len += formatex(msg[len], SIZE - len, "<p>That laser will give what touched it damage.</p>");
-		len += formatex(msg[len], SIZE - len, "<p><b>Commands</b></p>");
-		len += formatex(msg[len], SIZE - len, "<table border='1' cellspacing='0' cellpadding='10'>");
-		len += formatex(msg[len], SIZE - len, "<tr><td>say</td><td><b>/buy claymore</b> or <b>/lm</td><td rowspan='2'>buying claymore</td></tr>");
-		len += formatex(msg[len], SIZE - len, "<tr><td>console</td><td><b>buy_claymore</b></td></tr>");
-		len += formatex(msg[len], SIZE - len, "<tr><tr><td rowspan='2'>bind</td><td><b>+setlaser</b></td><td>bind j +setlaser :using j set claymore on wall.</td></tr>");
-		len += formatex(msg[len], SIZE - len, "<tr><td><b>+dellaser</b></td><td>bind k +dellaser :using k remove claymore.</td></tr>");
-		len += formatex(msg[len], SIZE - len, "</table>");
-		len += formatex(msg[len], SIZE - len, "</body></html>");
-		show_motd(id, msg, "claymore Entity help");
-		return PLUGIN_HANDLED;
-	} else 
-	if (containi(said, "laser") != -1) 
-	{
-		cp_refer(id);
-		return PLUGIN_CONTINUE;
-	}
-	return PLUGIN_CONTINUE;
 }
 
 //====================================================
@@ -894,7 +743,10 @@ public CheckForDeploy(id, iMinesId)
 	if ( fFraction < 1.0 )
 		return true;
 
-	cp_must_ground(id);
+	new sLongName[MAX_NAME_LENGTH];
+	formatex(sLongName, charsmax(sLongName), "%L", id, LANG_KEY_LONGNAME);
+	client_print_color(id, id, "%L", id, LANG_KEY_PLANT_GROUND, CHAT_TAG, sLongName);
+
 	return false;
 }
 
