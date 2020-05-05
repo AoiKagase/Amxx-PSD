@@ -1,5 +1,5 @@
 // =====================================
-//	Laser/Tripmine Entity functions
+//	Mines Platform Functions
 //
 // 	by Aoi.Kagase
 //
@@ -11,6 +11,385 @@
 #define _mines_util_included
 
 #include <mines_const>
+
+//=====================================
+//  Resource Setting AREA
+//=====================================
+#define ENT_SOUND				"items/gunpickup2.wav"
+#define ENT_SOUND1				"debris/bustglass1.wav"
+#define ENT_SOUND2				"debris/bustglass2.wav"
+#define ENT_SOUND3				"items/gunpickup4.wav"
+#define ENT_SPRITE 				"sprites/eexplo.spr"
+
+#define LANG_KEY_REFER			"REFER"
+#define LANG_KEY_BOUGHT       	"BOUGHT"
+#define LANG_KEY_NO_MONEY     	"NO_MONEY"
+#define LANG_KEY_NOT_ACCESS   	"NOT_ACCESS"
+#define LANG_KEY_NOT_ACTIVE   	"NOT_ACTIVE"
+#define LANG_KEY_NOT_HAVE     	"NOT_HAVE"
+#define LANG_KEY_NOT_BUY      	"NOT_BUY"
+#define LANG_KEY_NOT_BUYZONE  	"NOT_BUYZONE"
+#define LANG_KEY_NOT_PICKUP   	"NOT_PICKUP"
+#define LANG_KEY_MAX_DEPLOY   	"MAX_DEPLOY"
+#define LANG_KEY_MAX_HAVE     	"MAX_HAVE"
+#define LANG_KEY_MAX_PPL      	"MAX_PPL"
+#define LANG_KEY_DELAY_SEC    	"DELAY_SEC"
+#define LANG_KEY_STATE_AMMO   	"STATE_AMMO"
+#define LANG_KEY_STATE_INF    	"STATE_INF"
+#define LANG_KEY_NOROUND		"NO_ROUND"
+#define LANG_KEY_ALL_REMOVE		"ALL_REMOVE"
+#define LANG_KEY_GIVE_MINE		"TAKE_MINE"
+#define LANG_KEY_REMOVE_SPEC	"REMOVE_SPEC"
+#define LANG_KEY_MINE_HUD		"MINE_HUD_MSG"
+#define LANG_KEY_NOT_BUY_TEAM 	"NOT_BUY_TEAM"
+#define LANG_KEY_MENU_TITLE		"MENU_TITLE"
+#define LANG_KEY_SUB_MENU_TITLE	"SUBM_TITLE"
+#define LANG_KEY_MENU_BUY		"MENU_BUY"
+#define LANG_KEY_MENU_DEPLOY	"MENU_DEPLOY"
+#define LANG_KEY_MENU_PICKUP	"MENU_PICKUP"
+#define LANG_KEY_MENU_EXPLOSION	"MENU_EXPLOSION"
+#define LANG_KEY_MENU_SELECT	"MENU_SELECTED"
+
+// Client Print Command Macro.
+#define cp_debug(%1)				client_print_color(%1, %1, "^4[Mines Debug] ^1Can't Create Entity")
+#define cp_not_active(%1)			client_print_color(%1, print_team_red, "%L", %1, LANG_KEY_NOT_ACTIVE, CHAT_TAG)
+#define cp_not_access(%1)			client_print_color(%1, print_team_red, "%L", %1, LANG_KEY_NOT_ACCESS, CHAT_TAG)
+#define cp_delay_time(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_DELAY_SEC,	CHAT_TAG, cvar_delay - nowTime)
+#define cp_bought(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_BOUGHT,		CHAT_TAG)
+#define	cp_no_money(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NO_MONEY,		CHAT_TAG, get_long_name(%1, iMinesId), cost)
+#define cp_dont_have(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_HAVE,		CHAT_TAG, get_long_name(%1, iMinesId))
+#define cp_cant_buy(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_BUY,		CHAT_TAG)
+#define cp_buyzone(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_BUYZONE,	CHAT_TAG)
+#define cp_cant_buy_team(%1)		client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_BUY_TEAM,	CHAT_TAG, get_long_name(%1, iMinesId))
+#define cp_cant_pickup(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_PICKUP,	CHAT_TAG)
+#define cp_maximum_deployed(%1)		client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_DEPLOY,	CHAT_TAG)
+#define cp_have_max(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_HAVE,		CHAT_TAG, get_long_name(%1, iMinesId))
+#define cp_many_ppl(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_MAX_PPL,		CHAT_TAG)
+#define cp_noround(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NOROUND, 		CHAT_TAG)
+#define cp_all_remove(%1,%2,%3)		client_print_color(%1, %1, "%L", %1, LANG_KEY_ALL_REMOVE,	CHAT_TAG, %2, %3)
+#define cp_gave(%1,%2)				client_print_color(0, 0, "%L", 0, LANG_KEY_GIVE_MINE,	CHAT_TAG, 0, get_long_name(%2, iMinesId))
+#define cp_remove_spec(%1,%2)		client_print_color(%1, %1, "%L", %1, LANG_KEY_REMOVE_SPEC,	CHAT_TAG, %2)
+
+//====================================================
+//  Player Data functions.
+//====================================================
+#define mines_get_user_deploy_state(%1)		gCPlayerData[%1][PL_STATE_DEPLOY]
+#define mines_set_user_deploy_state(%1,%2)	gCPlayerData[%1][PL_STATE_DEPLOY] = %2
+#define mines_load_user_max_speed(%1)		gCPlayerData[%1][PL_MAX_SPEED]
+#define mines_save_user_max_speed(%1,%2)	gCPlayerData[%1][PL_MAX_SPEED] = Float:%2
+
+enum _:FORWARDER
+{
+	FWD_SET_ENTITY_SPAWN,
+	FWD_PUTIN_SERVER,
+	FWD_CHECK_DEPLOY,
+	FWD_CHECK_PICKUP,
+	FWD_CHECK_BUY,
+	FWD_DISCONNECTED,
+	FWD_MINES_THINK,
+	FWD_MINES_BREAKED,
+	FWD_MINES_PICKUP,
+	FWD_REMOVE_ENTITY,
+	FWD_PLUGINS_END,
+};
+
+new Array:gMinesClass;
+new Array:gPlayerData	[MAX_PLAYERS];
+new Array:gMinesLongName;
+new Array:gMinesParameter;
+new gForwarder			[FORWARDER];
+new gCPlayerData		[MAX_PLAYERS][COMMON_PLAYER_DATA];
+
+//====================================================
+// Function: Count to deployed in team.
+//====================================================
+stock int:mines_get_team_deployed_count(id, iMinesId, plData[PLAYER_DATA])
+{
+	new int:i;
+	new int:count;
+	new int:num;
+	new team[3] = '^0';
+	new players[MAX_PLAYERS];
+
+	// Witch your team?
+	switch(CsTeams:mines_get_user_team(id))
+	{
+		case CS_TEAM_CT: team = "CT";
+		case CS_TEAM_T : team = "T";
+		default:
+			return int:0;
+	}
+
+	// Get your team member.
+	get_players(players, num, "e", team);
+
+	// Count your team deployed mines.
+	count = int:0;
+	for(i = int:0;i < num;i++)
+	{
+		ArrayGetArray(gPlayerData[players[i]], iMinesId, plData, sizeof(plData));
+		count += plData[PL_COUNT_DEPLOYED];
+	}
+
+	return count;
+}
+
+//====================================================
+// Function: Reset Have mines.
+//====================================================
+stock mines_reset_have_mines(id)
+{
+	new plData[PLAYER_DATA];
+	for(new i = 0; i < ArraySize(gMinesClass); i++)
+	{
+		ArrayGetArray(gPlayerData[id], i, plData, sizeof(plData));
+		// reset deploy count.
+		plData[PL_COUNT_DEPLOYED]	= int:0;
+		// reset hove mines.
+		plData[PL_COUNT_HAVE_MINE]	= int:0;
+
+		ArraySetArray(gPlayerData[id], i, plData, sizeof(plData));
+	}
+}
+
+//====================================================
+// Function: Remove All Mines (for id).
+//====================================================
+stock mines_remove_all_mines(id)
+{
+	static minesData[COMMON_MINES_DATA];
+	new result = false;
+
+	for(new i = 0; i < ArraySize(gMinesClass); i++)
+	{
+		ArrayGetArray(gMinesParameter, i, minesData, sizeof(minesData));
+		// Dead Player remove mines.
+		if (minesData[DEATH_REMOVE])
+		{
+			result |= mines_remove_all_entity_main(id, i);
+		}
+	}
+	return result;
+}
+
+//====================================================
+// Buy mines.
+//====================================================
+stock mines_buy_mine(id, iMinesId)
+{	
+	if (!CheckBuyMines(id, iMinesId))
+		return PLUGIN_CONTINUE;
+	static plData[PLAYER_DATA];
+	static minesData[COMMON_MINES_DATA];
+	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+	new cost = minesData[BUY_PRICE];
+	cs_set_user_money(id, cs_get_user_money(id) - cost);
+
+	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+	plData[PL_COUNT_HAVE_MINE]++;
+	ArraySetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+
+	cp_bought(id);
+
+	emit_sound(id, CHAN_ITEM, ENT_SOUND, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+
+	show_ammo(id, iMinesId);
+
+	return PLUGIN_HANDLED;
+}
+
+//====================================================
+// Function: Remove All Mines (for id+iMinesId).
+//====================================================
+stock mines_remove_all_entity_main(id, iMinesId)
+{
+	static plData[PLAYER_DATA];
+	static sClassName[MAX_CLASS_LENGTH];
+	new result = false;
+	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+
+	if (plData[PL_COUNT_DEPLOYED] > int:0)
+		result = true;
+
+	ArrayGetString(gMinesClass, iMinesId, sClassName, charsmax(sClassName));
+	mines_remove_all_entity(id, sClassName);
+
+	// reset deploy count.
+	plData[PL_COUNT_DEPLOYED] = int:0;
+	ArraySetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+	return result;
+}
+
+//====================================================
+// Check: Buy Mines
+//====================================================
+stock bool:CheckBuyMines(id, iMinesId)
+{
+	static minesData[COMMON_MINES_DATA];
+	static plData[PLAYER_DATA];
+	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+
+	// Check common.
+	if (!CheckCommon(id, plData))
+		return false;
+
+	new buymode	= 	minesData[BUY_MODE];
+	new maxhave	=	minesData[AMMO_HAVE_MAX];
+	new cost	= 	minesData[BUY_PRICE];
+	new buyzone	=	minesData[BUY_ZONE];
+
+	// Buy mode ON?
+	if (buymode)
+	{
+		// Can this team buying?
+		if (!CheckTeam(id, minesData))
+		{
+			cp_cant_buy_team(id);
+			return false;
+		}
+
+		// Have Max?
+		if (plData[PL_COUNT_HAVE_MINE] >= int:maxhave)
+		{
+			cp_have_max(id);
+			return false;
+		}
+
+		// buyzone area?
+		if (buyzone && !cs_get_user_buyzone(id))
+		{
+			cp_buyzone(id);
+			return false;
+		}
+
+		// Have money?
+		if (cs_get_user_money(id) < cost)
+		{
+			cp_no_money(id);
+			return false;
+		}
+
+	}
+	else
+	{
+		cp_cant_buy(id);
+		return false;
+	}
+
+	return true;
+}
+
+stock get_long_name(id, iMinesId)
+{
+	new sLongName[MAX_NAME_LENGTH];
+	ArrayGetString(gMinesLongName, iMinesId, sLongName, charsmax(sLongName));
+	formatex(sLongName, charsmax(sLongName), "%L", id, sLongName);
+	return sLongName;
+}
+//====================================================
+// Check: Can use this Team.
+//====================================================
+stock bool:CheckTeam(id, minesData[COMMON_MINES_DATA])
+{
+	new CsTeams:team;
+
+	team = CsTeams:minesData[BUY_TEAM];
+
+	// Cvar setting equal your team? Not.
+	if(team != CS_TEAM_UNASSIGNED && team != cs_get_user_team(id))
+		return false;
+
+	return true;
+}
+
+//====================================================
+// Check: Max Deploy.
+//====================================================
+stock bool:CheckMaxDeploy(id, iMinesId, plData[PLAYER_DATA], minesData[COMMON_MINES_DATA])
+{
+	new max_have 	= minesData[AMMO_HAVE_MAX];
+	new team_max 	= minesData[DEPLOY_TEAM_MAX];
+	new team_count 	= mines_get_team_deployed_count(id, iMinesId, plData);
+
+	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+
+	// Max deployed per player.
+	if (plData[PL_COUNT_DEPLOYED] >= int:max_have)
+	{
+		cp_maximum_deployed(id);
+		return false;
+	}
+
+	// Max deployed per team.
+	if (team_count >= team_max)
+	{
+		cp_many_ppl(id);
+		return false;
+	}
+
+	return true;
+}
+
+//====================================================
+// Remove all Entity.
+//====================================================
+stock mines_remove_all_entity(id, className[])
+{
+	new iEnt = -1;
+	new steamid[MAX_AUTHID_LENGTH];
+	new sAuthid[MAX_AUTHID_LENGTH];
+	get_user_authid(id, sAuthid, charsmax(sAuthid));
+
+	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
+	{
+		if (!pev_valid(iEnt))
+			continue;
+
+		if (pev(iEnt, MINES_OWNER) == id)
+		{
+			pev(iEnt, pev_netname, steamid, charsmax(steamid));
+			if (equali(sAuthid, steamid))
+			{
+				// mines_play_sound(iEnt, SOUND_STOP);
+				mines_remove_entity(iEnt);
+			}
+		}
+	}
+}
+
+stock mines_remove_entity(iEnt)
+{
+	new iReturn;
+	ExecuteForward(gForwarder[FWD_REMOVE_ENTITY], iReturn, iEnt);
+	mines_stop_laserline(iEnt);
+	engfunc(EngFunc_RemoveEntity, iEnt);
+}
+
+stock mines_all_explosion(id, iMinesId)
+{
+	new iEnt = -1;
+	new steamid[MAX_AUTHID_LENGTH];
+	new sAuthid[MAX_AUTHID_LENGTH];
+	new className[MAX_CLASS_LENGTH];
+	get_user_authid(id, sAuthid, charsmax(sAuthid));
+	ArrayGetString(gMinesClass, iMinesId, className, charsmax(className));
+
+	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
+	{
+		if (!pev_valid(iEnt))
+			continue;
+
+		if (pev(iEnt, MINES_OWNER) == id)
+		{
+			pev(iEnt, pev_netname, steamid, charsmax(steamid));
+			if (equali(sAuthid, steamid))
+			{
+				set_pev(iEnt, MINES_STEP, EXPLOSE_THINK);
+			}
+		}
+	}	
+}
 
 //====================================================
 // Show Progress Bar.

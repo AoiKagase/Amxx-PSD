@@ -10,6 +10,7 @@
 #endif
 #define _mines_const_included
 
+#define CHAT_TAG 					"[M.P]"
 #define ENT_CLASS_BREAKABLE			"func_breakable"
 
 #define OFFSET_TEAM 				114
@@ -40,13 +41,14 @@
 #define mines_set_user_frags(%1,%2)		set_pev(%1,pev_frags,%2)
 #define mines_set_user_max_speed(%1,%2)	engfunc(EngFunc_SetClientMaxspeed,%1,%2);set_pev(%1, pev_maxspeed,%2)
 #define mines_set_user_health(%1,%2)	((health > 0) ? set_pev(id, pev_health, health) : user_kill(id, 1))
+#define IsPlayer(%1) ( 1 <= %1 <= 32 ) 
 
 // Lasermine Data Save Area.
 #define MINES_TEAM					pev_iuser1
 #define MINES_OWNER					pev_iuser2
 #define MINES_OWNER_ID				pev_message
 #define MINES_STEP					pev_iuser3
-#define MAX_CLASS_LENGTH			8
+#define MAX_CLASS_LENGTH			16
 
 //====================================================
 // ENUM AREA
@@ -138,6 +140,7 @@ enum _:COMMON_MINES_DATA
 	Float:MINE_HEALTH	,
 	Float:EXPLODE_RADIUS,
 	Float:EXPLODE_DAMAGE,
+	EXPLODE_SPRITE		,
 #if defined ZP_SUPPORT
 	ZP_WEAPON_ID		,
 #endif
