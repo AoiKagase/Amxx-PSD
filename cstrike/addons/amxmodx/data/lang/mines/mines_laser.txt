@@ -1,0 +1,3 @@
+[en]
+LM_PLANT_WALL = ^4%s ^1You must plant the ^3%s ^1on a wall!
+LM_LONG_NAME  = LaserMine

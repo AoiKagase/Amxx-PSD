@@ -247,6 +247,15 @@ public plugin_precache()
 //====================================================
 public plugin_cfg()
 {
+	new file[64];
+	new len = charsmax(file);
+	get_localinfo("amxx_configsdir", file, len);
+	formatex(file, len, "%s/mines/cvars_lm.cfg", file);
+	if(file_exists(file))
+	{
+		server_cmd("exec %s", file);
+		server_exec();
+	}
 }
 
 //====================================================
