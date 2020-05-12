@@ -179,12 +179,13 @@ public plugin_init()
 	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color(argColor);
 	get_pcvar_string(gCvar[CVAR_MINE_GLOW_CT],	argColor,	charsmax(argColor) - 1);// last comma - 1
 	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color(argColor);
-	gMinesId 						= 	register_mines(ENT_CLASS_TRIP, gMinesData, LANG_KEY_LONGNAME);
-
+	gMinesId 						= 	register_mines(ENT_CLASS_TRIP, LANG_KEY_LONGNAME);
+	register_mines_data(gMinesId, gMinesData, ENT_MODELS);
 	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
 	// Multi Language Dictionary.
 	mines_register_dictionary("mines/mines_trip.txt");
+	AutoExecConfig(true, "mines_cvars_tm", "mines");
 
 	return PLUGIN_CONTINUE;
 }
@@ -208,22 +209,6 @@ public plugin_precache()
 	gBeam = precache_model(ENT_SPRITE1);
 	
 	return PLUGIN_CONTINUE;
-}
-
-//====================================================
-//  PLUGIN CONFIG
-//====================================================
-public plugin_cfg()
-{
-	new file[64];
-	new len = charsmax(file);
-	get_localinfo("amxx_configsdir", file, len);
-	formatex(file, len, "%s/mines/cvars_tm.cfg", file);
-	if(file_exists(file)) 
-	{
-		server_cmd("exec %s", file);
-		server_exec();
-	}
 }
 
 //====================================================
@@ -493,9 +478,8 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 	{
 		// drawing spark.
 		if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]) )
-		{
 			draw_laserline(iEnt, vEnd);
-		}
+
 		set_pev(iEnt, TRIPMINE_BEAMTHINK, fCurrTime + random_float(0.1, 0.2));
 	}
 

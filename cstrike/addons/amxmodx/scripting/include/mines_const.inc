@@ -49,7 +49,7 @@
 #define MINES_OWNER_ID				pev_message
 #define MINES_STEP					pev_iuser3
 #define MAX_CLASS_LENGTH			16
-
+#define MAX_MODEL_LENGTH			32
 //====================================================
 // ENUM AREA
 //====================================================
@@ -167,6 +167,7 @@ enum int:PLAYER_DEPLOY_STATE
 {
 	STATE_IDLE				= 0,
 	STATE_DEPLOYING			,
+	STATE_PICKING			,
 	STATE_DEPLOYED			,
 }
 

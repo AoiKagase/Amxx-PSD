@@ -111,6 +111,17 @@ enum CVAR_SETTING
 	CVAR_REALISTIC_DETAIL	,		// Spark Effect.
 };
 
+enum _:RESEORUCES
+{
+	MODELS	[32],
+	SOUND1	[32],
+	SOUND2	[32],
+	SOUND3	[32],
+	SOUND4	[32],
+	SOUND5	[32],
+	SOUND6	[32],
+	SPRITE1	[32],
+}
 //====================================================
 //  GLOBAL VARIABLES
 //====================================================
@@ -119,10 +130,11 @@ new gCvar[CVAR_SETTING];
 new gBeam;
 new gMinesId;
 
-new Float:gDeployPos	[MAX_PLAYERS][3];
 new Stack:gRecycleMine	[MAX_PLAYERS];
-
 new gMinesData[COMMON_MINES_DATA];
+
+
+new gResources[RESEORUCES];
 
 //====================================================
 //  PLUGIN INITIALIZE
@@ -130,7 +142,6 @@ new gMinesData[COMMON_MINES_DATA];
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-	
 	// CVar settings.
 	// Ammo.
 	gCvar[CVAR_START_HAVE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_amount"),				"1"			);	// Round start have ammo count.
@@ -206,12 +217,13 @@ public plugin_init()
 	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color(argColor);
 	get_pcvar_string(gCvar[CVAR_MINE_GLOW_CT],	argColor,	charsmax(argColor) - 1);// last comma - 1
 	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color(argColor);
-	gMinesId 						= 	register_mines(ENT_CLASS_LASER, gMinesData, LANG_KEY_LONGNAME);
 
 	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+	register_mines_data(gMinesId, gMinesData, gResources[MODELS]);
 
 	// Multi Language Dictionary.
 	mines_register_dictionary("mines/mines_laser.txt");
+	AutoExecConfig(true, "mines_cvars_lm", "mines");
 
 	return PLUGIN_CONTINUE;
 }
@@ -230,32 +242,27 @@ public mines_plugin_end()
 //====================================================
 public plugin_precache() 
 {
-	precache_sound(ENT_SOUND1);
-	precache_sound(ENT_SOUND2);
-	precache_sound(ENT_SOUND3);
-	precache_sound(ENT_SOUND4);
-	precache_sound(ENT_SOUND5);
-	precache_sound(ENT_SOUND6);
-	precache_model(ENT_MODELS);
-	gBeam = precache_model(ENT_SPRITE1);
-	
-	return PLUGIN_CONTINUE;
-}
+	gMinesId = 	register_mines(ENT_CLASS_LASER, LANG_KEY_LONGNAME);
 
-//====================================================
-//  PLUGIN CONFIG
-//====================================================
-public plugin_cfg()
-{
-	new file[64];
-	new len = charsmax(file);
-	get_localinfo("amxx_configsdir", file, len);
-	formatex(file, len, "%s/mines/cvars_lm.cfg", file);
-	if(file_exists(file))
-	{
-		server_cmd("exec %s", file);
-		server_exec();
-	}
+	mines_resources(gMinesId, "ENT_SOUND1",  gResources[SOUND1],  charsmax(gResources[SOUND1]),  ENT_SOUND1);
+	mines_resources(gMinesId, "ENT_SOUND2",  gResources[SOUND2],  charsmax(gResources[SOUND2]),  ENT_SOUND2);
+	mines_resources(gMinesId, "ENT_SOUND3",  gResources[SOUND3],  charsmax(gResources[SOUND3]),  ENT_SOUND3);
+	mines_resources(gMinesId, "ENT_SOUND4",  gResources[SOUND4],  charsmax(gResources[SOUND4]),  ENT_SOUND4);
+	mines_resources(gMinesId, "ENT_SOUND5",  gResources[SOUND5],  charsmax(gResources[SOUND5]),  ENT_SOUND5);
+	mines_resources(gMinesId, "ENT_SOUND6",  gResources[SOUND6],  charsmax(gResources[SOUND6]),  ENT_SOUND6);
+	mines_resources(gMinesId, "ENT_MODELS",  gResources[MODELS],  charsmax(gResources[MODELS]),  ENT_MODELS);
+	mines_resources(gMinesId, "ENT_SPRITE1", gResources[SPRITE1], charsmax(gResources[SPRITE1]), ENT_SPRITE1);
+
+	precache_sound(gResources[SOUND1]);
+	precache_sound(gResources[SOUND2]);
+	precache_sound(gResources[SOUND3]);
+	precache_sound(gResources[SOUND4]);
+	precache_sound(gResources[SOUND5]);
+	precache_sound(gResources[SOUND6]);
+	precache_model(gResources[MODELS]);
+	gBeam = precache_model(gResources[SPRITE1]);
+
+	return PLUGIN_CONTINUE;
 }
 
 //====================================================
@@ -295,7 +302,7 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	// set class name.
 	set_pev(iEnt, pev_classname, ENT_CLASS_LASER);
 	// set models.
-	engfunc(EngFunc_SetModel, iEnt, ENT_MODELS);
+	engfunc(EngFunc_SetModel, iEnt, gResources[MODELS]);
 	// set solid.
 	set_pev(iEnt, pev_solid, SOLID_NOT);
 	// set movetype.
@@ -356,10 +363,10 @@ set_mine_position(uID, iEnt)
 	new Float:vOrigin[3];
 	new	Float:vNewOrigin[3],Float:vNormal[3],
 		Float:vTraceEnd[3],Float:vEntAngles[3];
-
 	// get user position.
 	pev(uID, pev_origin, vOrigin);
-	xs_vec_add(gDeployPos[uID], vOrigin, vTraceEnd);
+	velocity_by_aim(uID, 128, vTraceEnd);
+	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
@@ -379,10 +386,10 @@ set_mine_position(uID, iEnt)
 
 		xs_vec_mul_scalar(vNormal, 8.0, vNormal);
 		xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
+		// // set entity position.
+		engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
 		// set size.
 		engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
-		// set entity position.
-		engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
 		// Rotate tripmine.
 		vector_to_angle(vNormal, vEntAngles);
 		// set angle.
@@ -391,6 +398,7 @@ set_mine_position(uID, iEnt)
 		set_laserend_postiion(iEnt, vNormal, vNewOrigin);
 
 	}
+
     // free the trace handle.
 	free_tr2(trace);
 
@@ -572,9 +580,9 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 	pev(iEnt, LASERMINE_BEAMTHINK, 	beamTime);
 	iOwner = pev(iEnt, MINES_OWNER);
 
-	if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]))
+	if (fCurrTime > beamTime)
 	{
-		if (fCurrTime > beamTime)
+		if (get_pcvar_num(gCvar[CVAR_LASER_VISIBLE]))
 			draw_laserline(iEnt, vEnd);
 
 		set_pev(iEnt, LASERMINE_BEAMTHINK, fCurrTime + random_float(0.1, 0.2));
@@ -869,8 +877,8 @@ public CheckForDeploy(id, iMinesId)
 	pev(id, pev_origin, vOrigin);
 	
 	// Get wall position.
-	velocity_by_aim(id, 128, gDeployPos[id]);
-	xs_vec_add(gDeployPos[id], vOrigin, vTraceEnd);
+	velocity_by_aim(id, 128, vTraceEnd);
+	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
@@ -916,25 +924,28 @@ lm_play_sound(iEnt, iSoundType)
 	{
 		case SOUND_POWERUP:
 		{
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND1, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
-			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_VOICE, gResources[SOUND1], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_BODY , gResources[SOUND2], 0.2, ATTN_NORM, 0, PITCH_NORM);
 		}
 		case SOUND_ACTIVATE:
 		{
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, 1, 75);
+			emit_sound(iEnt, CHAN_VOICE, gResources[SOUND3], 0.5, ATTN_NORM, 1, 75);
 		}
 		case SOUND_STOP:
 		{
-			emit_sound(iEnt, CHAN_BODY , ENT_SOUND2, 0.2, ATTN_NORM, SND_STOP, PITCH_NORM);
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND3, 0.5, ATTN_NORM, SND_STOP, 75);
+			emit_sound(iEnt, CHAN_BODY , gResources[SOUND2], 0.2, ATTN_NORM, SND_STOP, PITCH_NORM);
+			emit_sound(iEnt, CHAN_VOICE, gResources[SOUND3], 0.5, ATTN_NORM, SND_STOP, 75);
 		}
 		case SOUND_HIT:
 		{
-			emit_sound(iEnt, CHAN_WEAPON, ENT_SOUND4, 1.0, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_WEAPON, gResources[SOUND4], 1.0, ATTN_NORM, 0, PITCH_NORM);
 		}
 		case SOUND_HIT_SHIELD:
 		{
-			emit_sound(iEnt, CHAN_VOICE, random_num(0, 1) == 1 ? ENT_SOUND5 : ENT_SOUND6, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			if (random_num(0, 1))
+				emit_sound(iEnt, CHAN_VOICE, gResources[SOUND5], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			else
+				emit_sound(iEnt, CHAN_VOICE, gResources[SOUND6], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 	}
 }

@@ -20,7 +20,8 @@
 	#assert "AMX Mod X v1.10.0 or greater library required!"
 #endif
 
-native register_mines(classname[MAX_CLASS_LENGTH], minesData[COMMON_MINES_DATA], langKey[MAX_NAME_LENGTH]);
+native register_mines(classname[MAX_CLASS_LENGTH], langKey[MAX_NAME_LENGTH]);
+native register_mines_data(iMinesId, minesData[COMMON_MINES_DATA], minesModel[MAX_MODEL_LENGTH]);
 
 native mines_progress_deploy(id, iMinesId);
 native mines_progress_pickup(id, iMinesId);
@@ -29,6 +30,7 @@ native mines_buy(id, iMinesId);
 native mines_explosion(id, iMinesId, iEnt);
 native mines_valid_takedamage(iAttacker, iTarget);
 native mines_register_dictionary(path[]);
+native mines_resources(iMinesId, key[], value[], size, def[]);
 
 forward mines_entity_spawn_settings(iEnt, uID, iMinesId);
 forward mines_client_putinserver(id);

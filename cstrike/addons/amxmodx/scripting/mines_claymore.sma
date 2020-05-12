@@ -196,11 +196,12 @@ public plugin_init()
 	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color(argColor);
 	get_pcvar_string(gCvar[CVAR_MINE_GLOW_CT],	argColor,	charsmax(argColor) - 1);// last comma - 1
 	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color(argColor);
-	gMinesId 						= 	register_mines(ENT_CLASS_CLAYMORE, gMinesData, LANG_KEY_LONGNAME);
-
+	gMinesId 						= 	register_mines(ENT_CLASS_CLAYMORE, LANG_KEY_LONGNAME);
+	register_mines_data(gMinesId, gMinesData, ENT_MODELS);
 	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 	// Multi Language Dictionary.
 	mines_register_dictionary("mines/mines_claymore.txt");
+	AutoExecConfig(true, "mines_cvars_cm", "mines");
 
 	return PLUGIN_CONTINUE;
 }
@@ -216,22 +217,6 @@ public plugin_precache()
 	precache_model(ENT_SPRITE1);
 	
 	return PLUGIN_CONTINUE;
-}
-
-//====================================================
-//  PLUGIN CONFIG
-//====================================================
-public plugin_cfg()
-{
-	new file[64];
-	new len = charsmax(file);
-	get_localinfo("amxx_configsdir", file, len);
-	formatex(file, len, "%s/mines/cvars_cm.cfg", file);
-	if(file_exists(file)) 
-	{
-		server_cmd("exec %s", file);
-		server_exec();
-	}
 }
 
 //====================================================

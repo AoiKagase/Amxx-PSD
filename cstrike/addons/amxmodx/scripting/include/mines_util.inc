@@ -97,9 +97,9 @@ new Array:gMinesClass;
 new Array:gPlayerData	[MAX_PLAYERS];
 new Array:gMinesLongName;
 new Array:gMinesParameter;
+new Array:gMinesModels;
 new gForwarder			[FORWARDER];
 new gCPlayerData		[MAX_PLAYERS][COMMON_PLAYER_DATA];
-
 //====================================================
 // Function: Count to deployed in team.
 //====================================================

@@ -18,7 +18,6 @@
 #include <hamsandwich>
 #include <xs>
 #include <mines_util>
-#include <ini_file>
 #if defined BIOHAZARD_SUPPORT
 	#include <biohazard>
 #endif
@@ -62,7 +61,6 @@
 #define TASK_RELEASE			315900
 
 #define INI_FILE				"mines/mines_resources.ini"
-#define CVAR_FILE				"mines/mines_cvars.cfg"
 //====================================================
 //  Enum Area.
 //====================================================
@@ -98,12 +96,21 @@ new gEntMine;
 new gSubMenuCallback;
 new gCvar				[CVAR_SETTING];
 new gSelectedMines		[MAX_PLAYERS];
+new gDeployingMines		[MAX_PLAYERS];
 
 //====================================================
 //  PLUGIN PRECACHE
 //====================================================
 public plugin_precache() 
 {
+	gMinesClass 					= ArrayCreate(MAX_CLASS_LENGTH);
+	gMinesParameter 				= ArrayCreate(COMMON_MINES_DATA);
+	gMinesLongName					= ArrayCreate(MAX_NAME_LENGTH);
+	gMinesModels					= ArrayCreate(MAX_MODEL_LENGTH);
+
+	for(new i = 0; i < MAX_PLAYERS; i++)
+		gPlayerData[i] = ArrayCreate(PLAYER_DATA);
+
 	precache_sound(ENT_SOUND);
 	precache_sound(ENT_SOUND1);
 	precache_sound(ENT_SOUND2);
@@ -150,16 +157,9 @@ public plugin_init()
 	gForwarder[FWD_MINES_PICKUP]	= CreateMultiForward("MinesPickup"					, ET_IGNORE, FP_CELL, FP_CELL);
 	gForwarder[FWD_MINES_BREAKED]	= CreateMultiForward("MinesBreaked"					, ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
 
-	gMinesClass 					= ArrayCreate(MAX_CLASS_LENGTH);
-	gMinesParameter 				= ArrayCreate(COMMON_MINES_DATA);
-	gMinesLongName					= ArrayCreate(MAX_NAME_LENGTH);
-
 	// Get Message Id
 	gMsgBarTime						= get_user_msgid("BarTime");
 	gSubMenuCallback				= menu_makecallback("mines_submenu_callback");
-
-	for(new i = 0; i < MAX_PLAYERS; i++)
-		gPlayerData[i] = ArrayCreate(PLAYER_DATA);
 
 	// Register Event
 	register_event("DeathMsg", "DeathEvent",	"a");
@@ -167,7 +167,6 @@ public plugin_init()
 
 	// Register Forward.
 	register_forward(FM_PlayerPostThink,"PlayerPostThink");
-	register_forward(FM_PlayerPreThink, "PlayerPreThink");
 	register_forward(FM_TraceLine,		"MinesShowInfo", 1);
 
 	// Register Hamsandwich
@@ -181,6 +180,8 @@ public plugin_init()
 	register_dictionary("mines/mines_main.txt");
 
 	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+
+	AutoExecConfig(true, "mines_cvars_main", "mines");
 
 	return PLUGIN_CONTINUE;
 }
@@ -201,6 +202,7 @@ public plugin_end()
 	ArrayDestroy(gMinesClass);
 	ArrayDestroy(gMinesParameter);
 	ArrayDestroy(gMinesLongName);
+	ArrayDestroy(gMinesModels);
 
 	for (new i = 0; i < MAX_PLAYERS; i++)
 		ArrayDestroy(gPlayerData[i]);
@@ -213,16 +215,6 @@ public plugin_cfg()
 {
 	// registered func_breakable
 	gEntMine = engfunc(EngFunc_AllocString, ENT_CLASS_BREAKABLE);
-
-	new file[64];
-	new len = charsmax(file);
-	get_configsdir(file, len);
-	format(file, len, "%s/%s", file, CVAR_FILE);
-	if(file_exists(file)) 
-	{
-		server_cmd("exec %s", file);
-		server_exec();
-	}
 }
 
 //====================================================
@@ -233,6 +225,7 @@ public plugin_natives()
 	register_library("mines_natives");
 
 	register_native("register_mines",			"_native_register_mines");
+	register_native("register_mines_data",		"_native_register_mines_data");
 	register_native("mines_progress_deploy",	"_native_deploy_progress");
 	register_native("mines_progress_pickup",	"_native_pickup_progress");
 	register_native("mines_progress_stop", 		"_native_stop_progress");
@@ -240,7 +233,7 @@ public plugin_natives()
 	register_native("mines_buy",				"_native_buy_mines");
 	register_native("mines_valid_takedamage",	"_native_is_valid_takedamage");
 	register_native("mines_register_dictionary","_native_register_dictionary");
-
+	register_native("mines_resources", 			"_native_read_ini_resources");
 #if defined ZP_SUPPORT
 	register_native("zp_give_lm", 				"ZpMinesNative");
 #endif
@@ -255,13 +248,35 @@ public _native_register_mines(iPlugin, iParams)
 	new className	[MAX_CLASS_LENGTH];
 	new sLongName	[MAX_NAME_LENGTH];
 	new minesData	[COMMON_MINES_DATA];
+	new minesModel	[MAX_MODEL_LENGTH];
 	new plData		[PLAYER_DATA];
 	new iMinesId = -1;
 
 	get_string	(1, className, charsmax(className));
-	get_array	(2, minesData, sizeof(minesData));
-	get_string	(3, sLongName, charsmax(sLongName));
+	get_string	(2, sLongName, charsmax(sLongName));
 
+	// register mines classname/parameter/longname key
+	iMinesId = ArrayPushString(gMinesClass, className);
+	ArrayPushString	(gMinesLongName, 	sLongName);
+	ArrayPushArray	(gMinesParameter, 	minesData);
+	ArrayPushString (gMinesModels, 		minesModel);
+	// initialize player data.
+	for(new i = 0; i < MAX_PLAYERS; i++)
+		ArrayPushArray(gPlayerData[i], plData, sizeof(plData));
+
+	return iMinesId;
+}
+public _native_register_mines_data(iPlugin, iParams)
+{
+	new minesData	[COMMON_MINES_DATA];
+	new iMinesId = get_param(1);
+	new minesModel	[MAX_MODEL_LENGTH];
+
+	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+	get_array	(2, minesData, COMMON_MINES_DATA);
+	ArraySetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+	get_string	(3, minesModel, charsmax(minesModel));
+	ArraySetString(gMinesModels, iMinesId, minesModel);
 	#if defined ZP_SUPPORT
 		new zpWeaponId					= zp_items_register(className, minesData[BUY_PRICE]);
 		gZpGameMode[GMODE_ARMAGEDDON]	= zp_gamemodes_get_id("Armageddon Mode");
@@ -270,16 +285,6 @@ public _native_register_mines(iPlugin, iParams)
 		minesData[ZP_WEAPON_ID]			= zpWeaponId;
 	#endif
 
-	// register mines classname/parameter/longname key
-	iMinesId = ArrayPushString(gMinesClass, className);
-	ArrayPushArray	(gMinesParameter, 	minesData);
-	ArrayPushString	(gMinesLongName, 	sLongName);
-
-	// initialize player data.
-	for(new i = 0; i < MAX_PLAYERS; i++)
-		ArrayPushArray(gPlayerData[i], plData, sizeof(plData));
-
-	return iMinesId;
 }
 
 // Register Dictionary
@@ -356,20 +361,27 @@ public _native_mines_explosion(iPlugin, iParams)
 	mines_remove_entity(iEnt);
 }
 
-// mines_read_resources(section, key, value, size);
-public _native_read_ini_resources(iMinesId, key[], value[], size, def[])
+// mines_resources(iMinesId, key[], value[], size, def[]);
+public _native_read_ini_resources(iPlugin, iParams)
 {
-	new inifile[64];
+	new iMinesId = get_param(1);
+	new sKey[32];
+	new sDef[32];
+	new value[64];
+
+	get_string(2, sKey, charsmax(sKey));
+	get_string(5, sDef, charsmax(sDef));
+
 	new sClassName[MAX_CLASS_LENGTH];
-	ArrayGetArray(gMinesClass, iMinesId, sClassName, charsmax(sClassName));
+	ArrayGetString(gMinesClass, iMinesId, sClassName, charsmax(sClassName));
 
-	get_configsdir(inifile, charsmax(inifile));
-	formatex(inifile, charsmax(inifile), "%s/%s", inifile, INI_FILE);
-
-	new result = ini_read_string(inifile, sClassName, key, value, size);
+	new result = ini_read_string(INI_FILE, sClassName, sKey, value, charsmax(value));
 
 	if (result <= 0)
-		formatex(value, size, "%s", def);
+		formatex(value, charsmax(value), "%s", sDef);
+
+	set_string(3, value, get_param(4));
+	return result;
 }
 
 //====================================================
@@ -521,11 +533,31 @@ public mines_progress_deploy(id, iMinesId)
 	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
 	new Float:wait = Float:minesData[ACTIVATE_TIME];
 
-	if (wait > 0)
-		mines_show_progress(id, int:floatround(wait), gMsgBarTime);
-
 	// Set Flag. start progress.
 	mines_set_user_deploy_state(id, int:STATE_DEPLOYING);
+	new iEnt = gDeployingMines[id] = engfunc(EngFunc_CreateNamedEntity, gEntMine);
+	if (pev_valid(iEnt))
+	{
+		new models[MAX_MODEL_LENGTH];
+		ArrayGetString(gMinesModels, iMinesId, models, charsmax(models));
+		// set models.
+		engfunc(EngFunc_SetModel, iEnt, models);
+		// set solid.
+		set_pev(iEnt, pev_solid, SOLID_NOT);
+		// set movetype.
+		set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
+
+		set_pev(iEnt, pev_renderfx, kRenderFxHologram);
+		set_pev(iEnt, pev_body, 		3);
+		set_pev(iEnt, pev_sequence, 	TRIPMINE_WORLD);
+		set_pev(iEnt, pev_rendermode,	kRenderTransAdd);
+		set_pev(iEnt, pev_renderfx,	 	kRenderFxHologram);
+		set_pev(iEnt, pev_renderamt,	255.0);
+		set_pev(iEnt, pev_rendercolor,	{255.0,255.0,255.0});
+	}
+
+	if (wait > 0)
+		mines_show_progress(id, int:floatround(wait), gMsgBarTime);
 
 	new sMineId[4];
 	num_to_str(iMinesId, sMineId, charsmax(sMineId));
@@ -552,7 +584,7 @@ public mines_progress_pickup(id, iMinesId)
 		mines_show_progress(id, int:floatround(wait), gMsgBarTime);
 
 	// Set Flag. start progress.
-	mines_set_user_deploy_state(id, int:STATE_DEPLOYING);
+	mines_set_user_deploy_state(id, int:STATE_PICKING);
 
 	new sMineId[4];
 	num_to_str(iMinesId, sMineId, charsmax(sMineId));
@@ -567,6 +599,10 @@ public mines_progress_pickup(id, iMinesId)
 //====================================================
 public mines_progress_stop(id)
 {
+	if (pev_valid(gDeployingMines[id]))
+		mines_remove_entity(gDeployingMines[id]);
+	gDeployingMines[id] = 0;
+
 	mines_hide_progress(id, gMsgBarTime);
 	delete_task(id);
 
@@ -581,19 +617,18 @@ public SpawnMine(params[], id)
 	// Task Number to uID.
 	new uID = id - TASK_PLANT;
 	// Create Entity.
-	new iEnt = engfunc(EngFunc_CreateNamedEntity, gEntMine);
 	new plData[PLAYER_DATA];
 
 	// is Valid?
-	if(!iEnt)
+	if(!gDeployingMines[uID])
 	{
 		cp_debug(uID);
 		return PLUGIN_HANDLED_MAIN;
 	}
-
+	new iEnt = gDeployingMines[uID];
 	new iReturn;
 	new iMinesId = str_to_num(params);
-	if (ExecuteForward(gForwarder[FWD_SET_ENTITY_SPAWN], iReturn, iEnt, uID, iMinesId))
+	if (ExecuteForward(gForwarder[FWD_SET_ENTITY_SPAWN], iReturn, gDeployingMines[uID], uID, iMinesId))
 	{
 		new authid[MAX_AUTHID_LENGTH];
 		get_user_authid(uID, authid, charsmax(authid));
@@ -611,6 +646,8 @@ public SpawnMine(params[], id)
 
 		show_ammo(id, iMinesId);
 	}
+	gDeployingMines[uID] = 0;
+
 	return iReturn;
 }
 
@@ -813,9 +850,9 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 	static sName[MAX_NAME_LENGTH];
 	static minesData[COMMON_MINES_DATA];
 
-	new iHit, iOwner, Float:health;
-	new hudMsg[64];
-	new Float:vHitPoint[3];
+	static iHit, iOwner, Float:health;
+	static hudMsg[64];
+	static Float:vHitPoint[3];
 
 	iHit = get_tr2(iTrace, TR_pHit);
 	get_tr2(iTrace, TR_vecEndPos, vHitPoint);				
@@ -913,6 +950,56 @@ public PlayerPostThink(id)
 				ExecuteHamB(Ham_CS_Player_ResetMaxSpeed, id);
 		}
 		case STATE_DEPLOYING:
+		{
+			if (pev_valid(gDeployingMines[id]))
+			{
+				// Vector settings.
+				static	Float:vOrigin[3];
+				static	Float:vNewOrigin[3],Float:vNormal[3],
+						Float:vTraceEnd[3],Float:vEntAngles[3];
+
+				// Get wall position.
+				velocity_by_aim(id, 128, vTraceEnd);
+				// get user position.
+				pev(id, pev_origin, vOrigin);
+				xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
+
+			    // create the trace handle.
+				static trace;
+				trace = create_tr2();
+
+				// get wall position to vNewOrigin.
+				engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
+				{
+					// -- We hit something!
+					// -- Save results to be used later.
+					get_tr2(trace, TR_vecEndPos, vTraceEnd);
+					get_tr2(trace, TR_vecPlaneNormal, vNormal);
+
+					if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
+					{
+						xs_vec_mul_scalar(vNormal, 8.0, vNormal);
+						xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
+						// set entity position.
+						engfunc(EngFunc_SetOrigin, gDeployingMines[id], vNewOrigin);
+						// Rotate tripmine.
+						vector_to_angle(vNormal, vEntAngles);
+						// set angle.
+						set_pev(gDeployingMines[id], pev_angles, vEntAngles);
+					}
+					else
+					{
+						mines_cmd_progress_stop(id);
+					}
+
+				}
+				// free the trace handle.
+				free_tr2(trace);
+			}
+
+			mines_set_user_max_speed(id, 1.0);
+		}
+		case STATE_PICKING:
 		{
 			mines_set_user_max_speed(id, 1.0);
 		}
@@ -1524,3 +1611,59 @@ public zp_fw_items_select_post(id, itemid, ignorecost)
 	}
 }
 #endif
+
+
+#define INI_MAX_STRING_LEN 512
+
+stock ini_read_string(const file[], const section[], const key[], dest[], len)
+{
+	new hFile;
+	new iRetVal;
+	new bool:bSectionFound = false;
+	new szBuffer[INI_MAX_STRING_LEN], szFile[64], szKey[32], szSection[32];
+
+	formatex(szFile[get_configsdir(szFile, charsmax(szFile))], charsmax(szFile), "/%s", file);
+
+	if (!(hFile = fopen(szFile, "rt")))
+		return 0;
+
+	while (!feof(hFile))
+	{
+		if (fgets(hFile, szBuffer, charsmax(szBuffer)) == 0)
+			break;
+
+		trim(szBuffer);
+
+		if (!szBuffer[0] || szBuffer[0] == ';' || szBuffer[0] == '#')
+			continue;
+
+		if (szBuffer[0] == '[')
+		{
+			if (bSectionFound)
+				break;
+
+			split_string(szBuffer[1], "]", szSection, charsmax(szSection));
+
+			if (equali(section, szSection))
+				bSectionFound = true;
+		}
+
+		if (bSectionFound)
+		{
+			split(szBuffer, szKey, charsmax(szKey), szBuffer, charsmax(szBuffer), "=");
+			trim(szKey);
+			trim(szBuffer);
+
+			if (equali(szKey, key))
+			{
+				replace_all(szBuffer, charsmax(szBuffer), "^"", "");
+				iRetVal = copy(dest, len, szBuffer);
+				break;
+			}
+		}
+	}
+
+	fclose(hFile);
+	return iRetVal;
+
+}
