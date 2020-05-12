@@ -80,7 +80,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.09"
+#define VERSION 					"3.10"
 
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
@@ -232,8 +232,8 @@ new gMsgBarTime;
 new gBeam, gBoom;
 new gEntMine;
 
-new Float:gDeployPos	[MAX_PLAYERS][3];
 new Stack:gRecycleMine	[MAX_PLAYERS];
+new gDeployingMines		[MAX_PLAYERS];
 
 #if defined ZP_SUPPORT
 	new ITEM_NAME[][]	= {"LaserMines", "TripMines", "Claymores"};
@@ -350,6 +350,7 @@ public plugin_init()
 	register_event("DeathMsg", "DeathEvent",	"a");
 	register_event("TeamInfo", "CheckSpectator","a");
 
+
 	// Get Message Id
 #if !defined ZP_SUPPORT
 	#if !defined BIOHAZARD_SUPPORT
@@ -366,7 +367,7 @@ public plugin_init()
 	// Multi Language Dictionary.
 	register_dictionary("lasermine.txt");
 
-	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+	register_cvar("ltm_versions", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
 	for(new i = 0; i < MAX_PLAYERS; i++)
 		gRecycleMine[i] = CreateStack(1);
@@ -379,6 +380,18 @@ public plugin_init()
 		gZpGameMode[GMODE_ZTAG] 		= zp_gamemodes_get_id("Zombie Tag Mode");
 		gZpGameMode[GMODE_ASSASIN]		= zp_gamemodes_get_id("Assassin Mode");
 	#endif
+
+#if defined BIOHAZARD_SUPPORT
+	AutoExecConfig(true, "plugin-lasermine_bh");
+#else
+#if defined ZP_SUPPORT
+	AutoExecConfig(true, "plugin-lasermine_zp");
+#else
+	AutoExecConfig(true);
+#endif
+#endif
+	// registered func_breakable
+	gEntMine = engfunc(EngFunc_AllocString, ENT_CLASS_BREAKABLE);
 
 	return PLUGIN_CONTINUE;
 }
@@ -499,34 +512,6 @@ public plugin_modules()
 	require_module("hamsandwich");
 }
 */
-
-//====================================================
-//  PLUGIN CONFIG
-//====================================================
-public plugin_cfg()
-{
-	// registered func_breakable
-	gEntMine = engfunc(EngFunc_AllocString, ENT_CLASS_BREAKABLE);
-
-	new file[64];
-	new len = charsmax(file);
-	get_localinfo("amxx_configsdir", file, len);
-
-#if defined BIOHAZARD_SUPPORT
-	format(file, len, "%s/bhltm_cvars.cfg", file);
-#else
-#if defined ZP_SUPPORT
-	format(file, len, "%s/zp_ltm_cvars.cfg", file);
-#else
-	format(file, len, "%s/ltm_cvars.cfg", file);
-#endif
-#endif
-	if(file_exists(file)) 
-	{
-		server_cmd("exec %s", file);
-		server_exec();
-	}
-}
 
 //====================================================
 //  Bot Register Ham.
@@ -682,13 +667,32 @@ public lm_progress_deploy_main(id)
 		return PLUGIN_HANDLED;
 
 	new Float:wait = get_pcvar_float(gCvar[CVAR_LASER_ACTIVATE]);
+	// Set Flag. start progress.
+	lm_set_user_deploy_state(id, int:STATE_DEPLOYING);
+
+	new iEnt = gDeployingMines[id] = engfunc(EngFunc_CreateNamedEntity, gEntMine);
+	if (pev_valid(iEnt))
+	{
+		// set models.
+		engfunc(EngFunc_SetModel, iEnt, ENT_MODELS);
+		// set solid.
+		set_pev(iEnt, pev_solid, 		SOLID_NOT);
+		// set movetype.
+		set_pev(iEnt, pev_movetype, 	MOVETYPE_FLY);
+
+		set_pev(iEnt, pev_renderfx, 	kRenderFxHologram);
+		set_pev(iEnt, pev_body, 		3);
+		set_pev(iEnt, pev_sequence, 	TRIPMINE_WORLD);
+		set_pev(iEnt, pev_rendermode,	kRenderTransAdd);
+		set_pev(iEnt, pev_renderfx,	 	kRenderFxHologram);
+		set_pev(iEnt, pev_renderamt,	255.0);
+		set_pev(iEnt, pev_rendercolor,	{255.0,255.0,255.0});
+	}
+
 	if (wait > 0)
 	{
 		lm_show_progress(id, int:floatround(wait), gMsgBarTime);
 	}
-
-	// Set Flag. start progress.
-	lm_set_user_deploy_state(id, int:STATE_DEPLOYING);
 
 	// Start Task. Put Lasermine.
 	set_task(wait, "SpawnMine", (TASK_PLANT + id));
@@ -722,7 +726,7 @@ public lm_progress_remove(id)
 		lm_show_progress(id, int:floatround(wait), gMsgBarTime);
 
 	// Set Flag. start progress.
-	lm_set_user_deploy_state(id, int:STATE_DEPLOYING);
+	lm_set_user_deploy_state(id, int:STATE_PICKING);
 
 	// Start Task. Remove Lasermine.
 	set_task(wait, "RemoveMine", (TASK_RELEASE + id));
@@ -735,6 +739,10 @@ public lm_progress_remove(id)
 //====================================================
 public lm_progress_stop(id)
 {
+	if (pev_valid(gDeployingMines[id]))
+		lm_remove_entity(gDeployingMines[id]);
+	gDeployingMines[id] = 0;
+
 	lm_hide_progress(id, gMsgBarTime);
 	delete_task(id);
 
@@ -748,16 +756,14 @@ public SpawnMine(id)
 {
 	// Task Number to uID.
 	new uID = id - TASK_PLANT;
-	// Create Entity.
-	new iEnt = engfunc(EngFunc_CreateNamedEntity, gEntMine);
 	// is Valid?
-	if(!iEnt)
+	if(!gDeployingMines[uID])
 	{
 		cp_debug(uID);
 		return PLUGIN_HANDLED_MAIN;
 	}
 
-	set_spawn_entity_setting(iEnt, uID, ENT_CLASS_LASER);
+	set_spawn_entity_setting(gDeployingMines[uID], uID, ENT_CLASS_LASER);
 
 	return 1;
 }
@@ -838,7 +844,7 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 
 	// Set Flag. end progress.
 	lm_set_user_deploy_state(uID, int:STATE_DEPLOYED);
-
+	gDeployingMines[uID] = 0;
 }
 
 //====================================================
@@ -854,7 +860,8 @@ set_mine_position(uID, iEnt)
 
 	// get user position.
 	pev(uID, pev_origin, vOrigin);
-	xs_vec_add( gDeployPos[uID], vOrigin, vTraceEnd );
+	velocity_by_aim(uID, 128, vTraceEnd);
+	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
@@ -1703,6 +1710,55 @@ public PlayerPostThink(id)
 		}
 		case STATE_DEPLOYING:
 		{
+			if (pev_valid(gDeployingMines[id]))
+			{
+				// Vector settings.
+				static	Float:vOrigin[3];
+				static	Float:vNewOrigin[3],Float:vNormal[3],
+						Float:vTraceEnd[3],Float:vEntAngles[3];
+
+				// Get wall position.
+				velocity_by_aim(id, 128, vTraceEnd);
+				// get user position.
+				pev(id, pev_origin, vOrigin);
+				xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
+
+			    // create the trace handle.
+				static trace;
+				trace = create_tr2();
+
+				// get wall position to vNewOrigin.
+				engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
+				{
+					// -- We hit something!
+					// -- Save results to be used later.
+					get_tr2(trace, TR_vecEndPos, vTraceEnd);
+					get_tr2(trace, TR_vecPlaneNormal, vNormal);
+
+					if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
+					{
+						xs_vec_mul_scalar(vNormal, 8.0, vNormal);
+						xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
+						// set entity position.
+						engfunc(EngFunc_SetOrigin, gDeployingMines[id], vNewOrigin);
+						// Rotate tripmine.
+						vector_to_angle(vNormal, vEntAngles);
+						// set angle.
+						set_pev(gDeployingMines[id], pev_angles, vEntAngles);
+					}
+					else
+					{
+						lm_progress_stop(id);
+					}
+
+				}
+				// free the trace handle.
+				free_tr2(trace);
+			}			
+			lm_set_user_max_speed(id, 1.0);
+		}
+		case STATE_PICKING:
+		{
 			lm_set_user_max_speed(id, 1.0);
 		}
 		case STATE_DEPLOYED:
@@ -2000,13 +2056,14 @@ stock ERROR:check_for_onwall(id)
 	pev(id, pev_origin, vOrigin);
 	
 	// Get wall position.
-	velocity_by_aim(id, 128, gDeployPos[id]);
+	velocity_by_aim(id, 128, vTraceEnd);
+
 	if (mode_claymore)
 	{
 		// Claymore is ground position.
-		gDeployPos[id][2] = -128.0;
+		vTraceEnd[2] = -128.0;
 	}
-	xs_vec_add(gDeployPos[id], vOrigin, vTraceEnd);
+	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
