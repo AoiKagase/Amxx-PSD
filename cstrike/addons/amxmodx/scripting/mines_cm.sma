@@ -40,7 +40,7 @@
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Claymore"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"0.01"
+#define VERSION 					"0.02"
 
 #define CVAR_TAG					"mines_cm"
 
@@ -60,14 +60,13 @@
 //
 // CVAR SETTINGS
 //
-enum CVAR_SETTING
+enum _:CVAR_SETTING
 {
 	CVAR_MAX_HAVE			,    	// Max having ammo.
 	CVAR_START_HAVE			,    	// Start having ammo.
 	CVAR_FRAG_MONEY         ,    	// Get money per kill.
 	CVAR_COST               ,    	// Buy cost.
 	CVAR_BUY_ZONE           ,    	// Stay in buy zone can buy.
-	CVAR_LASER_DMG          ,    	// Laser hit Damage.
 	CVAR_MAX_DEPLOY			,		// user max deploy.
 	CVAR_TEAM_MAX           ,    	// Max deployed in team.
 	CVAR_EXPLODE_RADIUS     ,   	// Explosion Radius.
@@ -101,12 +100,52 @@ enum CVAR_SETTING
 	CVAR_CM_WIRE_COLOR_CT	,
 };
 
+enum _:CVAR_VALUE
+{
+	VALUE_MAX_HAVE				,    	// Max having ammo.
+	VALUE_START_HAVE			,    	// Start having ammo.
+	VALUE_FRAG_MONEY         	,    	// Get money per kill.
+	VALUE_COST               	,    	// Buy cost.
+	VALUE_BUY_ZONE           	,    	// Stay in buy zone can buy.
+	VALUE_MAX_DEPLOY			,		// user max deploy.
+	VALUE_TEAM_MAX           	,    	// Max deployed in team.
+	VALUE_BUY_MODE           	,   	// Buy mode. 0 = off, 1 = on.
+	// Laser design.
+	VALUE_MINE_GLOW         	,   	// Glowing tripmine.
+	VALUE_MINE_GLOW_MODE    	,   	// Glowing color mode.
+	VALUE_MINE_BROKEN			,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
+	VALUE_DEATH_REMOVE			,		// Dead Player Remove Claymore.
+	VALUE_ALLOW_PICKUP			,		// allow pickup.
+	VALUE_CM_TRIAL_FREQ			,		// Claymore Wire trial frequency.
+	VALUE_CM_WIRE_VISIBLE	    ,   	// Wire Visiblity. 0 = off, 1 = on.
+	VALUE_CM_WIRE_COLOR			,
+	Float:VALUE_EXPLODE_RADIUS  ,   	// Explosion Radius.
+	Float:VALUE_EXPLODE_DMG     ,   	// Explosion Damage.
+	Float:VALUE_MINE_HEALTH    	,   	// Claymore health. (Can break.)
+	Float:VALUE_CM_ACTIVATE		,		// Waiting for put claymore. (0 = no progress bar.)
+	Float:VALUE_CM_WIRE_RANGE	,		// Claymore Wire Range.
+	Float:VALUE_CM_WIRE_BRIGHT	,   	// Wire brightness.
+	Float:VALUE_CM_WIRE_WIDTH	,		// Claymore Wire Width.
+	VALUE_CBT               [4]	,   	// Can buy team. TR/CT/ALL
+	VALUE_MINE_GLOW_CT     	[13],   	// Glowing color for CT.
+	VALUE_MINE_GLOW_TR    	[13],   	// Glowing color for T.
+	VALUE_CM_CENTER_PITCH	[20],		// Claymore Wire Area Center Pitch.
+	VALUE_CM_CENTER_YAW		[20],		// Claymore Wire Area Center Yaw.
+	VALUE_CM_LEFT_PITCH		[20],		// Claymore Wire Area Left Pitch.
+	VALUE_CM_LEFT_YAW		[20],		// Claymore Wire Area Left Yaw.
+	VALUE_CM_RIGHT_PITCH	[20],		// Claymore Wire Area Right Pitch.
+	VALUE_CM_RIGHT_YAW		[20],		// Claymore Wire Area Right Yaw.
+	VALUE_CM_WIRE_COLOR_T	[13],
+	VALUE_CM_WIRE_COLOR_CT	[13],
+};
+
 //====================================================
 //  GLOBAL VARIABLES
 //====================================================
-new gCvar[CVAR_SETTING];
+new gCvar		[CVAR_SETTING];
+new gCvarValue	[CVAR_VALUE];
+
 new gMinesId;
-new Float:gDeployPos	[MAX_PLAYERS][3];
 
 new gMinesData[COMMON_MINES_DATA];
 new CLAYMORE_WIRE[]	= {
@@ -116,7 +155,8 @@ new CLAYMORE_WIRE[]	= {
 };
 
 new Float:gModelMargin[] = {0.0, -0.0, 4.0};
-const gWireLoop = 3;
+new const gWireLoop = 3;
+
 //====================================================
 //  PLUGIN INITIALIZE
 //====================================================
@@ -126,84 +166,129 @@ public plugin_init()
 	
 	// CVar settings.
 	// Ammo.
-	gCvar[CVAR_START_HAVE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_amount"),				"1"			);	// Round start have ammo count.
-	gCvar[CVAR_MAX_HAVE]       	= register_cvar(fmt("%s%s", CVAR_TAG, "_max_amount"),   		"2"			);	// Max having ammo.
-	gCvar[CVAR_TEAM_MAX]		= register_cvar(fmt("%s%s", CVAR_TAG, "_team_max"),				"10"		);	// Max deployed in team.
-	gCvar[CVAR_MAX_DEPLOY]		= register_cvar(fmt("%s%s", CVAR_TAG, "_max_deploy"),			"10"		);	// Max deployed in user.
+	gCvar[CVAR_START_HAVE]	    = create_cvar(fmt("%s%s", CVAR_TAG, "_amount"),					"1"				);	// Round start have ammo count.
+	gCvar[CVAR_MAX_HAVE]       	= create_cvar(fmt("%s%s", CVAR_TAG, "_max_amount"),   			"2"				);	// Max having ammo.
+	gCvar[CVAR_TEAM_MAX]		= create_cvar(fmt("%s%s", CVAR_TAG, "_team_max"),				"10"			);	// Max deployed in team.
+	gCvar[CVAR_MAX_DEPLOY]		= create_cvar(fmt("%s%s", CVAR_TAG, "_max_deploy"),				"10"			);	// Max deployed in user.
 
 	// Buy system.
-	gCvar[CVAR_BUY_MODE]	    = register_cvar(fmt("%s%s", CVAR_TAG, "_buy_mode"),				"1"			);	// 0 = off, 1 = on.
-	gCvar[CVAR_CBT]    			= register_cvar(fmt("%s%s", CVAR_TAG, "_buy_team"),				"ALL"		);	// Can buy team. TR / CT / ALL. (BIOHAZARD: Z = Zombie)
-	gCvar[CVAR_COST]           	= register_cvar(fmt("%s%s", CVAR_TAG, "_buy_price"),			"2500"		);	// Buy cost.
-	gCvar[CVAR_BUY_ZONE]        = register_cvar(fmt("%s%s", CVAR_TAG, "_buy_zone"),				"1"			);	// Stay in buy zone can buy.
-	gCvar[CVAR_FRAG_MONEY]     	= register_cvar(fmt("%s%s", CVAR_TAG, "_frag_money"),   		"300"		);	// Get money.
+	gCvar[CVAR_BUY_MODE]	    = create_cvar(fmt("%s%s", CVAR_TAG, "_buy_mode"),				"1"				);	// 0 = off, 1 = on.
+	gCvar[CVAR_CBT]    			= create_cvar(fmt("%s%s", CVAR_TAG, "_buy_team"),				"ALL"			);	// Can buy team. TR / CT / ALL. (BIOHAZARD: Z = Zombie)
+	gCvar[CVAR_COST]           	= create_cvar(fmt("%s%s", CVAR_TAG, "_buy_price"),				"2500"			);	// Buy cost.
+	gCvar[CVAR_BUY_ZONE]        = create_cvar(fmt("%s%s", CVAR_TAG, "_buy_zone"),				"1"				);	// Stay in buy zone can buy.
+	gCvar[CVAR_FRAG_MONEY]     	= create_cvar(fmt("%s%s", CVAR_TAG, "_frag_money"),   			"300"			);	// Get money.
 
 	// Mine design.
-	gCvar[CVAR_MINE_HEALTH]    	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_health"),			"50"		);	// Tripmine Health. (Can break.)
-	gCvar[CVAR_MINE_GLOW]      	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow"),			"1"			);	// Tripmine glowing. 0 = off, 1 = on.
-	gCvar[CVAR_MINE_GLOW_MODE]  = register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
-	gCvar[CVAR_MINE_GLOW_TR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_t"),	"255,0,0"	);	// Team-Color for Terrorist. default:red (R,G,B)
-	gCvar[CVAR_MINE_GLOW_CT]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_ct"),	"0,0,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
-	gCvar[CVAR_MINE_BROKEN]		= register_cvar(fmt("%s%s", CVAR_TAG, "_mine_broken"),			"2"			);	// Can broken Mines.(0 = mines, 1 = Team, 2 = Enemy)
-	gCvar[CVAR_EXPLODE_RADIUS] 	= register_cvar(fmt("%s%s", CVAR_TAG, "_explode_radius"),		"320.0"		);	// Explosion radius.
-	gCvar[CVAR_EXPLODE_DMG]		= register_cvar(fmt("%s%s", CVAR_TAG, "_explode_damage"),		"100"		);	// Explosion radius damage.
+	gCvar[CVAR_MINE_HEALTH]    	= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_health"),			"50"			);	// Tripmine Health. (Can break.)
+	gCvar[CVAR_MINE_GLOW]      	= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow"),				"0"				);	// Tripmine glowing. 0 = off, 1 = on.
+	gCvar[CVAR_MINE_GLOW_MODE]  = create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_mode"),	"0"				);	// Mine glow coloer 0 = team color, 1 = green.
+	gCvar[CVAR_MINE_GLOW_TR]  	= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_t"),		"255,0,0"		);	// Team-Color for Terrorist. default:red (R,G,B)
+	gCvar[CVAR_MINE_GLOW_CT]  	= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_ct"),		"0,0,255"		);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_MINE_BROKEN]		= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_broken"),			"2"				);	// Can broken Mines.(0 = mines, 1 = Team, 2 = Enemy)
+	gCvar[CVAR_EXPLODE_RADIUS] 	= create_cvar(fmt("%s%s", CVAR_TAG, "_explode_radius"),			"320.0"			);	// Explosion radius.
+	gCvar[CVAR_EXPLODE_DMG]		= create_cvar(fmt("%s%s", CVAR_TAG, "_explode_damage"),			"100"			);	// Explosion radius damage.
 
 	// Misc Settings.
-	gCvar[CVAR_DEATH_REMOVE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"			);	// Dead Player remove claymore. 0 = off, 1 = on.
-	gCvar[CVAR_CM_ACTIVATE]		= register_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),		"1.0"		);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
-	gCvar[CVAR_ALLOW_PICKUP]	= register_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"			);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
+	gCvar[CVAR_DEATH_REMOVE]	= create_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"				);	// Dead Player remove claymore. 0 = off, 1 = on.
+	gCvar[CVAR_CM_ACTIVATE]		= create_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),			"1.0"			);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
+	gCvar[CVAR_ALLOW_PICKUP]	= create_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"				);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 
 	// Claymore Settings. (Color is Laser color)
-	gCvar[CVAR_CM_WIRE_VISIBLE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_visible"),			"1"			);	// wire visibility.
-	gCvar[CVAR_CM_WIRE_RANGE]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_range"),		"300"		);	// wire range.
-	gCvar[CVAR_CM_WIRE_BRIGHT]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_brightness"),	"255"		);	// wire brightness.
-	gCvar[CVAR_CM_WIRE_WIDTH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_width"),		"2"			);	// wire width.
-	gCvar[CVAR_CM_CENTER_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_pitch"),"10,-65"		);	// wire area center pitch.
-	gCvar[CVAR_CM_CENTER_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_yaw"),	"45,135"	);	// wire area center yaw.
-	gCvar[CVAR_CM_LEFT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_pitch"),	"10,-45"	);	// wire area left pitch.
-	gCvar[CVAR_CM_LEFT_YAW]		= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_yaw"),	"100,165"	);	// wire area left yaw.
-	gCvar[CVAR_CM_RIGHT_PITCH]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_pitch"),	"10,-45"	);	// wire area right pitch.
-	gCvar[CVAR_CM_RIGHT_YAW]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_yaw"),	"15,80"		);	// wire area right yaw.
-	gCvar[CVAR_CM_TRIAL_FREQ]	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_trial_freq"),	"3"			);	// wire trial frequency.
-	gCvar[CVAR_CM_WIRE_COLOR]  	= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_mode"),	"0"			);	// Mine glow coloer 0 = team color, 1 = green.
-	gCvar[CVAR_CM_WIRE_COLOR_T] = register_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_t"),		"255,255,255"	);	// Team-Color for Terrorist. default:red (R,G,B)
-	gCvar[CVAR_CM_WIRE_COLOR_CT]= register_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_ct"),	"255,255,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_CM_WIRE_VISIBLE]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_visible"),			"1"				);	// wire visibility.
+	gCvar[CVAR_CM_WIRE_RANGE]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_range"),				"300"			);	// wire range.
+	gCvar[CVAR_CM_WIRE_BRIGHT]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_brightness"),		"255"			);	// wire brightness.
+	gCvar[CVAR_CM_WIRE_WIDTH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_width"),				"2"				);	// wire width.
+	gCvar[CVAR_CM_CENTER_PITCH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_pitch"),		"10,-65"		);	// wire area center pitch.
+	gCvar[CVAR_CM_CENTER_YAW]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_yaw"),		"45,135"		);	// wire area center yaw.
+	gCvar[CVAR_CM_LEFT_PITCH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_pitch"),		"10,-45"		);	// wire area left pitch.
+	gCvar[CVAR_CM_LEFT_YAW]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_yaw"),			"100,165"		);	// wire area left yaw.
+	gCvar[CVAR_CM_RIGHT_PITCH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_pitch"),		"10,-45"		);	// wire area right pitch.
+	gCvar[CVAR_CM_RIGHT_YAW]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_yaw"),			"15,80"			);	// wire area right yaw.
+	gCvar[CVAR_CM_TRIAL_FREQ]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_trial_freq"),		"3"				);	// wire trial frequency.
+	gCvar[CVAR_CM_WIRE_COLOR]  	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_mode"),		"0"				);	// Mine glow coloer 0 = team color, 1 = green.
+	gCvar[CVAR_CM_WIRE_COLOR_T] = create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_t"),			"255,255,255"	);	// Team-Color for Terrorist. default:red (R,G,B)
+	gCvar[CVAR_CM_WIRE_COLOR_CT]= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_ct"),			"255,255,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
 
-	gMinesData[AMMO_HAVE_START]		=	get_pcvar_num(gCvar[CVAR_START_HAVE]);
-	gMinesData[AMMO_HAVE_MAX]		=	get_pcvar_num(gCvar[CVAR_MAX_HAVE]);
-#if defined BIOHAZARD_SUPPORT
-	gMinesData[NO_ROUND]			=	get_pcvar_num(gCvar[CVAR_NOROUND]);
-#endif
-	gMinesData[DEPLOY_MAX]			= 	get_pcvar_num(gCvar[CVAR_MAX_DEPLOY]);
-	gMinesData[DEPLOY_TEAM_MAX]		= 	get_pcvar_num(gCvar[CVAR_TEAM_MAX]);
-	gMinesData[BUY_MODE]			=	get_pcvar_num(gCvar[CVAR_BUY_MODE]);
-	gMinesData[BUY_ZONE]			=	get_pcvar_num(gCvar[CVAR_BUY_ZONE]);
-	gMinesData[BUY_PRICE]			= 	get_pcvar_num(gCvar[CVAR_COST]);
-	gMinesData[FRAG_MONEY]			= 	get_pcvar_num(gCvar[CVAR_FRAG_MONEY]);
-	gMinesData[MINES_BROKEN]		= 	get_pcvar_num(gCvar[CVAR_MINE_BROKEN]);
-	gMinesData[ALLOW_PICKUP]		=	get_pcvar_num(gCvar[CVAR_ALLOW_PICKUP]);
-	gMinesData[DEATH_REMOVE]		=	get_pcvar_num(gCvar[CVAR_DEATH_REMOVE]);
-	gMinesData[GLOW_ENABLE]			=	get_pcvar_num(gCvar[CVAR_MINE_GLOW]);
-	gMinesData[GLOW_MODE]			=	get_pcvar_num(gCvar[CVAR_MINE_GLOW_MODE]);
-	gMinesData[MINE_HEALTH]			= 	get_pcvar_float(gCvar[CVAR_MINE_HEALTH]);
-	gMinesData[ACTIVATE_TIME]		= 	get_pcvar_float(gCvar[CVAR_CM_ACTIVATE]);
-	gMinesData[EXPLODE_RADIUS]		=	get_pcvar_float(gCvar[CVAR_EXPLODE_RADIUS]);
-	gMinesData[EXPLODE_DAMAGE]		=	get_pcvar_float(gCvar[CVAR_EXPLODE_DMG]);
-	new arg[4], argColor[13];
-	get_pcvar_string(gCvar[CVAR_CBT], arg, charsmax(arg));
-	gMinesData[BUY_TEAM]			=	get_team_code(arg);
-	get_pcvar_string(gCvar[CVAR_MINE_GLOW_TR],	argColor,	charsmax(argColor) - 1);// last comma - 1
-	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color(argColor);
-	get_pcvar_string(gCvar[CVAR_MINE_GLOW_CT],	argColor,	charsmax(argColor) - 1);// last comma - 1
-	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color(argColor);
-	gMinesId 						= 	register_mines(ENT_CLASS_CLAYMORE, LANG_KEY_LONGNAME);
-	register_mines_data(gMinesId, gMinesData, ENT_MODELS);
-	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+	bind_cvars();
+
+	create_cvar("mines_claymore", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+
 	// Multi Language Dictionary.
-	mines_register_dictionary("mines/mines_claymore.txt");
+	mines_register_dictionary("mines/mines_cm.txt");
 	AutoExecConfig(true, "mines_cvars_cm", "mines");
 
 	return PLUGIN_CONTINUE;
+}
+
+bind_cvars()
+{
+	bind_pcvar_num		(gCvar[CVAR_START_HAVE],		gCvarValue[VALUE_START_HAVE]);
+	bind_pcvar_num		(gCvar[CVAR_MAX_HAVE],			gCvarValue[VALUE_MAX_HAVE]);
+#if defined BIOHAZARD_SUPPORT
+	bind_pcvar_num		(gCvar[CVAR_NOROUND],			gCvarValue[VALUE_NOROUND]);
+#endif
+	bind_pcvar_num		(gCvar[CVAR_MAX_DEPLOY],		gCvarValue[VALUE_MAX_DEPLOY]);
+	bind_pcvar_num		(gCvar[CVAR_TEAM_MAX],			gCvarValue[VALUE_TEAM_MAX]);
+	bind_pcvar_num		(gCvar[CVAR_BUY_MODE],			gCvarValue[VALUE_BUY_MODE]);
+	bind_pcvar_num		(gCvar[CVAR_BUY_ZONE],			gCvarValue[VALUE_BUY_ZONE]);
+	bind_pcvar_num		(gCvar[CVAR_COST],				gCvarValue[VALUE_COST]);
+	bind_pcvar_num		(gCvar[CVAR_FRAG_MONEY],		gCvarValue[VALUE_FRAG_MONEY]);
+	bind_pcvar_num		(gCvar[CVAR_MINE_BROKEN],		gCvarValue[VALUE_MINE_BROKEN]);
+	bind_pcvar_num		(gCvar[CVAR_ALLOW_PICKUP],		gCvarValue[VALUE_ALLOW_PICKUP]);
+	bind_pcvar_num		(gCvar[CVAR_DEATH_REMOVE],		gCvarValue[VALUE_DEATH_REMOVE]);
+	bind_pcvar_num		(gCvar[CVAR_MINE_GLOW],			gCvarValue[VALUE_MINE_GLOW]);
+	bind_pcvar_num		(gCvar[CVAR_MINE_GLOW_MODE],	gCvarValue[VALUE_MINE_GLOW_MODE]);
+	bind_pcvar_num		(gCvar[CVAR_CM_WIRE_VISIBLE],	gCvarValue[VALUE_CM_WIRE_VISIBLE]);
+	bind_pcvar_num		(gCvar[CVAR_CM_WIRE_COLOR],		gCvarValue[VALUE_CM_WIRE_COLOR]);
+	bind_pcvar_num		(gCvar[CVAR_CM_TRIAL_FREQ], 	gCvarValue[VALUE_CM_TRIAL_FREQ]);
+	bind_pcvar_float	(gCvar[CVAR_CM_WIRE_WIDTH],		gCvarValue[VALUE_CM_WIRE_WIDTH]);
+	bind_pcvar_float	(gCvar[CVAR_CM_WIRE_BRIGHT],	gCvarValue[VALUE_CM_WIRE_BRIGHT]);
+	bind_pcvar_float	(gCvar[CVAR_MINE_HEALTH],		gCvarValue[VALUE_MINE_HEALTH]);
+	bind_pcvar_float	(gCvar[CVAR_CM_ACTIVATE],		gCvarValue[VALUE_CM_ACTIVATE]);
+	bind_pcvar_float	(gCvar[CVAR_EXPLODE_RADIUS],	gCvarValue[VALUE_EXPLODE_RADIUS]);
+	bind_pcvar_float	(gCvar[CVAR_EXPLODE_DMG],		gCvarValue[VALUE_EXPLODE_DMG]);
+	bind_pcvar_float	(gCvar[CVAR_CM_WIRE_RANGE],		gCvarValue[VALUE_CM_WIRE_RANGE]);
+
+	bind_pcvar_string	(gCvar[CVAR_CBT], 				gCvarValue[VALUE_CBT], 				charsmax(gCvarValue[VALUE_CBT]));
+	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_TR],		gCvarValue[VALUE_MINE_GLOW_TR],		charsmax(gCvarValue[VALUE_MINE_GLOW_TR]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_CT],		gCvarValue[VALUE_MINE_GLOW_CT],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_PITCH],	gCvarValue[VALUE_CM_CENTER_PITCH],	charsmax(gCvarValue[VALUE_CM_CENTER_PITCH]) - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_YAW],		gCvarValue[VALUE_CM_CENTER_YAW],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_PITCH],		gCvarValue[VALUE_CM_LEFT_PITCH],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_YAW],		gCvarValue[VALUE_CM_LEFT_YAW],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_PITCH],	gCvarValue[VALUE_CM_RIGHT_PITCH],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_YAW],		gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_T],	gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_CT],	gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
+
+
+	gMinesData[AMMO_HAVE_START] =	gCvarValue[VALUE_START_HAVE];
+	gMinesData[AMMO_HAVE_MAX]	=	gCvarValue[VALUE_MAX_HAVE];
+#if defined BIOHAZARD_SUPPORT
+	gMinesData[NO_ROUND]		=	gCvarValue[VALUE_NOROUND];
+#endif
+	gMinesData[DEPLOY_MAX]		=	gCvarValue[VALUE_MAX_DEPLOY];
+	gMinesData[DEPLOY_TEAM_MAX]	=	gCvarValue[VALUE_TEAM_MAX];
+	gMinesData[BUY_MODE]		=	gCvarValue[VALUE_BUY_MODE];
+	gMinesData[BUY_ZONE]		=	gCvarValue[VALUE_BUY_ZONE];
+	gMinesData[BUY_PRICE]		=	gCvarValue[VALUE_COST];
+	gMinesData[FRAG_MONEY]		=	gCvarValue[VALUE_FRAG_MONEY];
+	gMinesData[MINES_BROKEN]	=	gCvarValue[VALUE_MINE_BROKEN];
+	gMinesData[ALLOW_PICKUP]	=	gCvarValue[VALUE_ALLOW_PICKUP];
+	gMinesData[DEATH_REMOVE]	=	gCvarValue[VALUE_DEATH_REMOVE];
+	gMinesData[GLOW_ENABLE]		=	gCvarValue[VALUE_MINE_GLOW];
+	gMinesData[GLOW_MODE]		=	gCvarValue[VALUE_MINE_GLOW_MODE];
+	gMinesData[MINE_HEALTH]		=	gCvarValue[VALUE_MINE_HEALTH];
+	gMinesData[ACTIVATE_TIME]	=	gCvarValue[VALUE_CM_ACTIVATE];
+	gMinesData[EXPLODE_RADIUS]	=	gCvarValue[VALUE_EXPLODE_RADIUS];
+	gMinesData[EXPLODE_DAMAGE]	=	gCvarValue[VALUE_EXPLODE_DMG];
+	gMinesData[BUY_TEAM] 		=	get_team_code(gCvarValue[VALUE_CBT]);
+	gMinesData[GLOW_COLOR_TR]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_TR]);
+	gMinesData[GLOW_COLOR_CT]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_CT]);
+
+	gMinesId 					=	register_mines(ENT_CLASS_CLAYMORE, LANG_KEY_LONGNAME);
+
+	register_mines_data(gMinesId, gMinesData, ENT_MODELS);
 }
 
 //====================================================
@@ -217,33 +302,6 @@ public plugin_precache()
 	precache_model(ENT_SPRITE1);
 	
 	return PLUGIN_CONTINUE;
-}
-
-//====================================================
-// Put claymore Start Progress A
-//====================================================
-public cm_progress_deploy(id)
-{
-	mines_progress_deploy(id, gMinesId);
-	return PLUGIN_HANDLED;
-}
-
-//====================================================
-// Removing target put claymore.
-//====================================================
-public cm_progress_remove(id)
-{
-	mines_progress_pickup(id, gMinesId);
-	return PLUGIN_HANDLED;
-}
-
-//====================================================
-// Stopping Progress.
-//====================================================
-public cm_progress_stop(id)
-{
-	mines_progress_stop(id);
-	return PLUGIN_HANDLED;
 }
 
 //====================================================
@@ -278,7 +336,7 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	set_pev(iEnt, pev_dmg, 100.0);
 
 	// set entity health.
-	set_pev(iEnt, pev_health, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
+	set_pev(iEnt, pev_health, gMinesData[MINE_HEALTH]);
 
 	// set mine position
 	set_mine_position(uID, iEnt);
@@ -311,7 +369,9 @@ set_mine_position(uID, iEnt)
 
 	// get user position.
 	pev(uID, pev_origin, vOrigin);
-	xs_vec_add( gDeployPos[uID], vOrigin, vTraceEnd );
+	velocity_by_aim(uID, 128, vTraceEnd);
+	vTraceEnd[2] = -128.0;
+	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd );
 
     // create the trace handle.
 	new trace = create_tr2();
@@ -359,18 +419,16 @@ set_mine_position(uID, iEnt)
 	set_claymore_endpoint(iEnt, vNewOrigin);
 }
 
-Float:get_claymore_wire_endpoint(CVAR_SETTING:cvar)
+Float:get_claymore_wire_endpoint(cvar)
 {
 	new i = 0, n = 0, iPos = 0;
 	new Float:values[2];
 	new sCvarValue	[20];
 	new sSplit		[20];
-
 	new sSplitLen		= charsmax(sSplit);
 
-	get_pcvar_string(gCvar[cvar], sCvarValue, charsmax(sCvarValue));
 
-	formatex(sCvarValue, charsmax(sCvarValue), "%s%s", sCvarValue, ",");
+	formatex(sCvarValue, charsmax(sCvarValue), "%s%s", gCvarValue[cvar], ",");
 	while((i = split_string(sCvarValue[iPos += i], ",", sSplit, sSplitLen)) != -1 && n < sizeof(values))
 	{
 		values[n++] = str_to_float(sSplit);
@@ -383,22 +441,22 @@ Float:get_claymore_wire_endpoint(CVAR_SETTING:cvar)
 //====================================================
 stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 {
-	new Float:vAngles	[3];
-	new Float:vForward	[3];
-	new Float:vResult	[3][3];
+	new Float:vAngles		[3];
+	new Float:vForward		[3];
+	new Float:vResult		[3][3];
+	new Float:pAngles		[3];
+	new Float:vFwd			[3];
+	new Float:vRight		[3];
+	new Float:vUp			[3];
+	new trace = create_tr2();
 	static Float:hitPoint	[3];
 	static Float:vTmp		[3];
-	new Float:pAngles	[3];
-	new Float:vFwd		[3];
-	new Float:vRight	[3];
-	new Float:vUp		[3];
-	new trace = create_tr2();
 	static Float:pitch;
 	static Float:yaw;
+	static Float:fFraction;
 	new Float:range;
 	new n = 0;
-	new freq = get_pcvar_num(gCvar[CVAR_CM_TRIAL_FREQ]);
-	range = get_pcvar_float(gCvar[CVAR_CM_WIRE_RANGE]);
+	new freq;
 	pev(iEnt, pev_angles, vAngles);
 
 	// roll zero
@@ -449,12 +507,18 @@ stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 				engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
 				{
 					get_tr2(trace, TR_vecEndPos, vTmp);
+					get_tr2(trace, TR_flFraction, fFraction);
 				}
 			}
-			if (xs_vec_distance(vOrigin, vTmp) > xs_vec_distance(vOrigin, hitPoint))
-				hitPoint = vTmp;
-
-			n++;
+			new block = engfunc(EngFunc_PointContents, vTmp);
+			if (block != CONTENTS_SKY || block == CONTENTS_SOLID) 
+			{
+				if (xs_vec_distance(vOrigin, vTmp) > xs_vec_distance(vOrigin, hitPoint))
+				{
+					hitPoint = vTmp;
+				}
+				n++;
+			}
 		}
 		vResult[i] = hitPoint;
 	}
@@ -641,39 +705,27 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 draw_laserline(iEnt, const Float:vEndOrigin[3])
 {
 	new Float:tcolor[3];
-	new sRGB		[13];
-	new sColor		[4];
-	new sRGBLen 	= charsmax(sRGB);
-	new sColorLen	= charsmax(sColor);
 	new CsTeams:teamid = CsTeams:pev(iEnt, MINES_TEAM);
-	new Float:width = get_pcvar_float(gCvar[CVAR_CM_WIRE_WIDTH]);
-	new i = 0, n = 0, iPos = 0;
+
 	// Color mode. 0 = team color.
-	if(get_pcvar_num(gCvar[CVAR_CM_WIRE_COLOR]) == 0)
+	if(gCvarValue[VALUE_CM_WIRE_COLOR] == 0)
 	{
 		switch(teamid)
 		{
 			case CS_TEAM_T:
-				get_pcvar_string(gCvar[CVAR_CM_WIRE_COLOR_T], sRGB, sRGBLen);
+				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvarValue[VALUE_CM_WIRE_COLOR_T]), i));
 			case CS_TEAM_CT:
-				get_pcvar_string(gCvar[CVAR_CM_WIRE_COLOR_CT], sRGB, sRGBLen);
+				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvarValue[VALUE_CM_WIRE_COLOR_CT]), i));
 			default:
-				formatex(sRGB, sRGBLen, "20,20,20");
+				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color("20,20,20"), i));
 		}
 
 	}
 
-	formatex(sRGB, sRGBLen, "%s%s", sRGB, ",");
-	while(n < sizeof(tcolor))
-	{
-		i = split_string(sRGB[iPos += i], ",", sColor, sColorLen);
-		tcolor[n++] = str_to_float(sColor);
-	}
-
 	static Float:vStartOrigin[3];
 	pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vStartOrigin);
-	// lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 0, width, 0, tcolor, get_pcvar_num(gCvar[CVAR_CM_WIRE_BRIGHT]), 0);
-	return cm_draw_wire(vStartOrigin, vEndOrigin, 0.0, width, 0, tcolor, get_pcvar_float(gCvar[CVAR_CM_WIRE_BRIGHT]), 0.0);
+	// lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 0, width, 0, tcolor, bind_pcvar_num(gCvar[CVAR_CM_WIRE_BRIGHT]), 0);
+	return cm_draw_wire(vStartOrigin, vEndOrigin, 0.0, gCvarValue[VALUE_CM_WIRE_WIDTH], 0, tcolor, gCvarValue[VALUE_CM_WIRE_BRIGHT], 0.0);
 }
 
 stock cm_draw_wire(
@@ -699,11 +751,6 @@ stock cm_draw_wire(
 	return beams;
 }
 
-public cm_buy_claymore(id)
-{
-	mines_buy(id, gMinesId);
-}
-
 //====================================================
 // Check: On the wall.
 //====================================================
@@ -718,10 +765,10 @@ public CheckForDeploy(id, iMinesId)
 	pev(id, pev_origin, vOrigin);
 	
 	// Get wall position.
-	velocity_by_aim(id, 128, gDeployPos[id]);
-	gDeployPos[id][2] = -128.0;
+	velocity_by_aim(id, 128, vTraceEnd);
+	vTraceEnd[2] = -128.0;
 
-	xs_vec_add(gDeployPos[id], vOrigin, vTraceEnd);
+	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
@@ -748,11 +795,8 @@ public MinesBreaked(iMinesId, iEnt, iAttacker)
 {
 	if (iMinesId != gMinesId) return HAM_IGNORED;
 #if defined ZP_SUPPORT
-	new szName[MAX_NAME_LENGTH];
-	new addpoint = get_pcvar_num(gCvar[CVAR_FRAG_MONEY]);
-	get_user_name(iAttacker, szName, charsmax(szName));
-	zp_ammopacks_set(iAttacker, zp_ammopacks_get(iAttacker) + addpoint);
-	zp_colored_print(0, "^4%s ^1earned^4 %i points ^1for destorying a claymore !", szName, addpoint);
+	zp_ammopacks_set(iAttacker, zp_ammopacks_get(iAttacker) + gCvarValue[VALUE_FRAG_MONEY]);
+	zp_colored_print(0, "^4%n ^1earned^4 %i points ^1for destorying a claymore !", iAttacker, addpoint);
 #endif
     return HAM_IGNORED;
 }
@@ -783,4 +827,64 @@ public mines_remove_entity(iEnt)
 		wire = pev(iEnt, CLAYMORE_WIRE[i]);
 		engfunc(EngFunc_RemoveEntity, wire);
 	}
+}
+
+public mines_deploy_hologram(id, iEnt, iMinesId)
+{
+	if (iMinesId != gMinesId)
+		return 0;
+
+	// Vector settings.
+	static	Float:vOrigin[3];
+	static	Float:vNewOrigin[3],Float:vNormal[3],
+			Float:vTraceEnd[3],Float:vEntAngles[3];
+
+	// Get wall position.
+	velocity_by_aim(id, 128, vTraceEnd);
+	vTraceEnd[2] = -128.0;
+
+	// get user position.
+	pev(id, pev_origin, vOrigin);
+	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
+
+	// create the trace handle.
+	static trace;
+	static result;
+	result = 0;
+	trace = create_tr2();
+
+	// get wall position to vNewOrigin.
+	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
+	{
+		// -- We hit something!
+		// -- Save results to be used later.
+		get_tr2(trace, TR_vecEndPos, vTraceEnd);
+		get_tr2(trace, TR_vecPlaneNormal, vNormal);
+
+		if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
+		{
+			xs_vec_mul_scalar(vNormal, 8.0, vNormal);
+			xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
+			// set entity position.
+			engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
+			// Claymore user Angles.
+			new Float:pAngles[3];
+			pev(id, pev_angles, pAngles);
+			pAngles[0]   = -90.0;
+			// Rotate tripmine.
+			vector_to_angle(vNormal, vEntAngles);
+			xs_vec_add(vEntAngles, pAngles, vEntAngles); 
+			// set angle.
+			set_pev(iEnt, pev_angles, vEntAngles);
+			result = 1;
+		}
+		else
+		{
+			result = 0;
+		}
+	}
+	// free the trace handle.
+	free_tr2(trace);
+
+	return result;
 }

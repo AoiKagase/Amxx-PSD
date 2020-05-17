@@ -54,7 +54,7 @@
 #define cp_debug(%1)				client_print_color(%1, %1, "^4[Mines Debug] ^1Can't Create Entity")
 #define cp_not_active(%1)			client_print_color(%1, print_team_red, "%L", %1, LANG_KEY_NOT_ACTIVE, CHAT_TAG)
 #define cp_not_access(%1)			client_print_color(%1, print_team_red, "%L", %1, LANG_KEY_NOT_ACCESS, CHAT_TAG)
-#define cp_delay_time(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_DELAY_SEC,	CHAT_TAG, cvar_delay - nowTime)
+#define cp_delay_time(%1,%2)		client_print_color(%1, %1, "%L", %1, LANG_KEY_DELAY_SEC,	CHAT_TAG, %2)
 #define cp_bought(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_BOUGHT,		CHAT_TAG)
 #define	cp_no_money(%1)				client_print_color(%1, %1, "%L", %1, LANG_KEY_NO_MONEY,		CHAT_TAG, get_long_name(%1, iMinesId), cost)
 #define cp_dont_have(%1)			client_print_color(%1, %1, "%L", %1, LANG_KEY_NOT_HAVE,		CHAT_TAG, get_long_name(%1, iMinesId))
@@ -91,6 +91,7 @@ enum _:FORWARDER
 	FWD_MINES_PICKUP,
 	FWD_REMOVE_ENTITY,
 	FWD_PLUGINS_END,
+	FWD_HOLOGRAM,
 };
 
 new Array:gMinesClass;

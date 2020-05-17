@@ -32,14 +32,7 @@
 
 #pragma semicolon 1
 
-//=====================================
-//  VERSION CHECK
-//=====================================
-#if AMXX_VERSION_NUM < 200
-	#assert "AMX Mod X v1.10.0 or greater library required!"
-#endif
-
-#define PLUGIN 					"Mines Platform"
+#define PLUGIN 					"Mines Platform Core"
 #define CVAR_TAG				"amx_mines"
 
 //=====================================
@@ -50,7 +43,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 					"Aoi.Kagase"
-#define VERSION 				"4.00"
+#define VERSION 				"0.02"
 
 // ADMIN LEVEL
 #define ADMIN_ACCESSLEVEL		ADMIN_LEVEL_H
@@ -60,7 +53,7 @@
 #define TASK_RESET				315500
 #define TASK_RELEASE			315900
 
-#define INI_FILE				"mines/mines_resources.ini"
+#define INI_FILE				"plugins/mines/mines_resources.ini"
 //====================================================
 //  Enum Area.
 //====================================================
@@ -75,6 +68,16 @@ enum CVAR_SETTING
 	CVAR_CMD_MODE			,    	// 0 = +USE key, 1 = bind, 2 = each.
 	CVAR_FRIENDLY_FIRE		,		// Friendly Fire.
 	CVAR_START_DELAY        ,   	// Round start delay time.
+};
+
+enum CVAR_VALUE
+{
+	VL_ENABLE				= 0,    // Plugin Enable.
+	VL_ACCESS_LEVEL			,		// Access level for 0 = ADMIN or 1 = ALL.
+	VL_NOROUND				,		// Check Started Round.
+	VL_CMD_MODE				,    	// 0 = +USE key, 1 = bind, 2 = each.
+	VL_FRIENDLY_FIRE		,		// Friendly Fire.
+	VL_START_DELAY        	,   	// Round start delay time.
 };
 
 #if defined ZP_SUPPORT
@@ -95,6 +98,7 @@ new gMsgBarTime;
 new gEntMine;
 new gSubMenuCallback;
 new gCvar				[CVAR_SETTING];
+new gCvarValue			[CVAR_VALUE];
 new gSelectedMines		[MAX_PLAYERS];
 new gDeployingMines		[MAX_PLAYERS];
 
@@ -132,17 +136,17 @@ public plugin_init()
 	register_concmd("mines_give", 	"admin_give_mines",  ADMIN_ACCESSLEVEL, " - <userid> <minesId>"); 
 
 	// Add your code here...
-	register_clcmd("+mdeploy", "mines_cmd_progress_deploy");
-	register_clcmd("+mpickup", "mines_cmd_progress_pickup");
-   	register_clcmd("-mdeploy", "mines_cmd_progress_stop");
-   	register_clcmd("-mpickup", "mines_cmd_progress_stop");
+	register_clcmd("+mdeploy",  "mines_cmd_progress_deploy");
+	register_clcmd("+mpickup",  "mines_cmd_progress_pickup");
+   	register_clcmd("-mdeploy",  "mines_cmd_progress_stop");
+   	register_clcmd("-mpickup",  "mines_cmd_progress_stop");
 	register_clcmd("say", 		"say_mines");
 
 	// CVar settings.
 	// Common.
-	gCvar[CVAR_ENABLE]				= register_cvar(fmt("%s%s", CVAR_TAG, "_enable"),		"1"	);	// 0 = off, 1 = on.
-	gCvar[CVAR_ACCESS_LEVEL]		= register_cvar(fmt("%s%s", CVAR_TAG, "_access"),		"0"	);	// 0 = all, 1 = admin
-	gCvar[CVAR_START_DELAY]			= register_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),	"5"	);	// Round start delay time.
+	gCvar[CVAR_ENABLE]				= create_cvar(fmt("%s%s", CVAR_TAG, "_enable"),			"1"	);	// 0 = off, 1 = on.
+	gCvar[CVAR_ACCESS_LEVEL]		= create_cvar(fmt("%s%s", CVAR_TAG, "_access"),			"0"	);	// 0 = all, 1 = admin
+	gCvar[CVAR_START_DELAY]			= create_cvar(fmt("%s%s", CVAR_TAG, "_round_delay"),	"5"	);	// Round start delay time.
 	gCvar[CVAR_FRIENDLY_FIRE]		= get_cvar_pointer("mp_friendlyfire");							// Friendly fire. 0 or 1
 
 	gForwarder[FWD_SET_ENTITY_SPAWN]= CreateMultiForward("mines_entity_spawn_settings"	, ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
@@ -150,6 +154,7 @@ public plugin_init()
 	gForwarder[FWD_DISCONNECTED] 	= CreateMultiForward("mines_client_disconnected"	, ET_IGNORE, FP_CELL);
 	gForwarder[FWD_REMOVE_ENTITY]	= CreateMultiForward("mines_remove_entity"			, ET_IGNORE, FP_CELL);
 	gForwarder[FWD_PLUGINS_END] 	= CreateMultiForward("mines_plugin_end"				, ET_IGNORE);
+	gForwarder[FWD_HOLOGRAM]		= CreateMultiForward("mines_deploy_hologram"		, ET_IGNORE, FP_CELL, FP_CELL, FP_CELL);
 	gForwarder[FWD_CHECK_PICKUP]	= CreateMultiForward("CheckForPickup"				, ET_STOP,   FP_CELL, FP_CELL, FP_CELL);
 	gForwarder[FWD_CHECK_DEPLOY]	= CreateMultiForward("CheckForDeploy"				, ET_STOP,   FP_CELL, FP_CELL);
 	gForwarder[FWD_CHECK_BUY]	 	= CreateMultiForward("CheckForBuy"					, ET_STOP,   FP_CELL, FP_CELL);
@@ -161,9 +166,14 @@ public plugin_init()
 	gMsgBarTime						= get_user_msgid("BarTime");
 	gSubMenuCallback				= menu_makecallback("mines_submenu_callback");
 
+	bind_pcvar_num(gCvar[CVAR_ENABLE], 			gCvarValue[VL_ENABLE]);
+	bind_pcvar_num(gCvar[CVAR_ACCESS_LEVEL],	gCvarValue[VL_ACCESS_LEVEL]);
+	bind_pcvar_num(gCvar[CVAR_START_DELAY], 	gCvarValue[VL_START_DELAY]);
+	bind_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE], 	gCvarValue[VL_FRIENDLY_FIRE]);
+
 	// Register Event
-	register_event("DeathMsg", "DeathEvent",	"a");
-	register_event("TeamInfo", "CheckSpectator","a");
+	register_event_ex("DeathMsg", "DeathEvent",		RegisterEvent_Global);
+	register_event_ex("TeamInfo", "CheckSpectator",	RegisterEvent_Global);
 
 	// Register Forward.
 	register_forward(FM_PlayerPostThink,"PlayerPostThink");
@@ -177,11 +187,11 @@ public plugin_init()
 	RegisterHam(Ham_TakeDamage,	ENT_CLASS_BREAKABLE, "MinesBreakedMain",1);
 
 	// Multi Language Dictionary.
-	register_dictionary("mines/mines_main.txt");
+	register_dictionary("mines/mines_core.txt");
 
-	register_cvar(PLUGIN, VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+	create_cvar("mines_platform_core", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
-	AutoExecConfig(true, "mines_cvars_main", "mines");
+	AutoExecConfig(true, "mines_cvars_core", "mines");
 
 	return PLUGIN_CONTINUE;
 }
@@ -392,7 +402,7 @@ public client_authorized( id )
 {
     if( !g_bots_registered && is_user_bot( id ) )
     {
-        set_task( 0.1, "register_bots", id );
+        set_task_ex( 0.1, "register_bots", id );
     }
 }
 
@@ -410,11 +420,14 @@ public register_bots( id )
 //====================================================
 bool:is_valid_takedamage(iAttacker, iTarget)
 {
-	if (get_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE]))
+	if (gCvarValue[VL_FRIENDLY_FIRE])
 		return true;
 
-	if (cs_get_user_team(iAttacker) != cs_get_user_team(iTarget))
-		return true;
+	if (is_user_connected(iAttacker) && is_user_connected(iTarget))
+	{
+		if (cs_get_user_team(iAttacker) != cs_get_user_team(iTarget))
+			return true;
+	}
 
 	return false;
 }
@@ -425,7 +438,7 @@ bool:is_valid_takedamage(iAttacker, iTarget)
 public NewRound(id)
 {
 	// Check Plugin Enabled
-	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
+	if (!gCvarValue[VL_ENABLE])
 		return PLUGIN_CONTINUE;
 
 	if (!is_user_connected(id))
@@ -462,14 +475,17 @@ public NewRound(id)
 public mines_cmd_progress_deploy(id)
 {
 	mines_progress_deploy(id, gSelectedMines[id]);
+	return PLUGIN_HANDLED;
 }
 public mines_cmd_progress_pickup(id)
 {
 	mines_progress_pickup(id, gSelectedMines[id]);
+	return PLUGIN_HANDLED;
 }
 public mines_cmd_progress_stop(id)
 {
 	mines_progress_stop(id);
+	return PLUGIN_HANDLED;
 }
 
 //====================================================
@@ -508,7 +524,7 @@ public DeathEvent()
 	new vID = read_data(2); // victim
 
 	// Check Plugin Enabled
-	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
+	if (!gCvarValue[VL_ENABLE])
 		return PLUGIN_CONTINUE;
 
 	// Is Connected?
@@ -539,7 +555,11 @@ public mines_progress_deploy(id, iMinesId)
 	if (pev_valid(iEnt))
 	{
 		new models[MAX_MODEL_LENGTH];
+		new sClassName[MAX_CLASS_LENGTH];
+		ArrayGetString(gMinesClass, iMinesId, sClassName, charsmax(sClassName));
 		ArrayGetString(gMinesModels, iMinesId, models, charsmax(models));
+		// set classname.
+		set_pev(iEnt, pev_classname, sClassName);
 		// set models.
 		engfunc(EngFunc_SetModel, iEnt, models);
 		// set solid.
@@ -562,7 +582,7 @@ public mines_progress_deploy(id, iMinesId)
 	new sMineId[4];
 	num_to_str(iMinesId, sMineId, charsmax(sMineId));
 	// Start Task. Put mines.
-	set_task(wait, "SpawnMine", (TASK_PLANT + id), sMineId, charsmax(sMineId));
+	set_task_ex(wait, "SpawnMine", (TASK_PLANT + id), sMineId, charsmax(sMineId));
 
 	return PLUGIN_HANDLED;
 }
@@ -589,7 +609,7 @@ public mines_progress_pickup(id, iMinesId)
 	new sMineId[4];
 	num_to_str(iMinesId, sMineId, charsmax(sMineId));
 	// Start Task. Remove mines.
-	set_task(wait, "RemoveMine", (TASK_RELEASE + id), sMineId, charsmax(sMineId));
+	set_task_ex(wait, "RemoveMine", (TASK_RELEASE + id), sMineId, charsmax(sMineId));
 
 	return PLUGIN_HANDLED;
 }
@@ -656,7 +676,7 @@ public SpawnMine(params[], id)
 //====================================================
 public RemoveMine(params[], id)
 {
-	new target, body;
+	new target;
 	new Float:vOrigin[3];
 	new Float:tOrigin[3];
 	static plData[PLAYER_DATA];
@@ -665,7 +685,7 @@ public RemoveMine(params[], id)
 	new uID = id - TASK_RELEASE;
 
 	// Get target entity.
-	get_user_aiming(uID, target, body);
+	get_user_aiming(uID, target);
 
 	// is valid target?
 	if(!pev_valid(target))
@@ -797,7 +817,7 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 public MinesThinkMain(iEnt)
 {
 	// Check plugin enabled.
-	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
+	if (!gCvarValue[VL_ENABLE])
 		return HAM_IGNORED;
 
 	// is valid this entity?
@@ -824,20 +844,23 @@ public MinesBreakedMain(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 	static sClassName[MAX_CLASS_LENGTH];
 	static iMinesId;
 
-	pev(victim, pev_classname, sClassName, charsmax(sClassName));
-	iMinesId = ArrayFindString(gMinesClass, sClassName);
-
-    // is this mines? no.
-	if (iMinesId == -1)
-		return HAM_IGNORED;
-
-	new Float:health;
-	mines_get_health(victim, health);
-	if (health <= 0.0)
+	if (pev_valid(victim))
 	{
-		new iReturn;
-		ExecuteForward(gForwarder[FWD_MINES_BREAKED], iReturn, iMinesId, victim, attacker);
+		pev(victim, pev_classname, sClassName, charsmax(sClassName));
+		iMinesId = ArrayFindString(gMinesClass, sClassName);
+		// is this mines? no.
+		if (iMinesId == -1)
+			return HAM_IGNORED;
+
+		new Float:health;
+		mines_get_health(victim, health);
+		if (health <= 0.0)
+		{
+			new iReturn;
+			ExecuteForward(gForwarder[FWD_MINES_BREAKED], iReturn, iMinesId, victim, attacker);
+		}
 	}
+
 	return HAM_IGNORED;
 }
 
@@ -847,7 +870,6 @@ public MinesBreakedMain(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 { 
 	static sClassName[MAX_CLASS_LENGTH];
-	static sName[MAX_NAME_LENGTH];
 	static minesData[COMMON_MINES_DATA];
 
 	static iHit, iOwner, Float:health;
@@ -870,8 +892,7 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 				ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
 				iOwner = pev(iHit, MINES_OWNER);
 				mines_get_health(iHit, health);
-				get_user_name(iOwner, sName, charsmax(sName));
-				formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG_KEY_MINE_HUD, sName, floatround(health), floatround(Float:minesData[MINE_HEALTH]));
+				formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG_KEY_MINE_HUD, iOwner, floatround(health), floatround(Float:minesData[MINE_HEALTH]));
 				//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
 				set_hudmessage(50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
 				show_hudmessage(id, hudMsg);
@@ -951,50 +972,17 @@ public PlayerPostThink(id)
 		}
 		case STATE_DEPLOYING:
 		{
-			if (pev_valid(gDeployingMines[id]))
+			static sClassName[MAX_CLASS_LENGTH];
+			new iEnt = gDeployingMines[id];
+			if (pev_valid(iEnt))
 			{
-				// Vector settings.
-				static	Float:vOrigin[3];
-				static	Float:vNewOrigin[3],Float:vNormal[3],
-						Float:vTraceEnd[3],Float:vEntAngles[3];
+				pev(iEnt, pev_classname, sClassName, charsmax(sClassName));
+				new iMinesId = ArrayFindString(gMinesClass, sClassName);
 
-				// Get wall position.
-				velocity_by_aim(id, 128, vTraceEnd);
-				// get user position.
-				pev(id, pev_origin, vOrigin);
-				xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
-
-			    // create the trace handle.
-				static trace;
-				trace = create_tr2();
-
-				// get wall position to vNewOrigin.
-				engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
+				if(!ExecuteForward(gForwarder[FWD_HOLOGRAM], _, id, iEnt, iMinesId))
 				{
-					// -- We hit something!
-					// -- Save results to be used later.
-					get_tr2(trace, TR_vecEndPos, vTraceEnd);
-					get_tr2(trace, TR_vecPlaneNormal, vNormal);
-
-					if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
-					{
-						xs_vec_mul_scalar(vNormal, 8.0, vNormal);
-						xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
-						// set entity position.
-						engfunc(EngFunc_SetOrigin, gDeployingMines[id], vNewOrigin);
-						// Rotate tripmine.
-						vector_to_angle(vNormal, vEntAngles);
-						// set angle.
-						set_pev(gDeployingMines[id], pev_angles, vEntAngles);
-					}
-					else
-					{
-						mines_cmd_progress_stop(id);
-					}
-
+					mines_cmd_progress_stop(id);
 				}
-				// free the trace handle.
-				free_tr2(trace);
 			}
 
 			mines_set_user_max_speed(id, 1.0);
@@ -1018,8 +1006,8 @@ public PlayerPostThink(id)
 //====================================================
 public client_putinserver(id)
 {
-	// check plugin enabled.
-	if(!get_pcvar_num(gCvar[CVAR_ENABLE]))
+	// Check plugin enabled.
+	if (!gCvarValue[VL_ENABLE])
 		return PLUGIN_CONTINUE;
 
 	new iReturn;
@@ -1035,8 +1023,8 @@ public client_putinserver(id)
 //====================================================
 public client_disconnected(id)
 {
-	// check plugin enabled.
-	if(!get_pcvar_num(gCvar[CVAR_ENABLE]))
+	// Check plugin enabled.
+	if (!gCvarValue[VL_ENABLE])
 		return PLUGIN_CONTINUE;
 	
 	new iReturn;
@@ -1069,21 +1057,18 @@ delete_task(id)
 //====================================================
 stock bool:CheckCommon(id, plData[PLAYER_DATA])
 {
-	new cvar_enable = get_pcvar_num(gCvar[CVAR_ENABLE]);
-	new cvar_access = get_pcvar_num(gCvar[CVAR_ACCESS_LEVEL]);
-	new cvar_delay	= get_pcvar_num(gCvar[CVAR_START_DELAY]);
 	new user_flags	= get_user_flags(id) & ADMIN_ACCESSLEVEL;
 	new is_alive	= is_user_alive(id);
 
 	// Plugin Enabled
-	if (!cvar_enable)
+	if (!gCvarValue[VL_ENABLE])
 	{
 		cp_not_active(id);
 		return false;
 	}
 
 	// Can Access.
-	if (cvar_access && !user_flags)
+	if (gCvarValue[VL_ACCESS_LEVEL] && !user_flags)
 	{
 		cp_not_access(id);
 		return false;
@@ -1096,9 +1081,9 @@ stock bool:CheckCommon(id, plData[PLAYER_DATA])
 	// Can set Delay time?
 	// gametime - playertime = delay count.
 	new nowTime = (floatround(get_gametime()) - _:plData[PL_COUNT_DELAY]);
-	if(nowTime < cvar_delay)
+	if(nowTime < gCvarValue[VL_START_DELAY])
 	{
-		cp_delay_time(id);
+		cp_delay_time(id, gCvarValue[VL_START_DELAY] - nowTime);
 		return false;
 	}
 	return true;
@@ -1186,11 +1171,11 @@ public bool:CheckPickup(id, iMinesId)
 			return false;
 	}
 
-	new target, body;
+	new target;
 	new Float:vOrigin[3];
 	new Float:tOrigin[3];
 
-	get_user_aiming(id, target, body);
+	get_user_aiming(id, target);
 
 	// is valid target entity?
 	if(!pev_valid(target))
@@ -1262,9 +1247,7 @@ public CheckSpectator()
 		delete_task(id);
 		if (mines_remove_all_mines(id))
 		{
-			new namep[MAX_NAME_LENGTH];
-			get_user_name(id, namep, charsmax(namep));
-			cp_remove_spec(0, namep);
+			cp_remove_spec(0, id);
 		}
      } 
 }
@@ -1368,14 +1351,11 @@ public mines_show_menu(id, iPage)
 	if (count <= 0)
 		return;
 	
-	new sMenuTitle[32];
-	formatex(sMenuTitle, charsmax(sMenuTitle), "%L", id, LANG_KEY_MENU_TITLE);
-	new menu = menu_create(sMenuTitle, "mines_menu_handler");
+	new menu = menu_create(LANG_KEY_MENU_TITLE, "mines_menu_handler", true);
 	new sItemName[MAX_NAME_LENGTH];
 	for(new i = 0; i < count; i++)
 	{
 		ArrayGetString(gMinesLongName, i, sItemName, charsmax(sItemName));
-		formatex(sItemName, charsmax(sItemName), "%L", id, sItemName);
 		menu_additem(menu, sItemName);
 	}
 
@@ -1400,30 +1380,27 @@ public mines_menu_handler(id, menu, item)
 //====================================================
 public mines_show_menu_sub(id, iMinesId)
 {
-	new sMenuTitle[32];
 	new sMinesId[3];
 	new sItemName[MAX_NAME_LENGTH];
 
 	num_to_str(iMinesId, sMinesId, charsmax(sMinesId));
 	ArrayGetString(gMinesLongName, iMinesId, sItemName, charsmax(sItemName));
 	formatex(sItemName, charsmax(sItemName), "%L", id, sItemName);
-	formatex(sMenuTitle, charsmax(sMenuTitle), "%L", id, LANG_KEY_SUB_MENU_TITLE, sItemName);
-
-	new menu = menu_create(sMenuTitle, "mines_menu_sub_handler");
+	new menu = menu_create(fmt("%L", id, LANG_KEY_SUB_MENU_TITLE, sItemName), "mines_menu_sub_handler", false);
 	new minesData[COMMON_MINES_DATA];
 	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
 
-	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_SELECT,		sItemName), 						sMinesId, 0, gSubMenuCallback);
+	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_SELECT, sItemName), 	sMinesId, 0, gSubMenuCallback);
 	#if defined ZP_SUPPORT
 		menu_addblank2(menu);
 	#else
-		menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_BUY, 		sItemName, minesData[BUY_PRICE]), 	sMinesId, 0, gSubMenuCallback);
+		menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_BUY, sItemName, minesData[BUY_PRICE]), sMinesId, 0, gSubMenuCallback);
 	#endif
 	menu_addblank2(menu);
-	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_DEPLOY, 		sItemName), 						sMinesId);
-	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_PICKUP, 		sItemName), 						sMinesId);
+	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_DEPLOY, 	sItemName), 		sMinesId);
+	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_PICKUP, 	sItemName), 		sMinesId);
 	menu_addblank2(menu);
-	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_EXPLOSION, 	sItemName), 						sMinesId);
+	menu_additem(menu, fmt("%L", id, LANG_KEY_MENU_EXPLOSION, sItemName), 	sMinesId);
 
 	menu_setprop(menu, MPROP_EXIT, MEXIT_FORCE);
 
@@ -1436,9 +1413,8 @@ public mines_show_menu_sub(id, iMinesId)
 public mines_submenu_callback(id, menu, item)
 {
 	new szData[6], szName[64];
-	new item_access, item_callback;
 	//Get information about the menu item
-	menu_item_getinfo(menu, item, item_access, szData, charsmax(szData), szName, charsmax(szName), item_callback);
+	menu_item_getinfo(menu, item, _, szData, charsmax(szData), szName, charsmax(szName));
 	new iMinesId = str_to_num(szData);
 	new minesData[COMMON_MINES_DATA];
 
@@ -1450,8 +1426,7 @@ public mines_submenu_callback(id, menu, item)
 		{
 			if (gSelectedMines[id] == iMinesId)
 			{
-				formatex(szName, charsmax(szName), "%s\R\y[SELECTED]", szName);
-				menu_item_setname(menu, item, szName);
+				menu_item_setname(menu, item, ("MENU_SELECTED_ON", szName));
 				return ITEM_DISABLED;
 			}
 		}
@@ -1472,9 +1447,8 @@ public mines_submenu_callback(id, menu, item)
 public mines_menu_sub_handler(id, menu, item)
 {
 	new szData[6], szName[64];
-	new item_access, item_callback;
     //Get information about the menu item
-	menu_item_getinfo(menu, item, item_access, szData, charsmax(szData), szName, charsmax(szName), item_callback);
+	menu_item_getinfo(menu, item, _, szData, charsmax(szData), szName, charsmax(szName));
 
 	new iMinesId = str_to_num(szData);
 	switch(item)
@@ -1529,7 +1503,7 @@ public ZpMinesNative(iPlugin, iParams)
 
 public zp_fw_core_infect_post(id, attacker)
 {
-	if (!get_pcvar_num(gCvar[CVAR_ENABLE]))
+	if (!gCvarValue[VL_ENABLE])
 		return PLUGIN_CONTINUE;
 
 	// Is Connected?
@@ -1656,7 +1630,7 @@ stock ini_read_string(const file[], const section[], const key[], dest[], len)
 
 			if (equali(szKey, key))
 			{
-				replace_all(szBuffer, charsmax(szBuffer), "^"", "");
+				replace_string(szBuffer, charsmax(szBuffer), "^"", "");
 				iRetVal = copy(dest, len, szBuffer);
 				break;
 			}

@@ -9,6 +9,12 @@
 	#endinput
 #endif
 #define _mines_const_included
+//=====================================
+//  VERSION CHECK
+//=====================================
+#if AMXX_VERSION_NUM < 200
+	#assert "AMX Mod X v1.10.0 or greater library required!"
+#endif
 
 #define CHAT_TAG 					"[M.P]"
 #define ENT_CLASS_BREAKABLE			"func_breakable"
