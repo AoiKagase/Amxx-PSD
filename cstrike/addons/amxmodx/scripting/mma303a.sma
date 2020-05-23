@@ -1,33 +1,50 @@
-#pragma semicolon 1
+//#pragma semicolon 1
 #include <amxmodx>
 #include <amxmisc>
+#include <cromchat>
+
+//=====================================
+//  VERSION CHECK
+//=====================================
+#if AMXX_VERSION_NUM < 182
+	#assert "AMX Mod X v1.8.2 or greater library required!"
+#endif
 
 #define PLUGIN			"Music Menu Advance"
-#define VERSION			"3.01"
+#define VERSION			"3.03"
 #define AUTHOR			"Aoi.Kagase"
 
 #define MEDIA_LIST		"bgmlist.ini"	// in configdir.
 
-enum _:BGM
-{
-	MENU_TITLE	[MAX_NAME_LENGTH],
-	FILE_PATH	[MAX_RESOURCE_PATH_LENGTH],
-}
-new Array:g_bgm;
+new Array:g_menu_title;
+new Array:g_file_path;
 
 new g_loadsong;
+new gc_loadsong;
+
+stock split_string_amxx(const szSource[], const szDelim[], szParsed[], iMaxChars)
+{
+    new iPos = strfind(szSource, szDelim);
+    return (iPos > -1) ? copy(szParsed, min(iPos, iMaxChars), szSource) + strlen(szDelim) : -1;
+}
 
 public plugin_init() 
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 
-	g_loadsong = register_cvar("amx_mma_loadingsong", "1");
-
+#if AMXX_VERSION_NUM < 190
+	g_loadsong  = register_cvar("amx_mma_loadingsong", "1");
+	gc_loadsong = get_pcvar_num(g_loadsong);
+#else
+	g_loadsong  = create_cvar("amx_mma_loadingsong", "1");
+	bind_pcvar_num(g_loadsong, gc_loadsong);
+#endif
 	// Add your code here...
 	register_clcmd("mma", "cmdBgmMenu", -1, " - shows a menu of a Music commands");
 	register_clcmd("say", "say_mma");
 
 	register_concmd("amx_mma_play", "server_bgm", ADMIN_ADMIN, "amx_mma_play <BgmNumber> | server bgm starting");
+
 }
 
 //====================================================
@@ -60,24 +77,28 @@ public cmdBgmMenu(id, level, cid)
 
 public plugin_precache()
 {
-	new iniFile		[MAX_RESOURCE_PATH_LENGTH];
-	new sConfigDir	[MAX_RESOURCE_PATH_LENGTH];
-	new aBgm		[BGM];
+	new iniFile		[64];
+	new sConfigDir	[64];
+	new aFilePath	[64];
 
 	get_configsdir(sConfigDir, charsmax(sConfigDir));
 	formatex(iniFile, charsmax(iniFile), "%s/%s", sConfigDir, MEDIA_LIST);
 
 	load_bgm_files(iniFile);
 
-	for(new i = 0; i < ArraySize(g_bgm); i++)
+	for(new i = 0; i < ArraySize(g_file_path); i++)
 	{
-		ArrayGetArray(g_bgm, i, aBgm, sizeof(aBgm));
-		if (file_exists(aBgm[FILE_PATH], true))
+		ArrayGetString(g_file_path, i, aFilePath, sizeof(aFilePath));
+#if AMXX_VERSION_NUM < 190
+		if (file_exists(aFilePath))
+#else
+		if (file_exists(aFilePath, true))
+#endif
 		{
-			precache_generic(aBgm[FILE_PATH]);
+			precache_generic(aFilePath);
 		}
 	}
-	server_print("Server BGMs Loaded (%i BGMs)", ArraySize(g_bgm));
+	server_print("Server BGMs Loaded (%i BGMs)", ArraySize(g_file_path));
 }
 
 load_bgm_files(sFileName[])
@@ -85,9 +106,10 @@ load_bgm_files(sFileName[])
 	if (!file_exists(sFileName))
 		return;
 
-	new sRec		[MAX_NAME_LENGTH + MAX_RESOURCE_PATH_LENGTH];
-	new sBlock		[MAX_RESOURCE_PATH_LENGTH];
-	new aBgm		[BGM];
+	new sRec		[32 + 64];
+	new sBlock		[64];
+	new aMenuTitle	[32];
+	new aFilePath	[64];
 
 	new sRecLen 	= charsmax(sRec);
 	new	sBlockLen	= charsmax(sBlock);
@@ -97,7 +119,8 @@ load_bgm_files(sFileName[])
 
 	new i = 0, n = 0, iPos = 0;
 
-	g_bgm = ArrayCreate(MAX_NAME_LENGTH + MAX_RESOURCE_PATH_LENGTH);
+	g_menu_title 	= ArrayCreate(32);
+	g_file_path		= ArrayCreate(64);
 
 	while(!feof(fp))
 	{
@@ -108,22 +131,28 @@ load_bgm_files(sFileName[])
 		formatex(sRec, sRecLen, "%s%s", sRec, ";");
 
 		iPos = 0, n = 0, i = 0;
-		while((i = split_string(sRec[n += i], ";", sBlock, sBlockLen)) != -1 && iPos <= 1)
+
+		while((i = split_string_amxx(sRec[n += i], ";", sBlock, sBlockLen)) != -1 && iPos <= 1)
 		{
 			trim(sBlock);
 
 			if (iPos == 0)
 			{
-				formatex(aBgm[MENU_TITLE], charsmax(aBgm[MENU_TITLE]), "%s", sBlock);
+				formatex(aMenuTitle, charsmax(aMenuTitle), "%s", sBlock);
 				iPos++;
 			} 
 			else
 			if (iPos == 1)
 			{
+#if AMXX_VERSION_NUM < 190
+				if (file_exists(aFilePath))
+#else
 				if (file_exists(sBlock, true))
+#endif
 				{
-					formatex(aBgm[FILE_PATH], charsmax(aBgm[FILE_PATH]), "%s", sBlock);
-					ArrayPushArray(g_bgm, aBgm);
+					formatex(aFilePath, charsmax(aFilePath), "%s", sBlock);
+					ArrayPushArray(g_menu_title,aMenuTitle);
+					ArrayPushArray(g_file_path,	aFilePath);
 					iCount++;
 				}
 				else
@@ -140,14 +169,14 @@ load_bgm_files(sFileName[])
 
 public client_connect(id)
 {
-	if(get_pcvar_num(g_loadsong))
+	if(gc_loadsong)
 	{
 		if (!is_user_bot(id))
 		{
-			new sBgm[BGM];
-			new j = random_num(0, ArraySize(g_bgm) - 1);
-			ArrayGetArray(g_bgm, j, sBgm);
-			client_cmd(id, "mp3 play %s", sBgm[FILE_PATH]);
+			new sBgm[64];
+			new j = random_num(0, ArraySize(g_file_path) - 1);
+			ArrayGetString(g_file_path, j, sBgm, charsmax(sBgm));
+			client_cmd(id, "mp3 play %s", sBgm);
 		}
 	}
 	return PLUGIN_CONTINUE;
@@ -155,12 +184,13 @@ public client_connect(id)
 
 public server_bgm()
 {
-	new aBgm[BGM];
-	new arg	[3];
+	new aMenuTitle	[32];
+	new aFilePath	[64];
+	new arg			[3];
 	read_argv(1, arg, charsmax(arg));
 
 	new num 	 = str_to_num(arg);
-	new bgmCount = ArraySize(g_bgm);
+	new bgmCount = ArraySize(g_menu_title);
 
 	if (bgmCount <= 0)
 	{
@@ -169,13 +199,13 @@ public server_bgm()
 	} 
 	else
 	{
-		if (num > 0 && num - 1 < bgmCount)
+		if (0 < num <= bgmCount)
 		{
-			ArrayGetArray(g_bgm, num - 1, aBgm);
+			ArrayGetString(g_file_path, num - 1, aFilePath, charsmax(aFilePath));
 			// All Player Command.
 			client_cmd(0, "mp3 stop");
-			client_cmd(0, "mp3 play %s", aBgm[FILE_PATH]);
-			client_print_color(0, print_chat, "^4[MMA] ^3ADMIN: BGM START! ^2[%s]", aBgm[MENU_TITLE]);
+			client_cmd(0, "mp3 play %s", aFilePath);
+			client_print_color(0, print_chat, "^4[MMA] ^3ADMIN: BGM START! ^2[%s]", aMenuTitle);
 		}
 		else
 		{
@@ -191,18 +221,20 @@ public server_bgm()
 music_showmenu(id)
 {
     // Some variables to hold information about the players
-	new szPath	[MAX_RESOURCE_PATH_LENGTH + 6];
-	new aBgm	[BGM];
+	new szPath		[64 + 6];
+	new aMenuTitle	[32];
+	new aFilePath	[64];
 
     // Create a variable to hold the menu
 	new menu = menu_create("Music Menu: BGM-List", "music_menu_handler");
 	menu_additem(menu, "STOP BGM.", "stop", 0);
-	for(new i = 0; i < ArraySize(g_bgm); i++)
+	for(new i = 0; i < ArraySize(g_menu_title); i++)
 	{
-		ArrayGetArray(g_bgm, i, aBgm);
-		formatex(szPath, charsmax(szPath), "play %s", aBgm[FILE_PATH]);
+		ArrayGetString(g_menu_title, i, aMenuTitle, charsmax(aMenuTitle));
+		ArrayGetString(g_file_path,  i, aFilePath,	charsmax(aFilePath));
+		formatex(szPath, charsmax(szPath), "play %s", aFilePath);
         // Add the item for this player
-		menu_additem(menu, aBgm[MENU_TITLE], szPath, 0);
+		menu_additem(menu, aMenuTitle, szPath, 0);
     }
 	menu_setprop(menu, MPROP_NUMBER_COLOR, "\y");
 
@@ -220,7 +252,7 @@ public music_menu_handler(id, menu, item)
     }
 		
 	// now lets create some variables that will give us information about the menu and the item that was pressed/chosen
-	new szData[MAX_RESOURCE_PATH_LENGTH + 6], szName[MAX_NAME_LENGTH];
+	new szData[64 + 6], szName[32];
 	new _access, item_callback;
 	// heres the function that will give us that information ( since it doesnt magicaly appear )
 	menu_item_getinfo(menu, item, _access, szData, charsmax(szData), szName, charsmax(szName), item_callback);
@@ -238,5 +270,6 @@ public music_menu_handler(id, menu, item)
 
 public plugin_end()
 {
-	ArrayDestroy(g_bgm);
+	ArrayDestroy(g_menu_title);
+	ArrayDestroy(g_file_path);
 }
