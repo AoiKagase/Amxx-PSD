@@ -123,7 +123,7 @@ stock lm_hide_progress(id, msg)
 //====================================================
 // Draw Spark
 //====================================================
-stock lm_draw_spark(Float:origin[3])
+stock lm_draw_spark(const Float:origin[])
 {
 	message_begin(MSG_ALL, SVC_TEMPENTITY);
 	write_byte(TE_SPARKS);
@@ -479,3 +479,32 @@ stock lm_remove_entity(iEnt)
 	engfunc(EngFunc_RemoveEntity, iEnt);
 }
 
+#if AMXX_VERSION_NUM < 190
+stock fmt(const szString[], any:...)
+{
+	new result[512];
+	vformat(result, charsmax(result), szString, 2);
+	return result;
+}
+
+stock split_string(const szSource[], const szDelim[], szParsed[], iMaxChars)
+{
+    new iPos = strfind(szSource, szDelim);
+    return (iPos > -1) ? copy(szParsed, min(iPos, iMaxChars), szSource) + strlen(szDelim) : -1;
+}
+
+/**
+ * Computes the distance between two vectors (points).
+ *
+ * @param vec1          First vector.
+ * @param vec2          Second vector.
+ *
+ * @return              The distance between two vectors.
+ */
+stock Float:xs_vec_distance(const Float:vec1[], const Float:vec2[])
+{
+	return xs_sqrt((vec1[0]-vec2[0]) * (vec1[0]-vec2[0]) +
+	               (vec1[1]-vec2[1]) * (vec1[1]-vec2[1]) +
+	               (vec1[2]-vec2[2]) * (vec1[2]-vec2[2]));
+}
+#endif

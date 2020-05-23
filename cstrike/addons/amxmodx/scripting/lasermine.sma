@@ -32,8 +32,8 @@
 //=====================================
 //  VERSION CHECK
 //=====================================
-#if AMXX_VERSION_NUM < 200
-	#assert "AMX Mod X v1.10.0 or greater library required!"
+#if AMXX_VERSION_NUM < 182
+	#assert "AMX Mod X v1.8.2 or greater library required!"
 #endif
 
 #if defined BIOHAZARD_SUPPORT
@@ -80,7 +80,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"3.10"
+#define VERSION 					"3.11a"
 
 //#define STR_MINEDETNATED 			"Your mine has detonated.",
 //#define STR_MINEDETNATED2			"detonated your mine.",
@@ -150,9 +150,9 @@
 
 enum _:HIT_PLAYER
 {
-	I_TARGET				= 0,
-	I_HIT_GROUP				= 1,
-	Float:V_POSITION[3]		= 2,
+	I_TARGET				,
+	I_HIT_GROUP				,
+	Float:V_POSITION[3]		,
 };
 
 //
@@ -232,7 +232,10 @@ new gMsgBarTime;
 new gBeam, gBoom;
 new gEntMine;
 
+#if AMXX_VERSION_NUM > 183
 new Stack:gRecycleMine	[MAX_PLAYERS];
+#endif
+
 new gDeployingMines		[MAX_PLAYERS];
 
 #if defined ZP_SUPPORT
@@ -369,8 +372,10 @@ public plugin_init()
 
 	register_cvar("ltm_versions", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
+#if AMXX_VERSION_NUM > 183
 	for(new i = 0; i < MAX_PLAYERS; i++)
 		gRecycleMine[i] = CreateStack(1);
+#endif
 
 	#if defined ZP_SUPPORT
 		new wmode 						= get_pcvar_num(gCvar[CVAR_MODE]);
@@ -381,6 +386,7 @@ public plugin_init()
 		gZpGameMode[GMODE_ASSASIN]		= zp_gamemodes_get_id("Assassin Mode");
 	#endif
 
+#if AMXX_VERSION_NUM > 183
 #if defined BIOHAZARD_SUPPORT
 	AutoExecConfig(true, "plugin-lasermine_bh");
 #else
@@ -388,6 +394,7 @@ public plugin_init()
 	AutoExecConfig(true, "plugin-lasermine_zp");
 #else
 	AutoExecConfig(true);
+#endif
 #endif
 #endif
 	// registered func_breakable
@@ -466,15 +473,42 @@ public zp_fw_items_select_post(id, itemid, ignorecost)
 	}
 }
 #endif
+#if AMXX_VERSION_NUM < 190
+//====================================================
+//  PLUGIN CONFIG
+//====================================================
+public plugin_cfg()
+{
+	new file[64];
+	new len = charsmax(file);
+	get_localinfo("amxx_configsdir", file, len);
+
+#if defined BIOHAZARD_SUPPORT
+	format(file, len, "%s/bhltm_cvars.cfg", file);
+#else
+#if defined ZP_SUPPORT
+	format(file, len, "%s/zp_ltm_cvars.cfg", file);
+#else
+	format(file, len, "%s/ltm_cvars.cfg", file);
+#endif
+#endif
+	if(file_exists(file)) 
+	{
+		server_cmd("exec %s", file);
+		server_exec();
+	}
+}
+#endif
 //====================================================
 //  PLUGIN END
 //====================================================
+#if AMXX_VERSION_NUM > 183
 public plugin_end()
 {
 	for(new i = 0; i < MAX_PLAYERS; i++)
 		DestroyStack(gRecycleMine[i]);
 }
-
+#endif
 //====================================================
 //  PLUGIN PRECACHE
 //====================================================
@@ -577,9 +611,10 @@ public NewRound(id)
 		// Delay time reset
 		lm_set_user_delay_count(id, int:floatround(get_gametime()));
 
+#if AMXX_VERSION_NUM > 183
 		// Init Recycle Health.
 		ClearStack(gRecycleMine[id]);
-
+#endif
 		// Task Delete.
 		delete_task(id);
 
@@ -800,6 +835,7 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 
 	// set entity health.
 	// if recycle health.
+#if AMXX_VERSION_NUM > 183
 	if (!IsStackEmpty(gRecycleMine[uID]))
 	{
 		new Float:health;
@@ -810,7 +846,9 @@ stock set_spawn_entity_setting(iEnt, uID, classname[])
 	{
 		lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
 	}
-
+#else
+	lm_set_user_health(iEnt, get_pcvar_float(gCvar[CVAR_MINE_HEALTH]));
+#endif
 	// set mine position
 	set_mine_position(uID, iEnt);
 
@@ -1001,9 +1039,10 @@ public RemoveMine(id)
 	}
 
 	// Recycle Health.
+#if AMXX_VERSION_NUM > 183
 	new Float:health = lm_get_user_health(target);
 	PushStackCell(gRecycleMine[uID], health);
-
+#endif
 	// Remove!
 	lm_remove_entity(target);
 
@@ -1280,7 +1319,7 @@ public LaserThink(iEnt)
 						continue;
 					}
 					hPlayer[I_TARGET] 	= iTarget;
-					hPlayer[V_POSITION]	= hitPoint;
+					hPlayer[V_POSITION]	= _:hitPoint;
 					hPlayer[I_HIT_GROUP]= hitGroup;
 					ArrayPushArray(aTarget, hPlayer);
 					if (hitGroup == HIT_SHIELD && get_pcvar_num(gCvar[CVAR_DIFENCE_SHIELD]))
@@ -1506,7 +1545,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 //====================================================
 // Laser damage
 //====================================================
-create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
+create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[])
 {
 	// Damage.
 	new Float:dmg 	= get_pcvar_float(gCvar[CVAR_LASER_DMG]);
@@ -1803,8 +1842,10 @@ public client_putinserver(id)
 	// reset hove mine.
 	lm_set_user_have_mine(id, int:0);
 
+#if AMXX_VERSION_NUM > 183
 	// Init Recycle Health.
 	ClearStack(gRecycleMine[id]);
+#endif
 
 	return PLUGIN_CONTINUE;
 }
@@ -1815,7 +1856,11 @@ public client_putinserver(id)
 /*
 	symbol "client_disconnect" is marked as deprecated: Use client_disconnected() instead.
 */
+#if AMXX_VERSION_NUM > 183
 public client_disconnected(id)
+#else
+public client_disconnect(id)
+#endif
 {
 	// check plugin enabled.
 	if(!get_pcvar_num(gCvar[CVAR_ENABLE]))
@@ -1826,8 +1871,10 @@ public client_disconnected(id)
 	// remove all lasermine.
 	lm_remove_all_entity(id, ENT_CLASS_LASER);
 
+#if AMXX_VERSION_NUM > 183
 	// Init Recycle Health.
 	ClearStack(gRecycleMine[id]);
+#endif
 
 	return PLUGIN_CONTINUE;
 }
@@ -2081,8 +2128,8 @@ stock ERROR:check_for_onwall(id)
 
 	if (mode_claymore)
 		return ERROR:MUST_GROUND;
-	else
-		return ERROR:MUST_WALL;
+
+	return ERROR:MUST_WALL;
 }
 
 //====================================================

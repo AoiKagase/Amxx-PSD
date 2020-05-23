@@ -10,6 +10,16 @@
 #endif
 #define _lasermine_const_included
 
+#if AMXX_VERSION_NUM < 190
+#include <cromchat>
+
+#define MAX_PLAYERS					32
+#define MAX_NAME_LENGTH				32
+#define MAX_AUTHID_LENGTH			64
+#define HIT_SHIELD					8
+#define Ham_CS_Player_ResetMaxSpeed Ham_Item_PreFrame
+#endif
+
 #define ENT_CLASS_LASER				"lasermine"
 #define ENT_CLASS_BREAKABLE			"func_breakable"
 #define MAX_LASER_ENTITY			128
