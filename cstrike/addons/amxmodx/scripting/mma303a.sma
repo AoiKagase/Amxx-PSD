@@ -11,7 +11,7 @@
 #endif
 
 #define PLUGIN			"Music Menu Advance"
-#define VERSION			"3.03"
+#define VERSION			"3.03a"
 #define AUTHOR			"Aoi.Kagase"
 
 #define MEDIA_LIST		"bgmlist.ini"	// in configdir.
