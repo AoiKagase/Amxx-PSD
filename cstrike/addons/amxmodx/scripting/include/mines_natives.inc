@@ -14,7 +14,7 @@
 
 // These two are used to register land mines.
 native register_mines				(classname[MAX_CLASS_LENGTH], langKey[MAX_NAME_LENGTH]);
-native register_mines_data			(iMinesId, minesData[COMMON_MINES_DATA], minesModel[MAX_MODEL_LENGTH]);
+native register_mines_data			(iMinesId, minesData[COMMON_MINES_DATA], const minesModel[]);
 
 // If you want to deploy or pick up in each mines logic, call these.
 // Normally it is not used because it is processed by core.
@@ -66,7 +66,7 @@ forward MinesThink					(iEnt, iMinesId);
 forward MinesBreaked				(iMinesId, iEnt, iAttacker);
 
 // Spark Effect.
-stock mines_spark_wall				(Float:vEndOrigin[3])
+stock mines_spark_wall				(Float:vEndOrigin[])
 {
  	// Sparks
 	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vEndOrigin, 0);
@@ -90,9 +90,8 @@ stock mines_spark_wall				(Float:vEndOrigin[3])
 }
 
 // Spark Effect.
-stock mines_spark(Float:vEndOrigin[3])
+stock mines_spark(Float:vEndOrigin[])
 {
-	get_array_f(1, vEndOrigin, sizeof(vEndOrigin));
 	message_begin(MSG_ALL, SVC_TEMPENTITY);
 	write_byte(TE_SPARKS);
 	engfunc(EngFunc_WriteCoord, vEndOrigin[0]);
@@ -119,7 +118,7 @@ stock set_color(r, g, b)
 }
 
 // Cvar to TeamCode.
-stock CsTeams:get_team_code(const arg[4])
+stock CsTeams:get_team_code(const arg[])
 {
     new CsTeams:team;
 	// Terrorist
@@ -152,7 +151,7 @@ stock CsTeams:get_team_code(const arg[4])
 }
 
 // Cvar to Color Bit.
-stock get_cvar_to_color(const args[13])
+stock get_cvar_to_color(const args[])
 {
 	new i = 0, n = 0, iPos = 0;
 	new values[3];

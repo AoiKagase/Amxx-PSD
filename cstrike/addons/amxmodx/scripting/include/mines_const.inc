@@ -12,8 +12,12 @@
 //=====================================
 //  VERSION CHECK
 //=====================================
-#if AMXX_VERSION_NUM < 200
-	#assert "AMX Mod X v1.10.0 or greater library required!"
+#if AMXX_VERSION_NUM < 182
+	#assert "AMX Mod X v1.8.2 or greater library required!"
+#endif
+
+#if AMXX_VERSION_NUM < 190
+#include <mines_182>
 #endif
 
 #define CHAT_TAG 					"[M.P]"

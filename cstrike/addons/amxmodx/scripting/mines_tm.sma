@@ -41,7 +41,7 @@
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Tripmine"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"0.02"
+#define VERSION 					"0.03"
 #define CVAR_TAG					"mines_tm"
 
 #define LANG_KEY_PLANT_WALL   		"TM_PLANT_WALL"
@@ -192,10 +192,30 @@ public plugin_init()
 
 	// Multi Language Dictionary.
 	mines_register_dictionary("mines/mines_tm.txt");
+#if AMXX_VERSION_NUM > 182
 	AutoExecConfig(true, "mines_cvars_tm", "mines");
-
+#endif
 	return PLUGIN_CONTINUE;
 }
+
+#if AMXX_VERSION_NUM < 190
+//====================================================
+//  PLUGIN CONFIG
+//====================================================
+public plugin_cfg()
+{
+	new file[128];
+	new len = charsmax(file);
+	get_localinfo("amxx_configsdir", file, len);
+	formatex(file, len, "%s/plugins/mines/mines_cvars_tm.cfg", file);
+
+	if(file_exists(file)) 
+	{
+		server_cmd("exec %s", file);
+		server_exec();
+	}
+}
+#endif
 
 bind_cvars()
 {
@@ -236,7 +256,7 @@ bind_cvars()
 
 	gMinesId 						= 	register_mines		(ENT_CLASS_TRIP, LANG_KEY_LONGNAME);
 
-	gMinesData[BUY_TEAM]			=	get_team_code		(gCvarValue[VL_CBT]);
+	gMinesData[BUY_TEAM]			=	_:get_team_code		(gCvarValue[VL_CBT]);
 	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color	(gCvarValue[VL_MINE_GLOW_TR]);
 	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color	(gCvarValue[VL_MINE_GLOW_CT]);
 
@@ -256,10 +276,10 @@ bind_cvars()
 	gMinesData[DEATH_REMOVE]		=	gCvarValue[VL_DEATH_REMOVE];
 	gMinesData[GLOW_ENABLE]			=	gCvarValue[VL_MINE_GLOW];
 	gMinesData[GLOW_MODE]			=	gCvarValue[VL_MINE_GLOW_MODE];
-	gMinesData[MINE_HEALTH]			=	gCvarValue[VL_MINE_HEALTH];
-	gMinesData[ACTIVATE_TIME]		=	gCvarValue[VL_LASER_ACTIVATE];
-	gMinesData[EXPLODE_RADIUS]		=	gCvarValue[VL_EXPLODE_RADIUS];
-	gMinesData[EXPLODE_DAMAGE]		=	gCvarValue[VL_EXPLODE_DMG];
+	gMinesData[MINE_HEALTH]			=	_:gCvarValue[VL_MINE_HEALTH];
+	gMinesData[ACTIVATE_TIME]		=	_:gCvarValue[VL_LASER_ACTIVATE];
+	gMinesData[EXPLODE_RADIUS]		=	_:gCvarValue[VL_EXPLODE_RADIUS];
+	gMinesData[EXPLODE_DAMAGE]		=	_:gCvarValue[VL_EXPLODE_DMG];
 
 	register_mines_data(gMinesId, gMinesData, ENT_MODELS);
 

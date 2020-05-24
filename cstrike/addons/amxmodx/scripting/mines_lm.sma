@@ -44,7 +44,7 @@
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Lasermine"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"4.01"
+#define VERSION 					"4.02"
 
 #define CVAR_TAG					"mines_lm"
 
@@ -166,7 +166,9 @@ new gCvarValue	[CVAR_VALUE];
 new gBeam;
 new gMinesId;
 
+#if AMXX_VERSION_NUM > 182
 new Stack:gRecycleMine	[MAX_PLAYERS];
+#endif
 new gMinesData[COMMON_MINES_DATA];
 
 
@@ -223,8 +225,10 @@ public plugin_init()
 	gCvar[CVAR_DIFENCE_SHIELD]	= create_cvar(fmt("%s%s", CVAR_TAG, "_shield_difence"),			"1"			);	// allow shiled difence.
 	gCvar[CVAR_REALISTIC_DETAIL]= create_cvar(fmt("%s%s", CVAR_TAG, "_realistic_detail"), 		"0"			);	// Spark Effect.
 
+#if AMXX_VERSION_NUM > 182
 	for(new i = 0; i < MAX_PLAYERS; i++)
 		gRecycleMine[i] = CreateStack(1);
+#endif
 
 	bind_cvars();
 
@@ -232,10 +236,30 @@ public plugin_init()
 
 	// Multi Language Dictionary.
 	mines_register_dictionary("mines/mines_lm.txt");
+#if AMXX_VERSION_NUM > 182
 	AutoExecConfig(true, "mines_cvars_lm", "mines");
-
+#endif
 	return PLUGIN_CONTINUE;
 }
+
+#if AMXX_VERSION_NUM < 190
+//====================================================
+//  PLUGIN CONFIG
+//====================================================
+public plugin_cfg()
+{
+	new file[128];
+	new len = charsmax(file);
+	get_localinfo("amxx_configsdir", file, len);
+	formatex(file, len, "%s/plugins/mines/mines_cvars_lm.cfg", file);
+
+	if(file_exists(file)) 
+	{
+		server_cmd("exec %s", file);
+		server_exec();
+	}
+}
+#endif
 
 bind_cvars()
 {
@@ -276,7 +300,7 @@ bind_cvars()
 	bind_pcvar_string	(gCvar[CVAR_LASER_COLOR_TR], 	gCvarValue[VL_LASER_COLOR_TR],	charsmax(gCvarValue[VL_LASER_COLOR_TR]));  	// Laser line color. 0 = team color, 1 = green
 	bind_pcvar_string	(gCvar[CVAR_LASER_COLOR_CT], 	gCvarValue[VL_LASER_COLOR_CT],	charsmax(gCvarValue[VL_LASER_COLOR_CT]));  	// Laser line color. 0 = team color, 1 = green
 
-	gMinesData[BUY_TEAM]			=	get_team_code(gCvarValue[VL_CBT]);
+	gMinesData[BUY_TEAM]			=	_:get_team_code(gCvarValue[VL_CBT]);
 	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color(gCvarValue[VL_MINE_GLOW_TR]);
 	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color(gCvarValue[VL_MINE_GLOW_CT]);
 
@@ -296,10 +320,10 @@ bind_cvars()
 	gMinesData[DEATH_REMOVE]		=	gCvarValue[VL_DEATH_REMOVE];
 	gMinesData[GLOW_ENABLE]			=	gCvarValue[VL_MINE_GLOW];
 	gMinesData[GLOW_MODE]			=	gCvarValue[VL_MINE_GLOW_MODE];
-	gMinesData[MINE_HEALTH]			=	gCvarValue[VL_MINE_HEALTH];
-	gMinesData[ACTIVATE_TIME]		=	gCvarValue[VL_LASER_ACTIVATE];
-	gMinesData[EXPLODE_RADIUS]		=	gCvarValue[VL_EXPLODE_RADIUS];
-	gMinesData[EXPLODE_DAMAGE]		=	gCvarValue[VL_EXPLODE_DMG];
+	gMinesData[MINE_HEALTH]			=	_:gCvarValue[VL_MINE_HEALTH];
+	gMinesData[ACTIVATE_TIME]		=	_:gCvarValue[VL_LASER_ACTIVATE];
+	gMinesData[EXPLODE_RADIUS]		=	_:gCvarValue[VL_EXPLODE_RADIUS];
+	gMinesData[EXPLODE_DAMAGE]		=	_:gCvarValue[VL_EXPLODE_DMG];
 
 	// commons data update.
 	// parameter: this mines id, common mines data, model path.
@@ -309,11 +333,13 @@ bind_cvars()
 //====================================================
 //  PLUGIN END
 //====================================================
+#if AMXX_VERSION_NUM > 182
 public mines_plugin_end()
 {
 	for(new i = 0; i < MAX_PLAYERS; i++)
 		DestroyStack(gRecycleMine[i]);
 }
+#endif
 
 //====================================================
 //  PLUGIN PRECACHE
@@ -374,11 +400,14 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	// set entity health.
 	// if recycle health.
 	new Float:health;
+#if AMXX_VERSION_NUM > 182
 	if (!IsStackEmpty(gRecycleMine[uID]))
 		PopStackCell(gRecycleMine[uID], health);
 	else
 		health = gCvarValue[VL_MINE_HEALTH];
-
+#else
+	health = gCvarValue[VL_MINE_HEALTH];
+#endif
 	set_pev(iEnt, pev_health, health);
 
 	// set mine position
@@ -509,6 +538,7 @@ set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3])
 //====================================================
 // Task: Remove Lasermine.
 //====================================================
+#if AMXX_VERSION_NUM > 182
 public MinesPickup(id, target)
 {
 	// Recycle Health.
@@ -516,6 +546,7 @@ public MinesPickup(id, target)
 	pev(target, pev_health, health);
 	PushStackCell(gRecycleMine[id], health);
 }
+#endif
 
 //====================================================
 // Lasermine Think Event.
@@ -675,10 +706,10 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 			if (pev_valid(iTarget))
 			{
 				pev(iTarget, pev_classname, className, charsmax(className));
-				if (equali(className, ENT_CLASS_BREAKABLE))
+				if (equali(className, ENT_CLASS_BREAKABLE) || equali(className, ENT_CLASS_LASER))
 				{
 					hPlayer[I_TARGET] 	= iTarget;
-					hPlayer[V_POSITION]	= vHitPoint;
+					hPlayer[V_POSITION]	= _:vHitPoint;
 					hPlayer[I_HIT_GROUP]= hitGroup;
 					ArrayPushArray(aTarget, hPlayer);
 					continue;
@@ -701,7 +732,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 					continue;
 
 				hPlayer[I_TARGET] 	= iTarget;
-				hPlayer[V_POSITION]	= vHitPoint;
+				hPlayer[V_POSITION]	= _:vHitPoint;
 				hPlayer[I_HIT_GROUP]= hitGroup;
 				ArrayPushArray(aTarget, hPlayer);
 
@@ -813,7 +844,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 //====================================================
 // Laser damage
 //====================================================
-create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[3])
+create_laser_damage(iEnt, iTarget, hitGroup, Float:hitPoint[])
 {
 	new iAttacker = pev(iEnt,MINES_OWNER);
 
@@ -862,12 +893,12 @@ lm_hit_shield(id, Float:dmg)
 //====================================================
 // Player connected.
 //====================================================
+#if AMXX_VERSION_NUM > 182
 public mines_client_putinserver(id)
 {
 	// Init Recycle Health.
 	ClearStack(gRecycleMine[id]);
 }
-
 //====================================================
 // Player Disconnect.
 //====================================================
@@ -876,6 +907,7 @@ public mines_client_disconnected(id)
 	// Init Recycle Health.
 	ClearStack(gRecycleMine[id]);
 }
+#endif
 
 //====================================================
 // Check: On the wall.
@@ -963,6 +995,7 @@ lm_play_sound(iEnt, iSoundType)
 	}
 }
 
+#if AMXX_VERSION_NUM > 182
 ClearStack(Stack:handle)
 {
 	new Float:health;
@@ -971,6 +1004,7 @@ ClearStack(Stack:handle)
 		PopStackCell(handle, health);
 	}
 }
+#endif
 
 //====================================================
 // Draw Laserline

@@ -40,7 +40,7 @@
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Claymore"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"0.02"
+#define VERSION 					"0.03"
 
 #define CVAR_TAG					"mines_cm"
 
@@ -74,7 +74,6 @@ enum _:CVAR_SETTING
 	CVAR_FRIENDLY_FIRE      ,   	// Friendly Fire.
 	CVAR_CBT                ,   	// Can buy team. TR/CT/ALL
 	CVAR_BUY_MODE           ,   	// Buy mode. 0 = off, 1 = on.
-	// Laser design.
 	CVAR_MINE_HEALTH        ,   	// Claymore health. (Can break.)
 	CVAR_MINE_GLOW          ,   	// Glowing tripmine.
 	CVAR_MINE_GLOW_MODE     ,   	// Glowing color mode.
@@ -154,6 +153,11 @@ new CLAYMORE_WIRE[]	= {
 	pev_euser3,
 };
 
+new const gEntName	[]	= ENT_CLASS_CLAYMORE;
+new const gEntModel	[]	= ENT_MODELS;
+new const gEntSprite[]	= ENT_SPRITE1;
+new const gEntSound	[][]={ENT_SOUND1, ENT_SOUND2};
+
 new Float:gModelMargin[] = {0.0, -0.0, 4.0};
 new const gWireLoop = 3;
 
@@ -215,10 +219,30 @@ public plugin_init()
 
 	// Multi Language Dictionary.
 	mines_register_dictionary("mines/mines_cm.txt");
+#if AMXX_VERSION_NUM > 182
 	AutoExecConfig(true, "mines_cvars_cm", "mines");
-
+#endif
 	return PLUGIN_CONTINUE;
 }
+
+#if AMXX_VERSION_NUM < 190
+//====================================================
+//  PLUGIN CONFIG
+//====================================================
+public plugin_cfg()
+{
+	new file[128];
+	new len = charsmax(file);
+	get_localinfo("amxx_configsdir", file, len);
+	formatex(file, len, "%s/plugins/mines/mines_cvars_cm.cfg", file);
+
+	if(file_exists(file)) 
+	{
+		server_cmd("exec %s", file);
+		server_exec();
+	}
+}
+#endif
 
 bind_cvars()
 {
@@ -253,13 +277,13 @@ bind_cvars()
 	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_TR],		gCvarValue[VALUE_MINE_GLOW_TR],		charsmax(gCvarValue[VALUE_MINE_GLOW_TR]) 	- 1);// last comma - 1
 	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_CT],		gCvarValue[VALUE_MINE_GLOW_CT],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
 	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_PITCH],	gCvarValue[VALUE_CM_CENTER_PITCH],	charsmax(gCvarValue[VALUE_CM_CENTER_PITCH]) - 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_YAW],		gCvarValue[VALUE_CM_CENTER_YAW],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_PITCH],		gCvarValue[VALUE_CM_LEFT_PITCH],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_YAW],		gCvarValue[VALUE_CM_LEFT_YAW],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_PITCH],	gCvarValue[VALUE_CM_RIGHT_PITCH],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_YAW],		gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_T],	gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_CT],	gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_YAW],		gCvarValue[VALUE_CM_CENTER_YAW],	charsmax(gCvarValue[VALUE_CM_CENTER_YAW]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_PITCH],		gCvarValue[VALUE_CM_LEFT_PITCH],	charsmax(gCvarValue[VALUE_CM_LEFT_PITCH]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_YAW],		gCvarValue[VALUE_CM_LEFT_YAW],		charsmax(gCvarValue[VALUE_CM_LEFT_YAW]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_PITCH],	gCvarValue[VALUE_CM_RIGHT_PITCH],	charsmax(gCvarValue[VALUE_CM_RIGHT_PITCH]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_YAW],		gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_CM_RIGHT_YAW]) 	- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_T],	gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_T]) - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_CT],	gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT])- 1);// last comma - 1
 
 
 	gMinesData[AMMO_HAVE_START] =	gCvarValue[VALUE_START_HAVE];
@@ -278,17 +302,17 @@ bind_cvars()
 	gMinesData[DEATH_REMOVE]	=	gCvarValue[VALUE_DEATH_REMOVE];
 	gMinesData[GLOW_ENABLE]		=	gCvarValue[VALUE_MINE_GLOW];
 	gMinesData[GLOW_MODE]		=	gCvarValue[VALUE_MINE_GLOW_MODE];
-	gMinesData[MINE_HEALTH]		=	gCvarValue[VALUE_MINE_HEALTH];
-	gMinesData[ACTIVATE_TIME]	=	gCvarValue[VALUE_CM_ACTIVATE];
-	gMinesData[EXPLODE_RADIUS]	=	gCvarValue[VALUE_EXPLODE_RADIUS];
-	gMinesData[EXPLODE_DAMAGE]	=	gCvarValue[VALUE_EXPLODE_DMG];
-	gMinesData[BUY_TEAM] 		=	get_team_code(gCvarValue[VALUE_CBT]);
+	gMinesData[MINE_HEALTH]		=	_:gCvarValue[VALUE_MINE_HEALTH];
+	gMinesData[ACTIVATE_TIME]	=	_:gCvarValue[VALUE_CM_ACTIVATE];
+	gMinesData[EXPLODE_RADIUS]	=	_:gCvarValue[VALUE_EXPLODE_RADIUS];
+	gMinesData[EXPLODE_DAMAGE]	=	_:gCvarValue[VALUE_EXPLODE_DMG];
+	gMinesData[BUY_TEAM] 		=	_:get_team_code(gCvarValue[VALUE_CBT]);
 	gMinesData[GLOW_COLOR_TR]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_TR]);
 	gMinesData[GLOW_COLOR_CT]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_CT]);
 
 	gMinesId 					=	register_mines(ENT_CLASS_CLAYMORE, LANG_KEY_LONGNAME);
 
-	register_mines_data(gMinesId, gMinesData, ENT_MODELS);
+	register_mines_data(gMinesId, gMinesData, gEntModel);
 }
 
 //====================================================
@@ -296,11 +320,12 @@ bind_cvars()
 //====================================================
 public plugin_precache() 
 {
-	precache_sound(ENT_SOUND1);
-	precache_sound(ENT_SOUND2);
-	precache_model(ENT_MODELS);
-	precache_model(ENT_SPRITE1);
-	
+	for (new i = 0; i < sizeof(gEntSound); i++)
+		precache_sound(gEntSound[i]);
+
+	precache_model(gEntModel);
+	precache_model(gEntSprite);
+
 	return PLUGIN_CONTINUE;
 }
 
@@ -312,10 +337,10 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	if (iMinesId != gMinesId) return;
 	// Entity Setting.
 	// set class name.
-	set_pev(iEnt, pev_classname, ENT_CLASS_CLAYMORE);
+	set_pev(iEnt, pev_classname, gEntName);
 
 	// set models.
-	engfunc(EngFunc_SetModel, iEnt, ENT_MODELS);
+	engfunc(EngFunc_SetModel, iEnt, gEntModel);
 
 	// set solid.
 	set_pev(iEnt, pev_solid, SOLID_NOT);
@@ -412,7 +437,6 @@ set_mine_position(uID, iEnt)
 	// set angle.
 	set_pev(iEnt, pev_angles, vEntAngles);
 	xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
-
 	set_pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vNewOrigin);
 
 	// set laserbeam end point position.
@@ -441,90 +465,90 @@ Float:get_claymore_wire_endpoint(cvar)
 //====================================================
 stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 {
-	new Float:vAngles		[3];
-	new Float:vForward		[3];
-	new Float:vResult		[3][3];
-	new Float:pAngles		[3];
-	new Float:vFwd			[3];
-	new Float:vRight		[3];
-	new Float:vUp			[3];
-	new trace = create_tr2();
+	static Float:vAngles	[3];
+	static Float:vForward	[3];
+	static Float:vResult	[3][3];
+	static Float:pAngles	[3];
+	static Float:vFwd		[3];
+	static Float:vRight		[3];
+	static Float:vUp		[3];
 	static Float:hitPoint	[3];
 	static Float:vTmp		[3];
+	static Float:distance;
+	static Float:fraction;
 	static Float:pitch;
 	static Float:yaw;
-	static Float:fFraction;
-	new Float:range;
-	new n = 0;
-	new freq;
+	static n = 0;
+	static trace;
 	pev(iEnt, pev_angles, vAngles);
-
-	// roll zero
-	pAngles[2] = 0.0;
-
+	vAngles[2] = 0.0;
 	for (new i = 0; i < 3; i++)
 	{
 		hitPoint	= vOrigin;
 		vTmp		= vOrigin;
 		n = 0;
-		while(n < freq)
+
+		while(n < gCvarValue[VALUE_CM_TRIAL_FREQ])
 		{
-			while(xs_vec_distance(vOrigin, vTmp) > range || xs_vec_equal(vOrigin, vTmp))
+			switch(i)
 			{
-				switch(i)
+				// pitch:down 0, back 90, up 180, forward 270(-90)
+				// yaw  :left 90, right -90 
+				case 0: // center
 				{
-					// pitch:down 0, back 90, up 180, forward 270(-90)
-					// yaw  :left 90, right -90 
-					case 0: // center
-					{
-						pitch 	= get_claymore_wire_endpoint(CVAR_CM_CENTER_PITCH);
-						yaw		= get_claymore_wire_endpoint(CVAR_CM_CENTER_YAW);
-					}
-					case 1: // right
-					{
-						pitch 	= get_claymore_wire_endpoint(CVAR_CM_RIGHT_PITCH);
-						yaw		= get_claymore_wire_endpoint(CVAR_CM_RIGHT_YAW);
-					}
-					case 2: // left
-					{
-						pitch 	= get_claymore_wire_endpoint(CVAR_CM_LEFT_PITCH);
-						yaw		= get_claymore_wire_endpoint(CVAR_CM_LEFT_YAW);
-					}
+					pitch 	= get_claymore_wire_endpoint(VALUE_CM_CENTER_PITCH);
+					yaw		= get_claymore_wire_endpoint(VALUE_CM_CENTER_YAW);
 				}
-
-				pAngles[0] = pitch;
-				pAngles[1] = -90 + yaw;
-
-				xs_vec_add(pAngles, vAngles, pAngles);
-				xs_anglevectors(pAngles, vFwd, vRight, vUp);
-			
-				xs_vec_mul_scalar(vFwd, range, vFwd);
-				xs_vec_add(vOrigin, vFwd, vForward);
-				// xs_vec_add(vFwd, vNormal, vForward);
-				// xs_vec_add(vOrigin, vForward, vForward);
-
-				// Trace line
-				engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
+				case 1: // right
 				{
-					get_tr2(trace, TR_vecEndPos, vTmp);
-					get_tr2(trace, TR_flFraction, fFraction);
+					pitch 	= get_claymore_wire_endpoint(VALUE_CM_RIGHT_PITCH);
+					yaw		= get_claymore_wire_endpoint(VALUE_CM_RIGHT_YAW);
+				}
+				case 2: // left
+				{
+					pitch 	= get_claymore_wire_endpoint(VALUE_CM_LEFT_PITCH);
+					yaw		= get_claymore_wire_endpoint(VALUE_CM_LEFT_YAW);
+				}
+			}		
+
+			pAngles[0] = pitch;
+			pAngles[1] = -90 + yaw; 
+			pAngles[2] = 0.0;
+
+			xs_vec_add(pAngles, vAngles, pAngles);
+			xs_anglevectors(pAngles, vFwd, vRight, vUp);
+				
+			xs_vec_mul_scalar(vFwd, gCvarValue[VALUE_CM_WIRE_RANGE], vFwd);
+			xs_vec_add(vOrigin, vFwd, vForward);
+			// xs_vec_add(vFwd, vNormal, vForward);
+			// xs_vec_add(vOrigin, vForward, vForward);
+			trace = create_tr2();
+			// Trace line
+			engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
+			{
+				get_tr2(trace, TR_vecEndPos, vTmp);
+				get_tr2(trace, TR_flFraction, fraction);
+
+				distance = xs_vec_distance(vOrigin, vTmp);
+				if (distance > gCvarValue[VALUE_CM_WIRE_RANGE]) 
+					continue;
+
+				if (fraction < 1.0)
+				{
+					new block = engfunc(EngFunc_PointContents, vTmp);
+					if (block != CONTENTS_SKY || block == CONTENTS_SOLID) 
+					{
+						if (distance > xs_vec_distance(vOrigin, hitPoint))
+							hitPoint = vTmp;
+						n++;
+					}
 				}
 			}
-			new block = engfunc(EngFunc_PointContents, vTmp);
-			if (block != CONTENTS_SKY || block == CONTENTS_SOLID) 
-			{
-				if (xs_vec_distance(vOrigin, vTmp) > xs_vec_distance(vOrigin, hitPoint))
-				{
-					hitPoint = vTmp;
-				}
-				n++;
-			}
+			// free the trace handle.
+			free_tr2(trace);
 		}
 		vResult[i] = hitPoint;
 	}
-
-	// free the trace handle.
-	free_tr2(trace);
 
 	set_pev(iEnt, CLAYMORE_WIREENDPOINT1, vResult[0]);
 	set_pev(iEnt, CLAYMORE_WIREENDPOINT2, vResult[1]);
@@ -607,16 +631,14 @@ mines_step_powerup(iEnt, Float:fCurrTime)
 mines_step_beamup(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 {
 	static wire;
-	// solid complete.
-	set_pev(iEnt, pev_solid, SOLID_BBOX);
-
 	for (new i = 0; i < gWireLoop; i++)
 	{
 		wire = draw_laserline(iEnt, vEnd[i]);
 		set_pev(iEnt, CLAYMORE_WIRE[i], wire);
 		mines_spark_wall(vEnd[i]);
 	}
-
+	// solid complete.
+	set_pev(iEnt, pev_solid, SOLID_BBOX);
 	// next state.
 	set_pev(iEnt, MINES_STEP, BEAMBREAK_THINK);
 	// Think time.
@@ -739,7 +761,7 @@ stock cm_draw_wire(
 		const Float:speed		= 255.0
 	)
 {
-	new beams = Beam_Create(ENT_SPRITE1, width);
+	new beams = Beam_Create(gEntSprite, width);
 	Beam_PointsInit(beams, vStartOrigin, vEndOrigin);
 	Beam_SetFlags(beams, BEAM_FSOLID);
 	Beam_SetFrame(beams, framestart);
@@ -810,11 +832,11 @@ cm_play_sound(iEnt, iSoundType)
 	{
 		case SOUND_POWERUP:
 		{
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND1, VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
+			emit_sound(iEnt, CHAN_VOICE, gEntSound[0], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
 		}
 		case SOUND_ACTIVATE:
 		{
-			emit_sound(iEnt, CHAN_VOICE, ENT_SOUND2, 0.5, ATTN_NORM, 1, 75);
+			emit_sound(iEnt, CHAN_VOICE, gEntSound[1], 0.5, ATTN_NORM, 1, 75);
 		}
 	}
 }

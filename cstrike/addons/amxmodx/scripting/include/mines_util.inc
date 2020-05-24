@@ -128,7 +128,11 @@ stock int:mines_get_team_deployed_count(id, iMinesId, plData[PLAYER_DATA])
 	count = int:0;
 	for(i = int:0;i < num;i++)
 	{
+#if AMXX_VERSION_NUM > 182
 		ArrayGetArray(gPlayerData[players[i]], iMinesId, plData, sizeof(plData));
+#else
+		ArrayGetArray(gPlayerData[players[i]], iMinesId, plData);
+#endif
 		count += plData[PL_COUNT_DEPLOYED];
 	}
 
@@ -143,13 +147,21 @@ stock mines_reset_have_mines(id)
 	new plData[PLAYER_DATA];
 	for(new i = 0; i < ArraySize(gMinesClass); i++)
 	{
+#if AMXX_VERSION_NUM > 182
 		ArrayGetArray(gPlayerData[id], i, plData, sizeof(plData));
+#else
+		ArrayGetArray(gPlayerData[id], i, plData);
+#endif
 		// reset deploy count.
 		plData[PL_COUNT_DEPLOYED]	= int:0;
 		// reset hove mines.
 		plData[PL_COUNT_HAVE_MINE]	= int:0;
 
+#if AMXX_VERSION_NUM > 182
 		ArraySetArray(gPlayerData[id], i, plData, sizeof(plData));
+#else
+		ArraySetArray(gPlayerData[id], i, plData);
+#endif
 	}
 }
 
@@ -163,7 +175,11 @@ stock mines_remove_all_mines(id)
 
 	for(new i = 0; i < ArraySize(gMinesClass); i++)
 	{
+#if AMXX_VERSION_NUM > 182
 		ArrayGetArray(gMinesParameter, i, minesData, sizeof(minesData));
+#else
+		ArrayGetArray(gMinesParameter, i, minesData);
+#endif
 		// Dead Player remove mines.
 		if (minesData[DEATH_REMOVE])
 		{
@@ -182,13 +198,25 @@ stock mines_buy_mine(id, iMinesId)
 		return PLUGIN_CONTINUE;
 	static plData[PLAYER_DATA];
 	static minesData[COMMON_MINES_DATA];
+#if AMXX_VERSION_NUM > 182
 	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+#else
+	ArrayGetArray(gMinesParameter, iMinesId, minesData);
+#endif
 	new cost = minesData[BUY_PRICE];
 	cs_set_user_money(id, cs_get_user_money(id) - cost);
 
+#if AMXX_VERSION_NUM > 182
 	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+#else
+	ArrayGetArray(gPlayerData[id], iMinesId, plData);
+#endif
 	plData[PL_COUNT_HAVE_MINE]++;
+#if AMXX_VERSION_NUM > 182
 	ArraySetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+#else
+	ArraySetArray(gPlayerData[id], iMinesId, plData);
+#endif
 
 	cp_bought(id);
 
@@ -207,7 +235,11 @@ stock mines_remove_all_entity_main(id, iMinesId)
 	static plData[PLAYER_DATA];
 	static sClassName[MAX_CLASS_LENGTH];
 	new result = false;
+#if AMXX_VERSION_NUM > 182
 	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+#else
+	ArrayGetArray(gPlayerData[id], iMinesId, plData);
+#endif
 
 	if (plData[PL_COUNT_DEPLOYED] > int:0)
 		result = true;
@@ -217,7 +249,11 @@ stock mines_remove_all_entity_main(id, iMinesId)
 
 	// reset deploy count.
 	plData[PL_COUNT_DEPLOYED] = int:0;
+#if AMXX_VERSION_NUM > 182
 	ArraySetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+#else
+	ArraySetArray(gPlayerData[id], iMinesId, plData);
+#endif
 	return result;
 }
 
@@ -228,8 +264,13 @@ stock bool:CheckBuyMines(id, iMinesId)
 {
 	static minesData[COMMON_MINES_DATA];
 	static plData[PLAYER_DATA];
+#if AMXX_VERSION_NUM > 182
 	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
 	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
+#else
+	ArrayGetArray(gMinesParameter, iMinesId, minesData);
+	ArrayGetArray(gPlayerData[id], iMinesId, plData);
+#endif
 
 	// Check common.
 	if (!CheckCommon(id, plData))
@@ -313,8 +354,11 @@ stock bool:CheckMaxDeploy(id, iMinesId, plData[PLAYER_DATA], minesData[COMMON_MI
 	new team_max 	= minesData[DEPLOY_TEAM_MAX];
 	new team_count 	= mines_get_team_deployed_count(id, iMinesId, plData);
 
+#if AMXX_VERSION_NUM > 182
 	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-
+#else
+	ArrayGetArray(gPlayerData[id], iMinesId, plData);
+#endif
 	// Max deployed per player.
 	if (plData[PL_COUNT_DEPLOYED] >= int:max_have)
 	{
