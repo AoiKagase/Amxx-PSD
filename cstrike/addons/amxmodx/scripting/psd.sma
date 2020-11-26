@@ -1023,6 +1023,9 @@ public client_disconnected(id)
 //client connected update
 public client_putinserver(id)
 {
+	if (!g_dbConnect)
+		return PLUGIN_CONTINUE;
+
 	if(is_user_connected(id))
 	{
 		new sAuthid			[MAX_AUTHID_LENGTH];
