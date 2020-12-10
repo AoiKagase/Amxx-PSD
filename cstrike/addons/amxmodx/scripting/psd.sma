@@ -7,7 +7,7 @@
 #include <sqlx>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.05"
+#define VERSION					"1.06"
 #define AUTHOR					"Aoi.Kagase"
 
 /*=====================================*/
