@@ -981,7 +981,7 @@ public reset_database()
 {
 	new Handle:result;
 
-	for (new i = 0; i < MAX_NAME_LENGTH*2; i+= MAX_NAME_LENGTH)
+	for (new i = 0; i < sizeof(TBL_DATA); i+= MAX_NAME_LENGTH)
 	{
 		result = SQL_PrepareQuery(g_dbConnect, "TRUNCATE TABLE `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA:i]);
 		if (!SQL_Execute(result))
