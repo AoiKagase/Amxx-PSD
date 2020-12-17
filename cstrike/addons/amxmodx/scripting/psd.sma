@@ -1,4 +1,6 @@
 #pragma semicolon 1
+#pragma compress 1
+#pragma tabsize 4
 
 #include <amxmodx>
 #include <amxmisc>
@@ -10,6 +12,8 @@
 #define PLUGIN					"Player Status in DB"
 #define VERSION					"1.08"
 #define AUTHOR					"Aoi.Kagase"
+#define URL						"https://github.com/AoiKagase/Amxx-PSD"
+#define DESCRIPTION				"The status of the player and writes in it at a database."
 
 /*=====================================*/
 /*  VERSION CHECK				       */
@@ -474,14 +478,20 @@ insert_server_round()
 
 public plugin_init() 
 {
-	register_plugin(PLUGIN, VERSION, AUTHOR);
+	register_plugin(PLUGIN, VERSION, AUTHOR, URL, DESCRIPTION);
 	check_plugin();
 
 	register_srvcmd("amx_psd_update",		"insert_batch",		-1,	" - Batch processing update in DB.");
 	register_srvcmd("amx_psd_reset",		"reset_database",	-1,	" - Reset in DB.");
 	register_srvcmd("amx_psd_initialize",	"init_status",		-1,	" - initializing all player status and database.");
 
-	register_cvar  ("psd_version", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+	create_cvar("psd_version", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+
+	// Bind DB settings.
+	bind_pcvar_string(create_cvar("amx_psd_sql_host", ""), g_dbConfig[DB_HOST], charsmax(g_dbConfig[DB_HOST]));
+	bind_pcvar_string(create_cvar("amx_psd_sql_user", ""), g_dbConfig[DB_USER], charsmax(g_dbConfig[DB_USER]));
+	bind_pcvar_string(create_cvar("amx_psd_sql_pass", ""), g_dbConfig[DB_PASS], charsmax(g_dbConfig[DB_PASS]));
+	bind_pcvar_string(create_cvar("amx_psd_sql_db",   ""), g_dbConfig[DB_NAME], charsmax(g_dbConfig[DB_NAME]));
 
 	// SQL.cfg refresh.
 	new basedir[32];
@@ -495,8 +505,8 @@ public plugin_init()
 
 	register_logevent("round_start", 2, "0=World triggered", "1=Round_Start");
 	register_logevent("round_end",   2, "0=World triggered", "1=Round_End");
-	register_logevent("Event_CTWin", 6, "3=CTs_Win", 	 	"3=Target_Saved", "3=Bomb_Defused",  "3=VIP_Escaped", 		"3=All_Hostages_Rescued", "3=CTs_PreventEscape", "3=Escaping_Terrorists_Neutralized");
-	register_logevent("Event_TRWin", 6, "3=Terrorists_Win", "3=Target_Bombed", 					 "3=VIP_Assassinated",	"3=Hostages_Not_Rescued", "3=Terrorists_Escaped");
+	register_logevent("Event_CTWin", 6, "3=CTs_Win", 	 	 "3=Target_Saved", "3=Bomb_Defused", "3=VIP_Escaped", 	   "3=All_Hostages_Rescued", "3=CTs_PreventEscape", "3=Escaping_Terrorists_Neutralized");
+	register_logevent("Event_TRWin", 6, "3=Terrorists_Win",  "3=Target_Bombed", 				 "3=VIP_Assassinated", "3=Hostages_Not_Rescued", "3=Terrorists_Escaped");
 	// register_event("TeamScore", "Event_TRWin", "a", "1=TERRORIST");
 	// register_event("TeamScore", "Event_CTWin", "a", "1=CT");
 
@@ -547,10 +557,14 @@ public plugin_core()
 	new ercode;
 
 	// Get Database Configs.
-	get_cvar_string("amx_sql_host", g_dbConfig[DB_HOST], charsmax(g_dbConfig[DB_HOST]));
-	get_cvar_string("amx_sql_user", g_dbConfig[DB_USER], charsmax(g_dbConfig[DB_USER]));
-	get_cvar_string("amx_sql_pass", g_dbConfig[DB_PASS], charsmax(g_dbConfig[DB_PASS]));
-	get_cvar_string("amx_sql_db",	g_dbConfig[DB_NAME], charsmax(g_dbConfig[DB_NAME]));
+	if (strlen(g_dbConfig[DB_HOST]) == 0)
+		get_cvar_string("amx_sql_host", g_dbConfig[DB_HOST], charsmax(g_dbConfig[DB_HOST]));
+	if (strlen(g_dbConfig[DB_USER]) == 0)
+		get_cvar_string("amx_sql_user", g_dbConfig[DB_USER], charsmax(g_dbConfig[DB_USER]));
+	if (strlen(g_dbConfig[DB_PASS]) == 0)
+		get_cvar_string("amx_sql_pass", g_dbConfig[DB_PASS], charsmax(g_dbConfig[DB_PASS]));
+	if (strlen(g_dbConfig[DB_NAME]) == 0)
+		get_cvar_string("amx_sql_db",	g_dbConfig[DB_NAME], charsmax(g_dbConfig[DB_NAME]));
 
 	g_dbTaple 	= SQL_MakeDbTuple(
 		g_dbConfig[DB_HOST],
