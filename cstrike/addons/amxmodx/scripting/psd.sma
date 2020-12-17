@@ -97,7 +97,7 @@
 #define SQL_END					");"
 
 #define SQL_SELECT_USER_TIME	"SELECT MAX(`online_time`) AS online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id` ORDER BY `online_time` DESC LIMIT 1;"
-#define SQL_SELECT_USER_INFO	"SELECT `auth_id`, `latest_ip`, SUM(`online_time`) as online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id`, `latest_ip` ORDER BY `created_at` desc LIMIT 1;"
+#define SQL_SELECT_USER_INFO	"SELECT `auth_id`, `latest_ip`, `geoip_code2`, SUM(`online_time`) as online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id`, `latest_ip`, `geoip_code2` ORDER BY `created_at` desc LIMIT 1;"
 
 #define TASK_ID_ROUND_END		118855
 
@@ -1141,14 +1141,15 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3]
 insert_user_info_batch(sql[], sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "")
 {
 	new len = 0;
-	new sIp[MAX_AUTHID_LENGTH];
-	new playtime = select_user_info_record(sAuthId, sIp[0], charsmax(sIp));
+	new sIp	[MAX_IP_LENGTH]	= "";
+	new sGeo[3]				= "";
+	new playtime = select_user_info_record(sAuthId, sIp, sGeo);
 
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_USER);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, playtime);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, sGeo, playtime);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
 	execute_insert_sql(sql);
@@ -1184,7 +1185,7 @@ select_user_info(sAuthId[])
 	return online;
 }
 
-select_user_info_record(sAuthId[MAX_AUTHID_LENGTH], &ip, iplen)
+select_user_info_record(sAuthId[MAX_AUTHID_LENGTH], ip[MAX_IP_LENGTH], geo[3])
 {
 	new Handle:query = SQL_PrepareQuery(g_dbConnect, SQL_SELECT_USER_INFO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER], sAuthId);
 	
@@ -1200,8 +1201,9 @@ select_user_info_record(sAuthId[MAX_AUTHID_LENGTH], &ip, iplen)
 	if (SQL_NumResults(query) > 0)
 	{
 		// SQL_ReadResult(query, 0, sAuthId, charsmax(sAuthId));	// auth_id
-		SQL_ReadResult(query, 1, ip, iplen);	// ip
-		online_time = SQL_ReadResult(query, 2);		// time
+		SQL_ReadResult(query, 1, ip, charsmax(ip));		// ip
+		SQL_ReadResult(query, 2, geo, charsmax(geo));	// geo code
+		online_time = SQL_ReadResult(query, 3);			// time
 	}
 
 	// of course, free the handle
