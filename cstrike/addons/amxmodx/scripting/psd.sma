@@ -5,9 +5,10 @@
 #include <cstrike>
 #include <csx>
 #include <sqlx>
+#include <geoip>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.07"
+#define VERSION					"1.08"
 #define AUTHOR					"Aoi.Kagase"
 
 /*=====================================*/
@@ -68,8 +69,8 @@
 #define SQL_FIELD_SERVER_ROUND	"`server_id`,`date`,`round`,`round_time`,`win_team`,`win_score`"
 #define SQL_PARAM_SERVER_ROUND  "'%i','%s','%i','%i','%i','%i'"
 
-#define SQL_FIELD_USER			"`auth_id`,`name`,`latest_ip`, `online_time`"
-#define SQL_PARAM_USER          "'%s','%s','%s','%i'"
+#define SQL_FIELD_USER			"`auth_id`,`name`,`latest_ip`, `geoip_code2`, `online_time`"
+#define SQL_PARAM_USER          "'%s','%s','%s','%s','%i'"
 
 #define SQL_FIELD_TOTAL_STATS	"`server_id`,`auth_id`,`csx_rank`,`csx_score`,"
 #define SQL_PARAM_TOTAL_STATS   "'%i','%s','%i','%i',"
@@ -203,8 +204,8 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `total_win_t_score`  INT UNSIGNED    NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `total_win_ct`  	  INT UNSIGNED    NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `total_win_ct_score` INT UNSIGNED    NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 		  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 		  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 		  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 		  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`,`date`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
 	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
@@ -219,8 +220,8 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `round_time`     	 INT UNSIGNED 	 NOT NULL DEFAULT 0,"); // roundtime 0 is danger!!
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `win_team`   	 	 TINYINT    	 NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `win_score`   	 	 TINYINT    	 NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 		 DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 		 DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 		 TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 		 TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`,`date`,`round`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
 	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
@@ -232,9 +233,10 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`auth_id`     	 VARCHAR(%d)       NOT NULL,", MAX_AUTHID_LENGTH);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `name`        	 VARCHAR(%d)       NOT NULL,", MAX_NAME_LENGTH * 3);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `latest_ip`   	 VARCHAR(%d)   	   NOT NULL,", MAX_IP_LENGTH);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `geoip_code2`   VARCHAR(%d)   	   NOT NULL,", 3);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `online_time` 	 BIGINT	  UNSIGNED DEFAULT  0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at`  	 DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at`  	 DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at`  	 TIMESTAMP         NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at`  	 TIMESTAMP         NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`auth_id`, `name`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
 	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
@@ -261,8 +263,8 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rarm`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_lleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `auth_id`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
 	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
@@ -290,8 +292,8 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rarm`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_lleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `date`, `auth_id`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
 	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
@@ -334,7 +336,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_lleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `date`, `round`, `auth_id`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
 	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
@@ -361,8 +363,8 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rarm`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_lleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `date`, `auth_id`, `wpn_name`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
 	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
@@ -390,8 +392,8 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rarm`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_lleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `date`, `round`, `auth_id`, `wpn_name`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
 	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
@@ -1093,8 +1095,9 @@ public client_infochanged(id)
 
 insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3] = "")
 {
-	new sIp[MAX_IP_LENGTH]			= "";
-	new sql[MAX_QUERY_LENGTH + 1]	= "";
+	new sIp	[MAX_IP_LENGTH]			= "";
+	new sGeo[3]						= "";
+	new sql	[MAX_QUERY_LENGTH + 1]	= "";
 	new len = 0;
 	if (equali(sName,""))
 	{
@@ -1106,6 +1109,7 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3]
 		formatex(sName, charsmax(sName), "BOT");
 
 	get_user_ip(id, sIp, charsmax(sIp), 1);
+	geoip_code2_ex(sIp, sGeo);
 	g_playtime[id] = (g_playtime[id] <= 0) ? get_systime() : g_playtime[id];
 	new playtime = select_user_info(sAuthId) + (get_systime() - g_playtime[id]);
 	g_playtime[id] = get_systime();
@@ -1114,7 +1118,7 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3]
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_USER);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, playtime);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, sGeo, playtime);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
 	execute_insert_sql(sql);
