@@ -10,7 +10,7 @@
 #include <geoip>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.09"
+#define VERSION					"1.10"
 #define AUTHOR					"Aoi.Kagase"
 #define URL						"github.com/AoiKagase/Amxx-PSD"
 #define DESCRIPTION				"The status of the player and writes in it at a database."
@@ -1086,7 +1086,7 @@ public reset_database()
 //client disconnect update
 public client_disconnected(id)
 {
-	if (!is_user_bot(id) && is_user_connected(id))
+	if (!is_user_bot(id))
 	{
 		new sAuthid[MAX_AUTHID_LENGTH];
 
@@ -1113,7 +1113,6 @@ public client_putinserver(id)
 		new sAuthid			[MAX_AUTHID_LENGTH];
 		g_playtime[id] = get_systime();
 		get_user_name(id, g_user_name[id], charsmax(g_user_name[]));
-		mysql_escape_string(g_user_name[id], charsmax(g_user_name[]));
 		get_user_authid(id, sAuthid, charsmax(sAuthid));
 		insert_user_info(id, sAuthid);
 	}
@@ -1132,8 +1131,11 @@ public client_infochanged(id)
 
 		get_user_authid(id, sAuthid, charsmax(sAuthid));
 		get_user_name(id, sName, charsmax(sName));
-		mysql_escape_string(sName, charsmax(sName));
-		if (!equali(sName, g_user_name[id])) 
+
+		new szName[MAX_NAME_LENGTH * 2];
+		SQL_QuoteString(g_dbConnect, szName, charsmax(szName), sName);
+
+		if (!equali(szName, g_user_name[id])) 
 		{
 			insert_user_info(id, sAuthid);
 			server_print("[PSD] [%s] User name changed.", sAuthid);
@@ -1149,25 +1151,27 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3]
 	new sql	[MAX_QUERY_LENGTH + 1]	= "";
 	new len = 0;
 	if (equali(sName,""))
-	{
 		get_user_name(id, sName, charsmax(sName));
-		mysql_escape_string(sName, charsmax(sName));
-	}
 
-	if (equali(sAuthId, "BOT"))
+	if (is_user_bot(id))
 		formatex(sName, charsmax(sName), "BOT");
 
 	get_user_ip(id, sIp, charsmax(sIp), 1);
 	geoip_code2_ex(sIp, sGeo);
+
 	g_playtime[id] = (g_playtime[id] <= 0) ? get_systime() : g_playtime[id];
+
 	new playtime = select_user_info(sAuthId) + (get_systime() - g_playtime[id]);
 	g_playtime[id] = get_systime();
+
+	new szName[MAX_NAME_LENGTH * 2];
+	SQL_QuoteString(g_dbConnect, szName, charsmax(szName), sName);
 
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_USER);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, sGeo, playtime);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, szName, sIp, sGeo, playtime);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
 	execute_insert_sql(sql);
@@ -1180,11 +1184,14 @@ insert_user_info_batch(sql[], sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LE
 	new sGeo[3]				= "";
 	new playtime = select_user_info_record(sAuthId, sIp, sGeo);
 
+	new szName[MAX_NAME_LENGTH * 2];
+	SQL_QuoteString(g_dbConnect, szName, charsmax(szName), sName);
+
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_USER);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, sName, sIp, sGeo, playtime);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, szName, sIp, sGeo, playtime);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
 	execute_insert_sql(sql);
@@ -1295,14 +1302,14 @@ execute_insert_multi_query(Handle:query[], count)
 	}
 }
 
-stock mysql_escape_string(dest[],len)
-{
-    //copy(dest, len, source);
-    replace_all(dest,len,"\\","\\\\");
-    replace_all(dest,len,"\0","\\0");
-    replace_all(dest,len,"\n","\\n");
-    replace_all(dest,len,"\r","\\r");
-    replace_all(dest,len,"\x1a","\Z");
-    replace_all(dest,len,"'","\'");
-    replace_all(dest,len,"^"","\^"");
-} 
+// stock mysql_escape_string(dest[],len)
+// {
+//     //copy(dest, len, source);
+//     replace_all(dest,len,"\\","\\\\");
+//     replace_all(dest,len,"\0","\\0");
+//     replace_all(dest,len,"\n","\\n");
+//     replace_all(dest,len,"\r","\\r");
+//     replace_all(dest,len,"\x1a","\Z");
+//     replace_all(dest,len,"'","\'");
+//     replace_all(dest,len,"^"","\^"");
+// } 
