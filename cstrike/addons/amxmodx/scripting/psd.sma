@@ -552,14 +552,17 @@ public plugin_init()
 public round_start()
 {
 	g_server_info[TOTAL_ROUND]++;
-	init_round_info();
+
+	if (g_dbTaple)
+		init_round_info();
 	return PLUGIN_CONTINUE;
 }
 
 public round_end()
 {
 	// Must TASK - Last Point Cant Get.
-	set_task(0.1, "insert_round_end", TASK_ID_ROUND_END);
+	if (g_dbTaple)
+		set_task(0.1, "insert_round_end", TASK_ID_ROUND_END);
 	return PLUGIN_CONTINUE;
 }
 
@@ -1103,9 +1106,9 @@ public client_disconnected(id)
 }
 
 //client connected update
-public client_putinserver(id)
+public client_authorized(id)
 {
-	if (!g_dbConnect)
+	if (!g_dbTaple)
 		return PLUGIN_CONTINUE;
 
 	if(is_user_connected(id))
