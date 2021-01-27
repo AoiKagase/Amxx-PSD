@@ -188,8 +188,7 @@ new g_csstats_reset;
 init_database()
 {
 	new sql[MAX_QUERY_LENGTH + 1];
-	new Handle:queries[10];
-	new len = 0, i = 0;
+	new len = 0;
 
 	// CREATE TABLE info_server.
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_SERVER]);
@@ -199,7 +198,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 		 DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE server_map.		Map infomation.
 	//
@@ -219,7 +218,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 		  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`,`date`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE server_round.	Round infomation.
 	len = 0;
@@ -235,7 +234,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 		 DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`,`date`,`round`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE user_info.
 	len = 0;
@@ -250,7 +249,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at`  	 DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`auth_id`, `name`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE total_stats.	Total Status. (in csstats.dat data)
 	len = 0;
@@ -278,7 +277,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `auth_id`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE user_stats.		User Status Per Game.
 	len = 0;
@@ -307,7 +306,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `date`, `auth_id`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	len = 0;
 	sql = "";
@@ -323,7 +322,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `date`, `auth_id`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE user_rstats.	User Status Per Round.
 	len = 0;
@@ -352,7 +351,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `date`, `round`, `auth_id`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE user_wstats.	Weapon Status Per Game.
 	len = 0;
@@ -380,7 +379,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `date`, `auth_id`, `wpn_name`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE user_wrstats.	Weapon Status Per Round.
 	len = 0;
@@ -409,8 +408,7 @@ init_database()
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `date`, `round`, `auth_id`, `wpn_name`)");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	queries[i++] = SQL_PrepareQuery(g_dbConnect, sql);
-	execute_insert_multi_query(queries ,i);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	return PLUGIN_CONTINUE;
 }
@@ -454,7 +452,7 @@ insert_server_info()
 	);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	execute_insert_sql(sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 }
 
 
@@ -480,7 +478,7 @@ insert_server_map()
 	);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	execute_insert_sql(sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 }
 
 insert_server_round()
@@ -502,7 +500,8 @@ insert_server_round()
 	);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	execute_insert_sql(sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
+
 }
 
 public plugin_init() 
@@ -766,7 +765,7 @@ public insert_batch()
 		);
 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-		execute_insert_sql(sql);
+		SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 		insert_user_info_batch(sql, sAuthid, sName);
 	}
@@ -798,7 +797,8 @@ insert_user_objective(id, sAuthId[])
 	, izObject[STATSX_BOMBS_PLANTED]
 	, izObject[STATSX_BOMB_EXPLOSIONS]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
-	execute_insert_sql(sql);
+
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 }
 
 public insert_map_end()
@@ -898,7 +898,7 @@ insert_round_end_player(id, sAuthId[])
 	);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 	
-	execute_insert_sql(sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 }
 
 insert_map_end_player(id, sAuthId[])
@@ -944,7 +944,7 @@ insert_map_end_player(id, sAuthId[])
 	);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	execute_insert_sql(sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 }
 
 insert_round_end_player_weapon(id, sAuthId[])
@@ -999,7 +999,7 @@ insert_round_end_player_weapon(id, sAuthId[])
 		);
 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-		execute_insert_sql(sql);
+		SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 	}
 }
 
@@ -1054,7 +1054,7 @@ insert_map_end_player_weapon(id, sAuthId[])
 		);
 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-		execute_insert_sql(sql);
+		SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 	}
 }
 
@@ -1174,7 +1174,7 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3]
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, szName, sIp, sGeo, playtime);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	execute_insert_sql(sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 }
 
 insert_user_info_batch(sql[], sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "")
@@ -1194,7 +1194,7 @@ insert_user_info_batch(sql[], sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LE
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, szName, sIp, sGeo, playtime);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	execute_insert_sql(sql);
+	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 }
 
 select_user_info(sAuthId[])
@@ -1275,41 +1275,16 @@ bool:is_valid_authid(sAuthid[])
 	return true;
 }
 
-execute_insert_sql(sql[])
+public QueryHandle(FailState, Handle:Query, Error[], Errcode, Data[], DataSize)
 {
-	if (!g_dbConnect)
-		return;
-
-	new Handle:result[1];
-	result[0] = SQL_PrepareQuery(g_dbConnect, sql);
-	execute_insert_multi_query(result, 1);
+    // lots of error checking
+    if(FailState == TQUERY_CONNECT_FAILED)
+        return set_fail_state("Could not connect to SQL database.");
+    else if(FailState == TQUERY_QUERY_FAILED)
+        return set_fail_state("Query failed.");
+   
+    if(Errcode)
+        return log_amx("Error on query: %s",Error);
+   
+    return PLUGIN_CONTINUE;
 }
-
-execute_insert_multi_query(Handle:query[], count)
-{
-	if (!g_dbConnect)
-		return;
-
-	for(new i = 0; i < count;i++)
-	{
-		if(!SQL_Execute(query[i]))
-		{
-			// if there were any problems
-			SQL_QueryError(query[i], g_dbError, charsmax(g_dbError));
-			set_fail_state(g_dbError);
-		}
-		SQL_FreeHandle(query[i]);
-	}
-}
-
-// stock mysql_escape_string(dest[],len)
-// {
-//     //copy(dest, len, source);
-//     replace_all(dest,len,"\\","\\\\");
-//     replace_all(dest,len,"\0","\\0");
-//     replace_all(dest,len,"\n","\\n");
-//     replace_all(dest,len,"\r","\\r");
-//     replace_all(dest,len,"\x1a","\Z");
-//     replace_all(dest,len,"'","\'");
-//     replace_all(dest,len,"^"","\^"");
-// } 
