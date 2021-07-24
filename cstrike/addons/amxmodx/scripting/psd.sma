@@ -10,7 +10,7 @@
 #include <geoip>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.10"
+#define VERSION					"1.11"
 #define AUTHOR					"Aoi.Kagase"
 #define URL						"github.com/AoiKagase/Amxx-PSD"
 #define DESCRIPTION				"The status of the player and writes in it at a database."
@@ -100,7 +100,7 @@
 #define SQL_END					");"
 
 #define SQL_SELECT_USER_TIME	"SELECT MAX(`online_time`) AS online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id` ORDER BY `online_time` DESC LIMIT 1;"
-#define SQL_SELECT_USER_INFO	"SELECT `auth_id`, `latest_ip`, `geoip_code2`, SUM(`online_time`) as online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id`, `latest_ip`, `geoip_code2` ORDER BY `created_at` desc LIMIT 1;"
+#define SQL_SELECT_USER_INFO	"SELECT `auth_id`, `latest_ip`, `geoip_code2`, `online_time` as online_time FROM `%s`.`%s` WHERE `auth_id` = '%s' GROUP BY `auth_id`, `latest_ip`, `geoip_code2` ORDER BY `created_at` desc LIMIT 1;"
 
 #define TASK_ID_ROUND_END		118855
 
