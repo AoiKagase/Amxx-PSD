@@ -10,7 +10,7 @@
 #include <geoip>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.11"
+#define VERSION					"1.12"
 #define AUTHOR					"Aoi.Kagase"
 #define URL						"github.com/AoiKagase/Amxx-PSD"
 #define DESCRIPTION				"The status of the player and writes in it at a database."
