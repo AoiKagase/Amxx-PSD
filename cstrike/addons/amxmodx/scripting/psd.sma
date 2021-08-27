@@ -1111,14 +1111,12 @@ public client_authorized(id)
 	if (!g_dbTaple)
 		return PLUGIN_CONTINUE;
 
-	if(is_user_connected(id))
-	{
-		new sAuthid			[MAX_AUTHID_LENGTH];
-		g_playtime[id] = get_systime();
-		get_user_name(id, g_user_name[id], charsmax(g_user_name[]));
-		get_user_authid(id, sAuthid, charsmax(sAuthid));
-		insert_user_info(id, sAuthid);
-	}
+	new sAuthid			[MAX_AUTHID_LENGTH];
+	g_playtime[id] = get_systime();
+	get_user_name(id, g_user_name[id], charsmax(g_user_name[]));
+	get_user_authid(id, sAuthid, charsmax(sAuthid));
+	insert_user_info(id, sAuthid);
+
 	return PLUGIN_CONTINUE;
 }
 
@@ -1135,12 +1133,9 @@ public client_infochanged(id)
 		get_user_authid(id, sAuthid, charsmax(sAuthid));
 		get_user_name(id, sName, charsmax(sName));
 
-		new szName[MAX_NAME_LENGTH * 2];
-		SQL_QuoteString(g_dbConnect, szName, charsmax(szName), sName);
-
-		if (!equali(szName, g_user_name[id])) 
+		if (!equali(sName, g_user_name[id])) 
 		{
-			insert_user_info(id, sAuthid);
+			insert_user_info(id, sAuthid, sName);
 			server_print("[PSD] [%s] User name changed.", sAuthid);
 		}
 	}
