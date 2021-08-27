@@ -193,7 +193,7 @@ init_database()
 	// CREATE TABLE info_server.
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_SERVER]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`  		 INT UNSIGNED    NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `server_name`     	 VARCHAR(%d)     NOT NULL DEFAULT 0,", MAX_NAME_LENGTH);
+	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `server_name`     	 VARCHAR(%d)     NOT NULL DEFAULT 0,", MAX_NAME_LENGTH * 2);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 		 DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 		 DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`)");
@@ -441,6 +441,10 @@ insert_server_info()
 	new len = 0;
 	new hostname[MAX_NAME_LENGTH];
 	get_user_name(0, hostname, charsmax(hostname));
+
+	new szName[MAX_NAME_LENGTH * 2];
+	SQL_QuoteString(g_dbConnect, szName, charsmax(szName), hostname);
+
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_SERVER]);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_SERVER_INFO);
@@ -448,7 +452,7 @@ insert_server_info()
 	//"`server_id`,`server_name`"
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_SERVER_INFO
 		, g_server_info[SERVER_ID]
-		, hostname
+		, szName
 	);
 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
