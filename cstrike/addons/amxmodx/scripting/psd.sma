@@ -178,10 +178,13 @@ new g_server_info			[SERVER_INFO];
 new g_server_starttime		[20];
 new g_server_mapname		[MAX_NAME_LENGTH];
 new g_rounds_info			[ROUND_INFO];
-new g_user_name				[MAX_PLAYERS][MAX_NAME_LENGTH * 3];
-new g_playtime				[MAX_PLAYERS];
+new g_user_name				[MAX_PLAYERS + 1][MAX_NAME_LENGTH * 3];
+new g_playtime				[MAX_PLAYERS + 1];
+new g_connected				[MAX_PLAYERS + 1] = false;
 new g_cvars					[E_CVARS];
 new g_initialize;
+new g_iRoundEndTriggered	= 0;
+new g_iRoundEndProcessed	= 0;
 // new g_csstats_reset;
 
 //Create Table
@@ -433,6 +436,9 @@ init_round_info()
 	g_rounds_info[ROUND_TIME]			= get_systime();
 	g_rounds_info[WIN_TEAM]				= int:CS_TEAM_UNASSIGNED;
 	g_rounds_info[WIN_TEAM_SCORE]		= 0;
+
+	g_iRoundEndTriggered = 0;
+	g_iRoundEndProcessed = 0;
 }
 
 insert_server_info()
@@ -556,6 +562,7 @@ public round_start()
 
 	if (g_dbTaple)
 		init_round_info();
+
 	return PLUGIN_CONTINUE;
 }
 
@@ -563,8 +570,15 @@ public round_end()
 {
 	// Must TASK - Last Point Cant Get.
 	if (g_dbTaple)
-		set_task(0.3, "insert_round_end", TASK_ID_ROUND_END);
+		set_task(0.3, "Event_RoundEnd", TASK_ID_ROUND_END);
 	return PLUGIN_CONTINUE;
+}
+
+public Event_RoundEnd(taskid)
+{
+	g_iRoundEndTriggered = 1;
+	// Flag round end triggered.
+	insert_round_end(taskid);
 }
 
 public Event_Win()
@@ -839,6 +853,11 @@ public insert_map_end()
 
 public insert_round_end(taskid)
 {
+	// Bail out if end round stats has already been processed
+	// or round end not triggered.
+	if (g_iRoundEndProcessed || !g_iRoundEndTriggered)
+		return;
+
 	new players	[MAX_PLAYERS];
 	new pnum;
 	new sAuthid	[MAX_AUTHID_LENGTH];
@@ -859,6 +878,9 @@ public insert_round_end(taskid)
 		insert_round_end_player(players[i], sAuthid);
 	}
 	insert_server_round();
+
+	// Flag round end processed.
+	g_iRoundEndProcessed = 1;
 //	insert_batch();
 //	server_print("[PSD] Round End Recorded.");
 }
@@ -1094,10 +1116,34 @@ public reset_database()
 	return PLUGIN_HANDLED;
 }
 
+public client_putinserver(id)
+{
+	g_connected[id] = true;
+
+	if (is_user_connected(id))
+	{
+		new sAuthid			[MAX_AUTHID_LENGTH];
+		g_playtime[id] = get_systime();
+		get_user_name(id, g_user_name[id], charsmax(g_user_name[]));
+		get_user_authid(id, sAuthid, charsmax(sAuthid));
+		insert_user_info(id, sAuthid);
+	}
+}
+
+public client_death(killer, victim, wpnindex, hitplace, TK)
+{
+	if (!g_iRoundEndProcessed)
+	{
+		new sAuthid[MAX_AUTHID_LENGTH];
+		get_user_authid(victim, sAuthid, charsmax(sAuthid));
+		insert_round_end_player(victim, sAuthid);
+	}
+}
+
 //client disconnect update
 public client_disconnected(id)
 {
-	if (!is_user_bot(id))
+	if (!is_user_bot(id) && g_connected[id])
 	{
 		new sAuthid[MAX_AUTHID_LENGTH];
 
@@ -1109,22 +1155,7 @@ public client_disconnected(id)
 		insert_map_end_player_weapon(id, sAuthid);		
 		insert_map_end_player(id, sAuthid);
 	}
-
-	return PLUGIN_CONTINUE;
-}
-
-//client connected update
-public client_authorized(id)
-{
-	if (!g_dbTaple)
-		return PLUGIN_CONTINUE;
-
-	new sAuthid			[MAX_AUTHID_LENGTH];
-	g_playtime[id] = get_systime();
-	get_user_name(id, g_user_name[id], charsmax(g_user_name[]));
-	get_user_authid(id, sAuthid, charsmax(sAuthid));
-	insert_user_info(id, sAuthid);
-
+	g_connected[id] = false;
 	return PLUGIN_CONTINUE;
 }
 
