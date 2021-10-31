@@ -10,7 +10,7 @@
 #include <geoip>
 
 #define PLUGIN					"Player Status in DB"
-#define VERSION					"1.12"
+#define VERSION					"1.13"
 #define AUTHOR					"Aoi.Kagase"
 #define URL						"github.com/AoiKagase/Amxx-PSD"
 #define DESCRIPTION				"The status of the player and writes in it at a database."
@@ -118,7 +118,7 @@ enum TBL_DATA
 	TBL_DATA_MAP			[MAX_NAME_LENGTH],
 	TBL_DATA_ROUND			[MAX_NAME_LENGTH],
 	TBL_DATA_USER			[MAX_NAME_LENGTH], 
-	TBL_DATA_TOTAL_STATS	[MAX_NAME_LENGTH], 
+	// TBL_DATA_TOTAL_STATS	[MAX_NAME_LENGTH], 
 	TBL_DATA_USER_STATS		[MAX_NAME_LENGTH], 
 	TBL_DATA_USER_OBJECTIVE	[MAX_NAME_LENGTH], 
 	TBL_DATA_USER_ROUND		[MAX_NAME_LENGTH], 
@@ -158,7 +158,7 @@ new g_tblNames[TBL_DATA] =
 	"server_map",
 	"server_round",
 	"user_info",
-	"total_stats",
+	// "total_stats",
 	"user_stats",
 	"user_objective",
 	"user_rstats",
@@ -182,7 +182,7 @@ new g_user_name				[MAX_PLAYERS][MAX_NAME_LENGTH * 3];
 new g_playtime				[MAX_PLAYERS];
 new g_cvars					[E_CVARS];
 new g_initialize;
-new g_csstats_reset;
+// new g_csstats_reset;
 
 //Create Table
 init_database()
@@ -252,32 +252,32 @@ init_database()
 	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE total_stats.	Total Status. (in csstats.dat data)
-	len = 0;
-	sql = "";
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_TOTAL_STATS]);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`	INT UNSIGNED    NOT NULL DEFAULT 1,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `auth_id`    	VARCHAR(%d)     NOT NULL,", 	MAX_AUTHID_LENGTH);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_rank`		BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_score`	BIGINT NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_kills`    BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_tks`  	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_deaths`   BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_hits`     BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_dmg`      BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_shots`    BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_hs`  		BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_head`  		BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_chest`  	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_stomach` 	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_larm`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rarm`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_lleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `auth_id`)");
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
-	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
+	// len = 0;
+	// sql = "";
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "CREATE TABLE IF NOT EXISTS `%s`.`%s`", g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_TOTAL_STATS]);
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, " (`server_id`	INT UNSIGNED    NOT NULL DEFAULT 1,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `auth_id`    	VARCHAR(%d)     NOT NULL,", 	MAX_AUTHID_LENGTH);
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_rank`		BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_score`	BIGINT NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_kills`    BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_tks`  	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_deaths`   BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_hits`     BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_dmg`      BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_shots`    BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `csx_hs`  		BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_head`  		BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_chest`  	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_stomach` 	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_larm`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rarm`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_lleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `h_rleg`   	BIGINT UNSIGNED NOT NULL DEFAULT 0,");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `created_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP(),");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, "  `updated_at` 	DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, " PRIMARY KEY (`server_id`, `auth_id`)");
+	// len += formatex(sql[len], MAX_QUERY_LENGTH - len, " );");
+	// SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
 	// CREATE TABLE user_stats.		User Status Per Game.
 	len = 0;
@@ -517,9 +517,9 @@ public plugin_init()
 	#endif
 	check_plugin();
 
-	register_srvcmd("amx_psd_update",		"insert_batch",		-1,	" - Batch processing update in DB.");
+//	register_srvcmd("amx_psd_update",		"insert_batch",		-1,	" - Batch processing update in DB.");
 	register_srvcmd("amx_psd_reset",		"reset_database",	-1,	" - Reset in DB.");
-	register_srvcmd("amx_psd_initialize",	"init_status",		-1,	" - initializing all player status and database.");
+	// register_srvcmd("amx_psd_initialize",	"init_status",		-1,	" - initializing all player status and database.");
 
 	create_cvar("psd_version", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
@@ -535,17 +535,14 @@ public plugin_init()
   	get_configsdir(basedir, charsmax(basedir));
 	formatex(basedir, charsmax(basedir), "%s/sql.cfg", basedir);
   	server_cmd("exec %s", basedir);
-	g_csstats_reset = get_cvar_pointer("csstats_reset");
+	// g_csstats_reset = get_cvar_pointer("csstats_reset");
 
 	// Get Backup Data directory.
 	get_datadir(g_dataDir, charsmax(g_dataDir));
 
-	register_logevent("round_start", 2, "0=World triggered", "1=Round_Start");
-	register_logevent("round_end",   2, "0=World triggered", "1=Round_End");
-	register_logevent("Event_CTWin", 6, "3=CTs_Win", 	 	 "3=Target_Saved", "3=Bomb_Defused", "3=VIP_Escaped", 	   "3=All_Hostages_Rescued", "3=CTs_PreventEscape", "3=Escaping_Terrorists_Neutralized");
-	register_logevent("Event_TRWin", 6, "3=Terrorists_Win",  "3=Target_Bombed", 				 "3=VIP_Assassinated", "3=Hostages_Not_Rescued", "3=Terrorists_Escaped");
-	// register_event("TeamScore", "Event_TRWin", "a", "1=TERRORIST");
-	// register_event("TeamScore", "Event_CTWin", "a", "1=CT");
+	register_event		("SendAudio", "round_end", 	"a", "2=%!MRAD_terwin", "2=%!MRAD_ctwin", "2=%!MRAD_rounddraw");
+	register_event		("RoundTime", "round_start","bc");
+	register_event		("TeamScore", "Event_Win", 	"a");
 
 	g_initialize = false;
 
@@ -566,27 +563,32 @@ public round_end()
 {
 	// Must TASK - Last Point Cant Get.
 	if (g_dbTaple)
-		set_task(0.1, "insert_round_end", TASK_ID_ROUND_END);
+		set_task(0.3, "insert_round_end", TASK_ID_ROUND_END);
 	return PLUGIN_CONTINUE;
 }
 
-public Event_TRWin()
+public Event_Win()
 {
-	g_rounds_info[WIN_TEAM] 			= int:CS_TEAM_T;
-	g_rounds_info[WIN_TEAM_SCORE] 		= read_data(2) - g_server_info[TOTAL_WIN_T_SCORE];
-	g_server_info[TOTAL_WIN_T]++;
-	g_server_info[TOTAL_WIN_T_SCORE] 	= read_data(2);
+	new sTeamID[1 + 1], iTeamScore;
+	read_data(1, sTeamID, charsmax(sTeamID));
+	iTeamScore = read_data(2);
+
+	if (sTeamID[0] == 'C')
+	{
+		g_rounds_info[WIN_TEAM] 			= int:CS_TEAM_CT;
+		g_rounds_info[WIN_TEAM_SCORE] 		= iTeamScore - g_server_info[TOTAL_WIN_CT_SCORE];
+		g_server_info[TOTAL_WIN_CT]++;
+		g_server_info[TOTAL_WIN_CT_SCORE] 	= iTeamScore;
+	}
+	if (sTeamID[0] == 'T')
+	{
+		g_rounds_info[WIN_TEAM] 			= int:CS_TEAM_T;
+		g_rounds_info[WIN_TEAM_SCORE] 		= iTeamScore - g_server_info[TOTAL_WIN_T_SCORE];
+		g_server_info[TOTAL_WIN_T]++;
+		g_server_info[TOTAL_WIN_T_SCORE] 	= iTeamScore;
+	}
+
 //	server_print("[PSD DEBUG] Terrorist Win.");
-	return PLUGIN_CONTINUE;
-}
-
-public Event_CTWin()
-{
-	g_rounds_info[WIN_TEAM] 			= int:CS_TEAM_CT;
-	g_rounds_info[WIN_TEAM_SCORE] 		= read_data(2) - g_server_info[TOTAL_WIN_CT_SCORE];
-	g_server_info[TOTAL_WIN_CT]++;
-	g_server_info[TOTAL_WIN_CT_SCORE] 	= read_data(2);
-//	server_print("[PSD DEBUG] Counter-Terrorist Win.");
 	return PLUGIN_CONTINUE;
 }
 
@@ -636,7 +638,7 @@ public plugin_end()
 	{
 		insert_map_end();
 		insert_server_map();
-		insert_batch();
+//		insert_batch();
 	}
 
 	sql_disconnect();
@@ -682,103 +684,103 @@ sql_disconnect()
 }
 
 //initialize all player status
-public init_status()
-{
-	new datfile[MAX_LENGTH + 10], datfile2[MAX_LENGTH + 20];
-	new datetime[8];
-	formatex(datfile, charsmax(datfile), "%s/csstats.dat", g_dataDir);
-	get_time("%Y%M%D", datetime, charsmax(datetime));
-	formatex(datfile2, charsmax(datfile2), "%s/csstats-%s.bak", g_dataDir, datetime);
-	server_print(datfile);
-	server_print(datfile2);
+// public init_status()
+// {
+// 	new datfile[MAX_LENGTH + 10], datfile2[MAX_LENGTH + 20];
+// 	new datetime[8];
+// 	formatex(datfile, charsmax(datfile), "%s/csstats.dat", g_dataDir);
+// 	get_time("%Y%M%D", datetime, charsmax(datetime));
+// 	formatex(datfile2, charsmax(datfile2), "%s/csstats-%s.bak", g_dataDir, datetime);
+// 	server_print(datfile);
+// 	server_print(datfile2);
 
-	if(file_exists(datfile))
-	{
-		if(rename_file(datfile, datfile2, 1))
-		{
-			delete_file(datfile);
-			reset_database();
-			server_print("[PSD] Initialize Successful, and backup csstats.dat now.");
-			server_print("[PSD] Please reloading server...");
-			set_pcvar_num(g_csstats_reset, 1);
-			g_initialize = true;
-		}
-		else
-		{
-			server_print("[PSD] Initialize Failed...");
-		}
-	}
-	else
-	{
-		server_print("[PSD] Can't Initializing... Sequence Failed...");
-	}
+// 	if(file_exists(datfile))
+// 	{
+// 		if(rename_file(datfile, datfile2, 1))
+// 		{
+// 			delete_file(datfile);
+// 			reset_database();
+// 			server_print("[PSD] Initialize Successful, and backup csstats.dat now.");
+// 			server_print("[PSD] Please reloading server...");
+// 			set_pcvar_num(g_csstats_reset, 1);
+// 			g_initialize = true;
+// 		}
+// 		else
+// 		{
+// 			server_print("[PSD] Initialize Failed...");
+// 		}
+// 	}
+// 	else
+// 	{
+// 		server_print("[PSD] Can't Initializing... Sequence Failed...");
+// 	}
 
-	if (g_initialize)
-	{
-		server_cmd("quit");
-	}
-	return PLUGIN_CONTINUE;
-}
+// 	if (g_initialize)
+// 	{
+// 		server_cmd("quit");
+// 	}
+// 	return PLUGIN_CONTINUE;
+// }
 
 
 //Batch Poccessing
-public insert_batch()
-{
-	new iMax = get_statsnum();
-	new izStats	[STATSX_MAX_STATS];
-	new izBody	[MAX_BODYHITS];
-	new sName	[MAX_NAME_LENGTH] 		= "";
-	new sAuthid	[MAX_AUTHID_LENGTH]		= "";
-	new sql		[MAX_QUERY_LENGTH + 1]	= "";
-	new len = 0;
-	for(new i = 0 ; i < iMax; i++)
-	{
-		len = 0;
-		arrayset(izStats, 0, sizeof(izStats));
-		arrayset(izBody,  0, sizeof(izBody));
-		get_stats(i, izStats, izBody, sName, charsmax(sName), sAuthid, charsmax(sAuthid));
+// public insert_batch()
+// {
+// 	new iMax = get_statsnum();
+// 	new izStats	[STATSX_MAX_STATS];
+// 	new izBody	[MAX_BODYHITS];
+// 	new sName	[MAX_NAME_LENGTH] 		= "";
+// 	new sAuthid	[MAX_AUTHID_LENGTH]		= "";
+// 	new sql		[MAX_QUERY_LENGTH + 1]	= "";
+// 	new len = 0;
+// 	for(new i = 0 ; i < iMax; i++)
+// 	{
+// 		len = 0;
+// 		arrayset(izStats, 0, sizeof(izStats));
+// 		arrayset(izBody,  0, sizeof(izBody));
+// 		get_stats(i, izStats, izBody, sName, charsmax(sName), sAuthid, charsmax(sAuthid));
 
-		if (!is_valid_authid(sAuthid))
-			continue;
-		if (equali(sAuthid, "BOT"))
-			formatex(sName, charsmax(sName), "BOT");
+// 		if (!is_valid_authid(sAuthid))
+// 			continue;
+// 		if (equali(sAuthid, "BOT"))
+// 			formatex(sName, charsmax(sName), "BOT");
 
-		sql = "";
-		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_TOTAL_STATS]);
-		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
-		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_TOTAL_STATS);
-		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_COMMON_STATS);
-		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
-		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_TOTAL_STATS
-			, g_server_info[SERVER_ID]
-			, sAuthid
-			, izStats[STATSX_RANK]
-			,(izStats[STATSX_KILLS] - izStats[STATSX_DEATHS] - izStats[STATSX_TEAMKILLS]));
-		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_COMMON_STATS
-			, izStats[STATSX_KILLS]
-			, izStats[STATSX_TEAMKILLS]
-			, izStats[STATSX_DEATHS]
-			, izStats[STATSX_HITS]
-			, izStats[STATSX_DAMAGE]
-			, izStats[STATSX_SHOTS]
-			, izStats[STATSX_HEADSHOTS]
-			, izBody[HIT_HEAD]
-			, izBody[HIT_CHEST]
-			, izBody[HIT_STOMACH]
-			, izBody[HIT_LEFTARM]
-			, izBody[HIT_RIGHTARM]
-			, izBody[HIT_LEFTLEG]
-			, izBody[HIT_RIGHTLEG]
-		);
-		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
+// 		sql = "";
+// 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_TOTAL_STATS]);
+// 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
+// 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_TOTAL_STATS);
+// 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_COMMON_STATS);
+// 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
+// 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_TOTAL_STATS
+// 			, g_server_info[SERVER_ID]
+// 			, sAuthid
+// 			, izStats[STATSX_RANK]
+// 			,(izStats[STATSX_KILLS] - izStats[STATSX_DEATHS] - izStats[STATSX_TEAMKILLS]));
+// 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_COMMON_STATS
+// 			, izStats[STATSX_KILLS]
+// 			, izStats[STATSX_TEAMKILLS]
+// 			, izStats[STATSX_DEATHS]
+// 			, izStats[STATSX_HITS]
+// 			, izStats[STATSX_DAMAGE]
+// 			, izStats[STATSX_SHOTS]
+// 			, izStats[STATSX_HEADSHOTS]
+// 			, izBody[HIT_HEAD]
+// 			, izBody[HIT_CHEST]
+// 			, izBody[HIT_STOMACH]
+// 			, izBody[HIT_LEFTARM]
+// 			, izBody[HIT_RIGHTARM]
+// 			, izBody[HIT_LEFTLEG]
+// 			, izBody[HIT_RIGHTLEG]
+// 		);
+// 		len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-		SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
+// 		SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 
-		insert_user_info_batch(sql, sAuthid, sName);
-	}
-//	server_print("[PSD] Update successful.");
-	return PLUGIN_HANDLED;
-}
+// 		insert_user_info_batch(sql, sAuthid, sName);
+// 	}
+// //	server_print("[PSD] Update successful.");
+// 	return PLUGIN_HANDLED;
+// }
 
 insert_user_objective(id, sAuthId[])
 {
@@ -813,22 +815,24 @@ public insert_map_end()
 	new players	[MAX_PLAYERS];
 	new pnum;
 	new sAuthid	[MAX_AUTHID_LENGTH];
+	new id;
 
 	get_players(players, pnum, "ch");
 	for(new i = 0; i < pnum; i++)
 	{
-		// if (!is_user_connected(players[i]))
-		// 	continue;
+		id = players[i];
+		sAuthid = "";
 
-		get_user_authid(players[i], sAuthid, charsmax(sAuthid));
+		if (!is_user_connected(id))
+		 	continue;
+
+		get_user_authid(id, sAuthid, charsmax(sAuthid));
 		if (!is_valid_authid(sAuthid))
 			continue;
 
-		insert_map_end_player(players[i], sAuthid);
-
-		insert_map_end_player_weapon(players[i], sAuthid);
-
-		insert_user_info(players[i], sAuthid);
+		insert_map_end_player(id, sAuthid);
+		insert_map_end_player_weapon(id, sAuthid);
+		insert_user_info(id, sAuthid);
 	}
 //	server_print("[PSD] Map End Recorded.");
 }
@@ -1179,25 +1183,25 @@ insert_user_info(id, sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH * 3]
 	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
 }
 
-insert_user_info_batch(sql[], sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "")
-{
-	new len = 0;
-	new sIp	[MAX_IP_LENGTH]	= "";
-	new sGeo[3]				= "";
-	new playtime = select_user_info_record(sAuthId, sIp, sGeo);
+// insert_user_info_batch(sql[], sAuthId[MAX_AUTHID_LENGTH] = "", sName[MAX_NAME_LENGTH] = "")
+// {
+// 	new len = 0;
+// 	new sIp	[MAX_IP_LENGTH]	= "";
+// 	new sGeo[3]				= "";
+// 	new playtime = select_user_info_record(sAuthId, sIp, sGeo);
 
-	new szName[MAX_NAME_LENGTH * 2];
-	SQL_QuoteString(g_dbConnect, szName, charsmax(szName), sName);
+// 	new szName[MAX_NAME_LENGTH * 2];
+// 	SQL_QuoteString(g_dbConnect, szName, charsmax(szName), sName);
 
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_USER);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, szName, sIp, sGeo, playtime);
-	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
+// 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_REPLACE_INTO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER]);
+// 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_START);
+// 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_FIELD_USER);
+// 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_VALUES);
+// 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_PARAM_USER, sAuthId, szName, sIp, sGeo, playtime);
+// 	len += formatex(sql[len], MAX_QUERY_LENGTH - len, SQL_END);
 
-	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
-}
+// 	SQL_ThreadQuery(g_dbTaple, "QueryHandle", sql);
+// }
 
 select_user_info(sAuthId[])
 {
@@ -1229,31 +1233,31 @@ select_user_info(sAuthId[])
 	return online;
 }
 
-select_user_info_record(sAuthId[MAX_AUTHID_LENGTH], ip[MAX_IP_LENGTH], geo[3])
-{
-	new Handle:query = SQL_PrepareQuery(g_dbConnect, SQL_SELECT_USER_INFO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER], sAuthId);
+// select_user_info_record(sAuthId[MAX_AUTHID_LENGTH], ip[MAX_IP_LENGTH], geo[3])
+// {
+// 	new Handle:query = SQL_PrepareQuery(g_dbConnect, SQL_SELECT_USER_INFO, g_dbConfig[DB_NAME], g_tblNames[TBL_DATA_USER], sAuthId);
 	
-	// run the query
-	if(!SQL_Execute(query))
-	{
-		// if there were any problems
-		SQL_QueryError(query,g_dbError, charsmax(g_dbError));
-		set_fail_state(g_dbError);
-    }
+// 	// run the query
+// 	if(!SQL_Execute(query))
+// 	{
+// 		// if there were any problems
+// 		SQL_QueryError(query,g_dbError, charsmax(g_dbError));
+// 		set_fail_state(g_dbError);
+//     }
 
-	new online_time = 0;
-	if (SQL_NumResults(query) > 0)
-	{
-		// SQL_ReadResult(query, 0, sAuthId, charsmax(sAuthId));	// auth_id
-		SQL_ReadResult(query, 1, ip, charsmax(ip));		// ip
-		SQL_ReadResult(query, 2, geo, charsmax(geo));	// geo code
-		online_time = SQL_ReadResult(query, 3);			// time
-	}
+// 	new online_time = 0;
+// 	if (SQL_NumResults(query) > 0)
+// 	{
+// 		// SQL_ReadResult(query, 0, sAuthId, charsmax(sAuthId));	// auth_id
+// 		SQL_ReadResult(query, 1, ip, charsmax(ip));		// ip
+// 		SQL_ReadResult(query, 2, geo, charsmax(geo));	// geo code
+// 		online_time = SQL_ReadResult(query, 3);			// time
+// 	}
 
-	// of course, free the handle
-	SQL_FreeHandle(query);	
-	return online_time;
-}
+// 	// of course, free the handle
+// 	SQL_FreeHandle(query);	
+// 	return online_time;
+// }
 
 bool:is_stats_all_zero(izStats[STATSX_MAX_STATS])
 {
